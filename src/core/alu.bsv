@@ -25,14 +25,35 @@ This module contains single cycle MUL instruction execution.
 
 package alu;
 
+/****************************changes to be made to ISAdefs*************************/
+typedef 64 XLEN;
+/************************************************/
+
+
+
 import defined_types::*;
 `include "defined_parameters.bsv"
 `include "decode.defines"
+//basic mul function
+function mul_core(Bit#(XLEN) op1,Bit#(XLEN) op2,Bool compliment);
+	action
+		let mul_output =op1*op2;
+		if(compliment==True) mul_output=~mul_output+1;
+		return mul_output;
+	endaction
+endfunction
+//basic div function
+function div_core(Bit#(XLEN) op1,Bit#(XLEN) op2,Bool compliment);
+	action
+		let div_output=op1/((op2==0)?1:op2);
+		if(compliment==True) div_output=~div_output+1;
+		return div_output;
+	endaction
+endfunction
+
 	(*noinline*)
-	function Tuple7#(Execution_output, Bit#(`VADDR), Flush_type, Maybe#(Training_data#(`VADDR)),Maybe#(Bit#(`VADDR)), Trap_type, Bit#(`PERFMONITORS)) fn_alu(Bit#(4) fn, Bit#(64) op1, Bit#(64) op2, Bit#(64) immediate_value, Bit#(`VADDR) pc , 
-																												Instruction_type inst_type, Bit#(`VADDR) npc, Bit#(3) funct3, Access_type mem_access, Bit#(5) rd, Bit#(2) prediction,
-																												Bit#(`PERFMONITORS) perfmonitors
-																													`ifdef RV64 ,Bool word32 `endif );
+	function Tuple7#(Execution_output, Bit#(`VADDR), Flush_type,Maybe#(Bit#(`VADDR)), Trap_type,Bit#(64) op1, Bit#(64) op2, Bit#(64) immediate_value, Bit#(`VADDR) pc , 
+			Instruction_type inst_type, Bit#(`VADDR) npc, Bit#(3) funct3,Bit#(3) funct7, Access_type mem_access, Bit#(5) rd,Bool word32 `endif );
 // TODO: use the pc of the previous stage for next-pc. This will save space in the FIFOs																													
 // But what if the instruction in the previous stage has not yet been enqueued (in cases of page/cache misses)
 // In this case you will have to wait untill that instruction arrives before progressing. NEED TO THINK THIS THROUGH
@@ -47,21 +68,43 @@ import defined_types::*;
 							(op1[64-1]==op2[64-1])?adder_output[64-1]:
 							(fn[1]==1)?op2[64-1]:op1[64-1]);
 		// SLL SRL SRA
-		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};
-		Bit#(32) upper_bits=word32?signExtend(fn[3]&op1[31]):op1[63:32];
-		Bit#(64) shift_inright={upper_bits,op1[31:0]};
+		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};//word32 is bool,shift_amt is used to describe the amount of shift
+		Bit#(TDiv#(XLEN,2)) upper_bits=word32?signExtend(fn[3]&op1[31]):op1[63:32];
+		Bit#(XLEN) shift_inright={upper_bits,op1[31:0]};
 		let shin = (fn==`FNSR || fn==`FNSRA)?shift_inright:reverseBits(shift_inright);
 		Int#(TAdd#(64,1)) t=unpack({(fn[3]&shin[64-1]),shin});
-		Int#(64) shift_r=unpack(pack(t>>shift_amt)[64-1:0]);
-		let shift_l=reverseBits(pack(shift_r));
-		Bit#(64) shift_output=((fn==`FNSR || fn==`FNSRA)?pack(shift_r):0) |
-												((fn==`FNSL)?				  pack(shift_l):0); 
+		Int#(XLEN) shift_r=unpack(pack(t>>shift_amt)[64-1:0]);//shift right by shift_amt
+		let shift_l=reverseBits(pack(shift_r));//shift left
+		Bit#(XLEN) shift_output=((fn==`FNSR || fn==`FNSRA)?pack(shift_r):0) | ((fn==`FNSL)?pack(shift_l):0); 
 		// AND OR XOR
 		let logic_output=	((fn==`FNXOR || fn==`FNOR)?op1_xor_op2:0) |
-								((fn==`FNOR || fn==`FNAND)?op1&op2:0);
+								((fn==`FNOR || fn==`FNAND)?op1&op2:0);//why is FNOR checked in the second condition
 		let shift_logic=zeroExtend(pack(fn==`FNSEQ || fn==`FNSNE || fn >= `FNSLT)&compare_out) |
 							 logic_output|shift_output;
-		Bit#(64) final_output = (fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
+		Bit#(XLEN) final_output = (fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
+		
+		
+
+		//********************************mul and div inst***************************
+		Data v1 = op1, v2 = op2;//"Data" is defined in ISA_Defs.bsv,it is raw(unsigned) data reg of size 64
+       	Data_S sop1 = unpack(v1), sop2 = unpack(v2);
+      	Data_U uop1 = unpack(v1), uop2 = unpack(v2);
+      	Data res = ?;
+      	Data_2 res_2 = ?;//Data_2 is 128 bit wide
+      	Bit #(1) sn_op1 = v1[valueof(XLEN)-1], sn_op2 = v2[valueof(XLEN)-1];
+      	Bool take_complement = !(sn_op1 == sn_op2);
+      	Data mop1 = (sn_op1 == 1) ? (~v1+1) : v1;
+      	Data mop2 = (sn_op2 == 1) ? (~v2+1) : v2;    
+      	case ({funct3, funct7})
+         // MUL/DIV Instructions
+        	{f3_MUL,    f7_MUL}     : res_2 <- mul_core(v1, v2, False);
+        	{f3_MULS,    f7_MULS}   : res_2 <- mul_core(mop1, mop2, take_complement);
+        	{f3_DIVU,   f7_DIVU}	: res_2 <-div_core(v1,v2,False);
+         	{f3_DIV,    f7_DIV}     : res_2<- div_core(mop1, mop2,take_complement);
+        endcase
+        Bit#(XLEN) final_output=res_2;
+            //**********************************************
+
 		if(word32)
 			final_output=signExtend(final_output[31:0]);
 		if(inst_type==MEMORY && mem_access==Atomic) // TODO see if this can be avoided
@@ -82,12 +125,6 @@ import defined_types::*;
 			if(new_state>0)
 				new_state=new_state-1;
 		end
-		Training_data#(`VADDR) bp_train = Training_data{pc:pc,branch_address:branch_address,state:new_state};
-		Maybe#(Training_data#(`VADDR)) training_data=tagged Invalid;
-		Maybe#(Bit#(`VADDR)) ras_push=tagged Invalid;
-
-		if(inst_type==BRANCH && final_output[0]==1)
-			perfmonitors[`COND_BRANCH_TAKEN]=1;
 
 		if((inst_type==BRANCH && final_output[0]==1) || inst_type==JAL)
 			effective_address=branch_address;
@@ -105,18 +142,12 @@ import defined_types::*;
 		`endif
 		/*======================================================== */
 		/*==== Generate flush if prediction was wrong or FENCEI ========== */
-		if(inst_type==BRANCH || inst_type==JAL || ((rd != 'b00101 || rd!='b00001) && inst_type==JALR))
-			training_data=tagged Valid bp_train;
 		Flush_type flush=None;
 		if((inst_type==BRANCH || inst_type==JAL || inst_type==JALR) && effective_address!=npc)begin
-			if(inst_type==BRANCH)
-				perfmonitors[`COND_BRANCH_MISPREDICTED]=1;
 			flush=AccessFlush;
 		end
 		else if(inst_type==FENCEI)
 			flush=Fence;
-		if((inst_type==JAL||inst_type==JALR) &&& rd matches 'b00?01) // TODO put on RAS only if rd = ra
-			ras_push=tagged Valid next_pc;
 		/*================================================================ */
 	Trap_type exception=tagged None;
 	if((inst_type==JALR || inst_type==JAL) && effective_address[1]!=0)
