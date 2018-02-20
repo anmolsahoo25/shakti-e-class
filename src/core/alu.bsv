@@ -1,4 +1,4 @@
-/*
+/* 
 Copyright (c) 2013, IIT Madras
 All rights reserved.
 
@@ -27,33 +27,54 @@ package alu;
 
 /****************************changes to be made to ISAdefs*************************/
 typedef 64 XLEN;
+typedef 128 XLEN_2;
+typedef Bit#(XLEN) Data;
+typedef Bit#(XLEN_2) Data_2;
+typedef Int #(XLEN) Data_S;   // Signed register data
+typedef UInt#(XLEN) Data_U;
+typedef Bit #(3)  Funct3;
+typedef Bit #(7)  Funct7;
+Funct3 f3_MUL     = 3'b000;     // 0
+Funct7 f7_MUL     = 7'b0000001; // 1
+Funct3 f3_MULH    = 3'b001;     // 1
+Funct7 f7_MULH    = 7'b0000001; // 1
+Funct3 f3_MULHSU  = 3'b010;     // 2
+Funct7 f7_MULHSU  = 7'b0000001; // 1
+Funct3 f3_MULHU   = 3'b011;     // 3
+Funct7 f7_MULHU   = 7'b0000001; // 1
+Funct3 f3_DIV     = 3'b100;     // 4
+Funct7 f7_DIV     = 7'b0000001; // 1
+Funct3 f3_DIVU    = 3'b101;     // 5
+Funct7 f7_DIVU    = 7'b0000001; // 1
 /************************************************/
 
 
-
+`define VADDR 	39
+`define PADDR   32
 import defined_types::*;
+import defined_parameters::*;
 `include "defined_parameters.bsv"
 `include "decode.defines"
+
 //basic mul function
-function mul_core(Bit#(XLEN) op1,Bit#(XLEN) op2,Bool compliment);
-	action
-		let mul_output =op1*op2;
-		if(compliment==True) mul_output=~mul_output+1;
-		return mul_output;
-	endaction
+(*noinline*)
+function Bit#(XLEN) mul_core(Bit#(XLEN) v1,Bit#(XLEN) v2,Bool compliment);
+		let out =v1*v2;
+		if(compliment==True) out=~out+1;
+		return out;
 endfunction
+
 //basic div function
-function div_core(Bit#(XLEN) op1,Bit#(XLEN) op2,Bool compliment);
-	action
-		let div_output=op1/((op2==0)?1:op2);
-		if(compliment==True) div_output=~div_output+1;
-		return div_output;
-	endaction
+(*noinline*)
+function Bit#(XLEN) div_core(Bit#(XLEN) v1,Bit#(XLEN) v2,Bool compliment);
+		let out=v1/((v2==0)?1:v2);
+		if(compliment==True) out=~out+1;
+		return out;
 endfunction
 
 	(*noinline*)
-	function Tuple7#(Execution_output, Bit#(`VADDR), Flush_type,Maybe#(Bit#(`VADDR)), Trap_type,Bit#(64) op1, Bit#(64) op2, Bit#(64) immediate_value, Bit#(`VADDR) pc , 
-			Instruction_type inst_type, Bit#(`VADDR) npc, Bit#(3) funct3,Bit#(3) funct7, Access_type mem_access, Bit#(5) rd,Bool word32 `endif );
+		function Tuple3#(Execution_output, Bit#(`VADDR),Flush_type) fn_alu(Bit#(4) fn, Bit#(64) op1, Bit#(64) op2, Bit#(64) immediate_value, Bit#(`VADDR) pc , 
+																												Instruction_type inst_type, Bit#(`VADDR) npc, Funct3 funct3,Funct7 funct7, Access_type mem_access, Bit#(5) rd,Bool word32);
 // TODO: use the pc of the previous stage for next-pc. This will save space in the FIFOs																													
 // But what if the instruction in the previous stage has not yet been enqueued (in cases of page/cache misses)
 // In this case you will have to wait untill that instruction arrives before progressing. NEED TO THINK THIS THROUGH
@@ -81,7 +102,7 @@ endfunction
 								((fn==`FNOR || fn==`FNAND)?op1&op2:0);//why is FNOR checked in the second condition
 		let shift_logic=zeroExtend(pack(fn==`FNSEQ || fn==`FNSNE || fn >= `FNSLT)&compare_out) |
 							 logic_output|shift_output;
-		Bit#(XLEN) final_output = (fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
+		//Bit#(XLEN) final_output = (fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
 		
 		
 
@@ -97,24 +118,24 @@ endfunction
       	Data mop2 = (sn_op2 == 1) ? (~v2+1) : v2;    
       	case ({funct3, funct7})
          // MUL/DIV Instructions
-        	{f3_MUL,    f7_MUL}     : res_2 <- mul_core(v1, v2, False);
-        	{f3_MULS,    f7_MULS}   : res_2 <- mul_core(mop1, mop2, take_complement);
-        	{f3_DIVU,   f7_DIVU}	: res_2 <-div_core(v1,v2,False);
-         	{f3_DIV,    f7_DIV}     : res_2<- div_core(mop1, mop2,take_complement);
+        	{f3_MUL,    f7_MUL}     : begin res = mul_core(v1, v2, False); end
+        	//{f3_MULS,    f7_MULS}   : begin res = mul_core(mop1, mop2, take_complement);end
+        	{f3_DIVU,   f7_DIVU}	: begin res = div_core(v1,v2,False);end
+         	{f3_DIV,    f7_DIV}     : begin res = div_core(mop1, mop2,take_complement);end
         endcase
-        Bit#(XLEN) final_output=res_2;
+        Bit#(128) final_output=zeroExtend(res_2);
             //**********************************************
 
 		if(word32)
 			final_output=signExtend(final_output[31:0]);
 		if(inst_type==MEMORY && mem_access==Atomic) // TODO see if this can be avoided
-			final_output=op1;
+			final_output=zeroExtend(op1);
 		/*============================================ */
 		/*====== generate the effective address to jump to ====== */  
 		Bit#(`VADDR) branch_address=truncate(immediate_value)+pc;
 		Bit#(`VADDR) next_pc=pc+4;
 		Bit#(`VADDR) effective_address=0;
-		Bit#(2) new_state=prediction;
+		Bit#(3) new_state=0;
 		if(inst_type==JAL || inst_type==JALR)
 			new_state='b11;
 		else if(final_output[0]==1)begin
@@ -132,7 +153,6 @@ endfunction
 			effective_address=next_pc;
 		else begin
 			effective_address=truncate(final_output);
-			bp_train.branch_address=truncate(final_output);
 		end
 		if(inst_type==JAL || inst_type==JALR)
 			final_output=signExtend(next_pc);
@@ -155,19 +175,19 @@ endfunction
  	Execution_output result;
 		if(inst_type==MEMORY || inst_type==FENCE || inst_type == FENCEI)begin
 			result= tagged MEMORY (Memout{
-				address:final_output,
-				memory_data:immediate_value,
+				address:final_output[31:0],
+				memory_data:immediate_value[31:0],
 				transfer_size:zeroExtend(funct3[1:0]),
 				signextend:~funct3[2],
 				mem_type:(inst_type==FENCE || inst_type==FENCEI)?Fence:mem_access
 				`ifdef atomic ,atomic_op:{pack(word32),fn} `endif	});
 		end
 		else if(inst_type==SYSTEM_INSTR)begin
-			result=tagged SYSTEM (CSRInputs{rs1:op1,rs2:op2,rs1_addr:immediate_value[16:12],funct3:funct3,csr_address:immediate_value[11:0]});	
+			result=tagged SYSTEM (CSRInputs{rs1:op1[31:0],rs2:op2[31:0],rs1_addr:immediate_value[16:12],funct3:funct3,csr_address:immediate_value[11:0]});	
 		end
 		else
-			result=tagged RESULT (Arithout{aluresult:final_output,fflags:0});
-		return tuple7(result,effective_address,flush, training_data,ras_push,exception,perfmonitors);
+			result=tagged RESULT (Arithout{aluresult:final_output[31:0],fflags:0});
+		return tuple3(result,effective_address,flush);
 	endfunction
 
 //	module mkTb(Empty);
