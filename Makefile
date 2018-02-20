@@ -18,12 +18,6 @@ ifneq (,$(findstring RV32,$(ISA)))
 endif
 ifneq (,$(findstring M,$(ISA)))
   define_macros += -D muldiv=True
-  ifeq ($(MUL),sequential)
-     define_macros	+= -D sequential=True
-  endif
-  ifeq ($(MUL),parallel)
-     define_macros	+= -D parallel=True
-  endif
 endif
 ifneq (,$(findstring A,$(ISA)))
   define_macros += -D atomic=True
@@ -34,9 +28,6 @@ endif
 ifeq ($(PERF),enable)
   define_macros	+= -D perf=True
 endif
-ifeq ($(PREFETCH),enable)
-  define_macros	+= -D prefetch=True
-endif
 ifeq ($(JTAG),enable)
   define_macros	+= -D JTAG=True
 endif
@@ -46,62 +37,15 @@ endif
 ifeq ($(OPENOCD),enable)
   define_macros += -D Openocd=True
 endif
-ifeq ($(QSPI0),enable)
-  define_macros += -D QSPI0=True
-endif
-ifeq ($(QSPI1),enable)
-  define_macros += -D QSPI1=True
-endif
-ifeq ($(SDRAM),enable)
-  define_macros += -D SDRAM=True
-endif
-ifeq ($(UART0),enable)
-  define_macros += -D UART0=True
-endif
-ifeq ($(UART1),enable)
-  define_macros += -D UART1=True
-endif
-ifeq ($(BOOTROM),enable)
-  define_macros += -D BOOTROM=True
-endif
-ifeq ($(PLIC),enable)
-  define_macros += -D PLIC=True
-endif
-ifeq ($(I2C0),enable)
-  define_macros += -D I2C0=True
-endif
-ifeq ($(I2C1),enable)
-  define_macros += -D I2C1=True
-endif
-ifeq ($(DMA),enable)
-  define_macros += -D DMA=True
-endif
-ifeq ($(TCM),enable)
-  define_macros += -D TCMemory=True
-endif
-ifeq ($(CLINT),enable)
-  define_macros += -D CLINT=True
-endif
 ifeq ($(SYNTH),SIM)
   define_macros += -D simulate=True
 endif
-ifeq ($(SYNTH),ASIC)
-  define_macros += -D asic=True
-endif
-ifeq ($(SYNTH),FPGA)
-  define_macros += -D fpga=True
-endif
-ifeq ($(FLASHMODEL),micron)
-  define_macros += -D micron=True
-endif
 
-PERIPHERALS:=src/peripherals/bootrom:src/peripherals/clint:src/peripherals/plic:./src/peripherals/uart/:./src/peripherals/tcm/:./src/peripherals/jtagdtm:./src/peripherals/gpio:./src/peripherals/qspi:./src/peripherals/i2c/:./src/peripherals/sdram:./src/peripherals/axiexp:./src/peripherals/dma
-UNCORE:=./src/uncore:./src/uncore/axi4:./src/uncore/debug:./src/uncore/axi4lite
-CORE:=./src/core/fpu:./src/core/
-TESTBENCH:=./src/testbench/
+CORE:=./src/core/
+#TESTBENCH:=./src/testbench/
 LIB:=./src/lib/
 VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS -static --x-assign fast --x-initial fast --noassert --cc --bbox-sys -Wno-STMTDLY -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY -Wno-INFINITELOOP
-BSVINCDIR:= .:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(UNCORE):$(PERIPHERALS):$(TESTBENCH):$(LIB)
+BSVINCDIR:= .:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB)
 default: compile_bluesim link_bluesim 
 
 check-blue:
@@ -220,5 +164,3 @@ clean_verilog: clean
 
 
 restore: clean_verilog
-	@cd verification/tests/directed/benchmarks/; make clean
-	@cd verification/dts/; make clean
