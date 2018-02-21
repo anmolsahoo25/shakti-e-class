@@ -59,7 +59,6 @@ package common_types;
 		Bit#(1) signextend; // whether the loaded value has to be signextended
 		Access_type mem_type; // STORE or AMO or LOAD or FENCE
 		`ifdef atomic Bit#(5) atomic_op;`endif
-		Bit#(1) epochs;
 	}Memout deriving(Bits,Eq,FShow);
 
 	typedef struct{
