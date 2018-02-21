@@ -41,15 +41,6 @@ function Bit#(XLEN) mul_core(Bit#(XLEN) v1,Bit#(XLEN) v2,Bool compliment);
 		if(compliment==True) out=~out+1;
 		return out;
 endfunction
-
-//basic div function
-(*noinline*)
-function Bit#(XLEN) div_core(Bit#(XLEN) v1,Bit#(XLEN) v2,Bool compliment);
-		let out=v1/((v2==0)?1:v2);
-		if(compliment==True) out=~out+1;
-		return out;
-endfunction
-
 	(*noinline*)
 		function Tuple3#(Execution_output, Bit#(PADDR),Flush_type) fn_alu(Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(XLEN) immediate_value, Bit#(PADDR) pc , 
 											Instruction_type inst_type, Bit#(PADDR) npc, Funct3 funct3,Access_type mem_access, Bit#(5) rd,Bool word32);
@@ -93,14 +84,13 @@ endfunction
         		f3_MUL     : begin res= mul_core(v1, v2, False); end
        			f3_MULHSU   : begin res = mul_core(mop1, mop2, take_complement);end
        			endcase
-        		//Bit#(XLEN_2) final_output=res_2;
      /**********************************************/
      	Bit#(XLEN) final_output=(inst_type==MUL)?signExtend(res):(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
 
 		if(word32)
-			Bit#(XLEN) final_output=signExtend(final_output[31:0]);
+			 final_output=signExtend(final_output[31:0]);
 		if(inst_type==MEMORY && mem_access==Atomic) // TODO see if this can be avoided
-			Bit#(XLEN) final_output=zeroExtend(op1);
+			 final_output=zeroExtend(op1);
 		/*============================================ */
 		/*====== generate the effective address to jump to ====== */  
 		Bit#(PADDR) branch_address=truncate(immediate_value)+pc;
@@ -126,7 +116,7 @@ endfunction
 			effective_address=truncate(final_output);
 		end
 		if(inst_type==JAL || inst_type==JALR)
-			Bit#(XLEN) final_output=signExtend(next_pc);
+			 final_output=signExtend(next_pc);
 		`ifdef simulate
 			if(inst_type==BRANCH)
 				final_output=0;
@@ -158,7 +148,17 @@ endfunction
 			result=tagged RESULT (Arithout{aluresult:final_output,fflags:0});
 		return tuple3(result,effective_address,flush);
 	endfunction
+module mkTb(Empty);
 
+	rule test;
+		Bit#(64) op1='h8000000000001234;
+		Int#(64) in1=unpack(op1);
+		Bit#(64) op2='h8000000000001234;
+		let {a,b,c} =fn_alu(`FNSNE,op1,op2,op1,'h07000000,BRANCH,'h08000000,f3_MUL,Load,'h07,False);
+		$display("Output is: :%h Excepted: %h",a,(op1!=op2));
+		$finish(0);
+	endrule:test
+	endmodule
 
 
 endpackage
