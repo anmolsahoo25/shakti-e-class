@@ -52,7 +52,7 @@ endfunction
 
 	(*noinline*)
 		function Tuple3#(Execution_output, Bit#(PADDR),Flush_type) fn_alu(Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(XLEN) immediate_value, Bit#(PADDR) pc , 
-																												Instruction_type inst_type, Bit#(PADDR) npc, Funct3 funct3,Funct7 funct7, Access_type mem_access, Bit#(5) rd,Bool word32);
+											Instruction_type inst_type, Bit#(PADDR) npc, Funct3 funct3,Access_type mem_access, Bit#(5) rd,Bool word32);
 		/*========= Perform all the arithmetic ===== */
 		// ADD* ADDI* SUB* 
 		let inv_op2=(fn[3]==1)?~op2:op2;
@@ -77,34 +77,30 @@ endfunction
 								((fn==`FNOR || fn==`FNAND)?op1&op2:0);//why is `FNOR checked in the second condition
 		let shift_logic=zeroExtend(pack(fn==`FNSEQ || fn==`FNSNE || fn >= `FNSLT)&compare_out) |
 							 logic_output|shift_output;
-		Bit#(XLEN) final_output = (fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
-		
-		
 
 		/********************************mul and div inst***************************/
-//			Data v1 = op1, v2 = op2;//"Data" is defined in ISA_Defs.bsv,it is raw(unsigned) data reg of size 64
-//       	Data_S sop1 = unpack(v1), sop2 = unpack(v2);
-//      	Data_U uop1 = unpack(v1), uop2 = unpack(v2);
-//      	Data res = ?;
-//      	Data_2 res_2 = ?;//Data_2 is 128 bit wide
-//      	Bit #(1) sn_op1 = v1[valueof(XLEN)-1], sn_op2 = v2[valueof(XLEN)-1];
-//      	Bool take_complement = !(sn_op1 == sn_op2);
-//      	Data mop1 = (sn_op1 == 1) ? (~v1+1) : v1;
-//      	Data mop2 = (sn_op2 == 1) ? (~v2+1) : v2;    
-//      	case ({funct3, funct7})
-//         // MUL/DIV Instructions
-//        	{f3_MUL,    f7_MUL}     : begin res = mul_core(v1, v2, False); end
-//        	//{f3_MULS,    f7_MULS}   : begin res = mul_core(mop1, mop2, take_complement);end
-//        	{f3_DIVU,   f7_DIVU}	: begin res = div_core(v1,v2,False);end
-//         	{f3_DIV,    f7_DIV}     : begin res = div_core(mop1, mop2,take_complement);end
-//        endcase
-//        Bit#(XLEN) final_output=zeroExtend(res_2);
+				Data v1 = op1, v2 = op2;//"Data" is defined in ISA_Defs.bsv,it is raw(unsigned) data reg of size 64
+       			Data_S sop1 = unpack(v1), sop2 = unpack(v2);
+      			Data_U uop1 = unpack(v1), uop2 = unpack(v2);
+      			Data res = ?;
+      			//Data_2 res_2 = ?;//Data_2 is 128 bit wide
+      			Bit #(1) sn_op1 = v1[valueof(XLEN)-1], sn_op2 = v2[valueof(XLEN)-1];
+      			Bool take_complement = !(sn_op1 == sn_op2);
+		      	Data mop1 = (sn_op1 == 1) ? (~v1+1) : v1;
+		      	Data mop2 = (sn_op2 == 1) ? (~v2+1) : v2;    
+      			case (funct3)
+		         // MUL/DIV Instructions
+        		f3_MUL     : begin res= mul_core(v1, v2, False); end
+       			f3_MULHSU   : begin res = mul_core(mop1, mop2, take_complement);end
+       			endcase
+        		//Bit#(XLEN_2) final_output=res_2;
      /**********************************************/
+     	Bit#(XLEN) final_output=(inst_type==MUL)?signExtend(res):(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
 
 		if(word32)
-			final_output=signExtend(final_output[31:0]);
+			Bit#(XLEN) final_output=signExtend(final_output[31:0]);
 		if(inst_type==MEMORY && mem_access==Atomic) // TODO see if this can be avoided
-			final_output=zeroExtend(op1);
+			Bit#(XLEN) final_output=zeroExtend(op1);
 		/*============================================ */
 		/*====== generate the effective address to jump to ====== */  
 		Bit#(PADDR) branch_address=truncate(immediate_value)+pc;
@@ -130,7 +126,7 @@ endfunction
 			effective_address=truncate(final_output);
 		end
 		if(inst_type==JAL || inst_type==JALR)
-			final_output=signExtend(next_pc);
+			Bit#(XLEN) final_output=signExtend(next_pc);
 		`ifdef simulate
 			if(inst_type==BRANCH)
 				final_output=0;
@@ -162,5 +158,7 @@ endfunction
 			result=tagged RESULT (Arithout{aluresult:final_output,fflags:0});
 		return tuple3(result,effective_address,flush);
 	endfunction
+
+
 
 endpackage
