@@ -81,8 +81,10 @@ endfunction
 		      	Data mop2 = (sn_op2 == 1) ? (~v2+1) : v2;    
       			case (funct3)
 		         // MUL/DIV Instructions
-        		f3_MUL     : begin res= mul_core(v1, v2, False); end
-       			f3_MULHSU  : begin res = mul_core(mop1, mop2, take_complement);end
+        		f3_MUL    : begin res= mul_core(v1, v2, False); end
+       			f3_MULHSU : begin res = mul_core(mop1, mop2, take_complement);end
+         		f3_MULH   : begin res = mul_core(mop1, mop2, take_complement);end
+         		f3_MULHU  : begin res = mul_core(op1, op2, False); end
        			endcase
 
      /**********************************************/
@@ -362,6 +364,7 @@ module mkTb(Empty);
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
 			$display("output matches with the golden output at test number=%d",test_counter);
+			$finish(0);
 		end
 		else
 		begin
