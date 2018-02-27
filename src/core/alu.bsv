@@ -43,7 +43,7 @@ function Bit#(XLEN) mul_core(Bit#(XLEN) v1,Bit#(XLEN) v2,Bool complement);
 endfunction
 	(*noinline*)
 		function Tuple3#(Execution_output, Bit#(PADDR),Flush_type) fn_alu(Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(XLEN) immediate_value, Bit#(PADDR) pc , 
-											Instruction_type inst_type, Bit#(PADDR) npc, Funct3 funct3,Access_type mem_access, Bit#(5) rd,Bool word32);
+											Instruction_type inst_type, Funct3 funct3,Access_type mem_access, Bit#(5) rd,Bool word32);
 		/*========= Perform all the arithmetic ===== */
 		// ADD* ADDI* SUB* 
 		let inv_op2=(fn[3]==1)?~op2:op2;
@@ -71,7 +71,7 @@ endfunction
 
 		/********************************mul and div inst***************************/
 				//Data v1 = op1, v2 = op2;//"Data" is defined in ISA_Defs.bsv,it is raw(unsigned) data reg of size 64
-				Data operand1=?;Data operand2=?;Bool is32Bit=False;
+		/*		Data operand1=?;Data operand2=?;Bool is32Bit=False;
 
        			Data_S sop1 = unpack(op1), sop2 = unpack(op2);
       			Data_U uop1 = unpack(op1), uop2 = unpack(op2);
@@ -90,9 +90,10 @@ endfunction
        			else if(funct3==f3_MULH)begin operand1=mop1;operand2=mop2;is32Bit=take_complement; end
        			else if(funct3==f3_MULHU)begin operand1=op1;operand2=op2;is32Bit=False; end
        			res=mul_core(operand1,operand2,is32Bit);
-
+*/
      /**********************************************/
-     	Bit#(XLEN) final_output=(inst_type==MUL)?signExtend(res):(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
+     	//Bit#(XLEN) final_output=(inst_type==MUL)?signExtend(res):(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
+     	Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
 
 		if(word32)
 			 final_output=signExtend(final_output[31:0]);
@@ -101,29 +102,12 @@ endfunction
 		/*============================================ */
 		/*====== generate the effective address to jump to ====== */  
 		Bit#(PADDR) branch_address=truncate(immediate_value)+pc;
-		/*Bit#(PADDR) next_pc=pc+4;*/
 		Bit#(PADDR) effective_address=0;
-		Bit#(3) new_state=0;
-		if(inst_type==JAL || inst_type==JALR)
-			new_state='b11;																			
-		else if(final_output[0]==1)begin
-			if(new_state<3)
-				new_state=new_state+1;
-		end
-		else begin
-			if(new_state>0)
-				new_state=new_state-1;
-		end
-
 		if((inst_type==BRANCH && final_output[0]==1) || inst_type==JAL)
 			effective_address=branch_address;
-/*		else if(inst_type==BRANCH && final_output[0]==0)
-			effective_address=next_pc;
-		else begin
-			effective_address=truncate(final_output);
-		end*/
-		if(inst_type==JAL || inst_type==JALR)
-			 final_output=signExtend(npc);/*next_pc*/
+
+//		if(inst_type==JAL || inst_type==JALR)
+//			 final_output=signExtend(npc);/*next_pc*/
 		`ifdef simulate
 			if(inst_type==BRANCH)
 				final_output=0;
@@ -131,7 +115,7 @@ endfunction
 		/*======================================================== */
 		/*==== Generate flush if prediction was wrong or FENCEI ========== */
 		Flush_type flush=None;
-		if((inst_type==BRANCH || inst_type==JAL || inst_type==JALR) && effective_address!=npc)begin
+		if((inst_type==BRANCH || inst_type==JAL || inst_type==JALR))begin
 			flush=Flush;
 		end
 		/*================================================================ */
@@ -161,7 +145,7 @@ module mkTb(Empty);
 	rule test1;
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNADD,op1,op2,op1,'h07000000,ALU,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNADD,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=op1+op2;
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -177,7 +161,7 @@ module mkTb(Empty);
 	rule test2;
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNSUB,op1,op2,op1,'h07000000,ALU,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNSUB,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=op1-op2;
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -192,7 +176,7 @@ module mkTb(Empty);
 	rule test3;
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNSNE,op1,op2,op1,'h07000000,ALU,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNSNE,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=zeroExtend(pack(op1!=op2));
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -207,7 +191,7 @@ module mkTb(Empty);
 	rule test4;
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNSEQ,op1,op2,op1,'h07000000,ALU,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNSEQ,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=zeroExtend(pack(op1==op2));
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -223,7 +207,7 @@ module mkTb(Empty);
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
 		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};
-		let {a,b,c} =fn_alu(`FNSR,op1,op2,op1,'h07000000,ALU,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNSR,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=op1>>shift_amt;
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -239,7 +223,7 @@ module mkTb(Empty);
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
 		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};
-		let {a,b,c} =fn_alu(`FNSRA,op1,op2,op1,'h07000000,ALU,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNSRA,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=op1>>shift_amt;
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -255,7 +239,7 @@ module mkTb(Empty);
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
 		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};
-		let {a,b,c} =fn_alu(`FNSL,op1,op2,op1,'h07000000,ALU,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNSL,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=reverseBits(op1>>shift_amt);
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -270,7 +254,7 @@ module mkTb(Empty);
 	rule test8;
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNXOR,op1,op2,op1,'h07000000,ALU,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNXOR,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=op1^op2;
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -285,7 +269,7 @@ module mkTb(Empty);
 	rule test9;
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNOR,op1,op2,op1,'h07000000,ALU,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNOR,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=op1|op2;
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -300,7 +284,7 @@ module mkTb(Empty);
 	rule test10;
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNSLT,op1,op2,op1,'h07000000,ALU,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNSLT,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=zeroExtend(pack(op1<op2));
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -315,7 +299,7 @@ module mkTb(Empty);
 	rule test11;
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,ALU,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=op1&op2;
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -332,7 +316,7 @@ module mkTb(Empty);
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
 		Bit#(PADDR) next_pc='h07000000+4;
-		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,JAL,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,JAL,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=signExtend(next_pc);
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -348,7 +332,7 @@ module mkTb(Empty);
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
 		Bit#(PADDR) next_pc='h07000000+4;
-		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,JALR,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,JALR,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=signExtend(next_pc);
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -363,7 +347,7 @@ module mkTb(Empty);
 	rule test14;
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,BRANCH,'h08000000,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,BRANCH,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=0;
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
