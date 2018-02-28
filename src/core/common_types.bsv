@@ -1,15 +1,20 @@
 package common_types;
 	import isa_defs::*;
+	`include "common_params.bsv"
 
-	typedef 64 XLEN;
+	`ifdef RV64
+		typedef 64 XLEN;
+	`else
+		typedef 32 XLEN;
+	`endif
 	typedef 128 XLEN_2;
 	typedef Bit#(XLEN) Data;
 	typedef Bit#(XLEN_2) Data_2;
 	typedef Int #(XLEN) Data_S;   // Signed register data
 	typedef UInt#(XLEN) Data_U;
 	typedef 32 PADDR ;
-	typedef enum {ALU,MUL,DIV,MEMORY,BRANCH,JAL,JALR,SYSTEM_INSTR,NOP}Instruction_type deriving(Bits, Eq,FShow); // the type of the decoded instruction.
-	typedef enum {Load, Store, Atomic} Access_type deriving (Bits,Eq,FShow);
+	typedef enum {ALU,MULDIV,MEMORY,BRANCH,JAL_R,SYSTEM_INSTR}Instruction_type deriving(Bits, Eq,FShow); // the type of the decoded instruction.
+	typedef enum {Load, Store} Access_type deriving (Bits,Eq,FShow);
 	typedef enum {Flush,None} Flush_type deriving (Bits,Eq,FShow);
 	typedef enum {
 		Inst_addr_misaligned=0,

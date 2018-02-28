@@ -41,10 +41,12 @@ function Bit#(XLEN) mul_core(Bit#(XLEN) v1,Bit#(XLEN) v2,Bool complement);
 		out=(complement==True)?(~(out)+1):out;
 		return out;
 endfunction
+
+
 	(*noinline*)
-		function Tuple7#(Bit#(XLEN),Bit#(XLEN),Bit#(5),Bit#(2),Bit#(12),Bit#(1),Tuple5#(Access_type,Funct3,Bit#(TDiv#(XLEN,2)),Bit#(PADDR),Flush_type))
-				fn_alu(Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(XLEN) immediate_value, Bit#(PADDR) pc , 
-						Instruction_type inst_type, Bit#(PADDR) npc, Funct3 funct3,Access_type mem_access, Bit#(5) rd,Bool word32);		/*========= Perform all the arithmetic ===== */
+		function Tuple5#(Instruction_type,Bit#(XLEN),Bit#(XLEN),Bit#(5),Bit#(15))
+				fn_alu (Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(XLEN) immediate_value, Bit#(PADDR) pc , 
+						Instruction_type inst_type, Funct3 funct3,Access_type mem_access, Bit#(5) rd,Bool word32);		/*========= Perform all the arithmetic ===== */
 		// ADD* ADDI* SUB* 
 		let inv_op2=(fn[3]==1)?~op2:op2;
 		let op1_xor_op2=op1^inv_op2;
@@ -52,15 +54,19 @@ endfunction
 		// SLT SLTU
 		Bit#(1) compare_out=fn[0]^(
 							(fn[3]==0)?pack(op1_xor_op2==0):
-							(op1[64-1]==op2[64-1])?adder_output[64-1]:
-							(fn[1]==1)?op2[64-1]:op1[64-1]);
+							(op1[valueOf(XLEN)-1]==op2[valueOf(XLEN)-1])?adder_output[valueOf(XLEN)-1]:
+							(fn[1]==1)?op2[valueOf(XLEN)-1]:op1[valueOf(XLEN)-1]);
 		// SLL SRL SRA
 		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};//word32 is bool,shift_amt is used to describe the amount of shift
-		Bit#(TDiv#(XLEN,2)) upper_bits=word32?signExtend(fn[3]&op1[31]):op1[63:32];
-		Bit#(XLEN) shift_inright={upper_bits,op1[31:0]};
+		`ifdef RV64
+			Bit#(TDiv#(XLEN,2)) upper_bits=word32?signExtend(fn[3]&op1[31]):op1[63:32];
+			Bit#(XLEN) shift_inright={upper_bits,op1[31:0]};
+		`else
+			Bit#(XLEN) shift_inright=op1[31:0];
+		`endif
 		let shin = (fn==`FNSR || fn==`FNSRA)?shift_inright:reverseBits(shift_inright);
-		Int#(TAdd#(64,1)) t=unpack({(fn[3]&shin[64-1]),shin});
-		Int#(XLEN) shift_r=unpack(pack(t>>shift_amt)[64-1:0]);//shift right by shift_amt
+		Int#(TAdd#(XLEN,1)) t=unpack({(fn[3]&shin[valueOf(XLEN)-1]),shin});
+		Int#(XLEN) shift_r=unpack(pack(t>>shift_amt)[valueOf(XLEN)-1:0]);//shift right by shift_amt
 		let shift_l=reverseBits(pack(shift_r));//shift left
 		Bit#(XLEN) shift_output=((fn==`FNSR || fn==`FNSRA)?pack(shift_r):0) | ((fn==`FNSL)?pack(shift_l):0); 
 		// AND OR XOR
@@ -92,74 +98,48 @@ endfunction
        			res=mul_core(operand1,operand2,is32Bit);
 */
      /**********************************************/
-     	//Bit#(XLEN) final_output=(inst_type==MUL)?signExtend(res):(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
      	Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
-
 		if(word32)
 			 final_output=signExtend(final_output[31:0]);
-		if(inst_type==MEMORY && mem_access==Atomic) // TODO see if this can be avoided
-			 final_output=zeroExtend(op1);
-		/*============================================ */
-		/*====== generate the effective address to jump to ====== */  
-		Bit#(PADDR) branch_address=truncate(immediate_value)+pc;
-		Bit#(PADDR) effective_address=0;
-		if((inst_type==BRANCH && final_output[0]==1) || inst_type==JAL)
-			effective_address=branch_address;
 
-//		if(inst_type==JAL || inst_type==JALR)
-//			 final_output=signExtend(npc);/*next_pc*/
+		/*============================================ */
+		/*==== Generate flush if prediction was wrong ========== */
+		Flush_type flush=None;
+		if((inst_type==BRANCH && final_output[0]==1) || inst_type==JAL_R )begin
+			flush=Flush;
+		end
+		/*================================================================ */
+		/*====== generate the effective address to jump to ====== */  
+		Bit#(PADDR) effective_address=truncate(immediate_value)+pc;
+		Bit#(PADDR) npc=pc+4;
+		if(inst_type==JAL_R)
+			 final_output=signExtend(npc);
 		`ifdef simulate
 			if(inst_type==BRANCH)
 				final_output=0;
 		`endif
 		/*======================================================== */
-		/*==== Generate flush if prediction was wrong or FENCEI ========== */
-		Flush_type flush=None;
-		if((inst_type==BRANCH || inst_type==JAL || inst_type==JALR))begin
-			flush=Flush;
-		end
-		/*================================================================ */
-	Trap_type exception=tagged None;
-	if((inst_type==JALR || inst_type==JAL) && effective_address[1]!=0)
-		exception=tagged Exception Inst_addr_misaligned;
+//	Trap_type exception=tagged None;
+//	if((inst_type==JAL_R) && effective_address[1]!=0)
+//		exception=tagged Exception Inst_addr_misaligned;
+
+
+	// Explanation of the return type:
+	// First field		:  Instruction_type: This fields holds the type of instruction being executed.
+	// Second field	:	Bit#(XLEN)	:	if instruction is SYSTEM_INSTR then this holds op1. If the instruction is MEMORY then the lower
+	//												PADDR bits hold the address of the Load/Store. Else it holds the result of the ALU operation.
+	// Third field		:	Bit#(XLEN)	:	if instruction is SYSTEM_INSTR then this holds op2. if instruction is MEMORY then this holds
+	//												the data for Store operations. Else it holds the effective branch address in case of BRANCH or JAL operations
+	// Fourth field	:	Bit#(5)		:  if instruction is SYSTEM_INSTR then this holds the address of rs1. Else this field holds the concatenation
+	//												of {Flush (if pc needs to change), transfer_size, signextend and type of mem_access}
+	// Fifth	field		:	Bit#(15)		:	This holds the concatenation of funct3 and the 12-bit CSR address.
 	
-	 /*let main_output={(inst_type==MEMORY)? tagged MEMORY(Memout{memory_data:immediate_value}) : tagged RESULT(Arithout{aluresult:final_output},(inst_type==SYSTEM_INSTR)? tagged SYSTEM(CSRInputs{rs1_addr:immediate_value[16:12]}): tagged RESULT(Arithout{fflags:0}),
-	 		(inst_type==MEMORY)? tagged MEMORY(Memout{address:truncate(final_output)}):tagged SYSTEM (CSRInputs{csr_address:immediate_value[11:0]}),
-	 		(inst_type==MEMORY)? tagged MEMORY(Memout{mem_type:mem_access}):tagged SYSTEM (CSRInputs{rs1:op1}),(inst_type==MEMORY)? tagged MEMORY(Memout{transfer_size:zeroExtend(funct3[1:0])}):tagged SYSTEM (CSRInputs{rs1:op1}),
-	 		(inst_type==SYSTEM_INSTR)? tagged SYSTEM(CSRInputs{funct3:funct3}):signextend:~funct3[2],(inst_type==MEMORY)? tagged MEMORY(Memout{atomic_op:{pack(word32),fn}}:?}
-	*/
-	Bit#(XLEN)	bit64_out1=(inst_type==MEMORY)?immediate_value:op1;//if MEMORY type then immediate_value otherwise op1
-	Bit#(XLEN)	bit64_out2=(inst_type==SYSTEM_INSTR)?op2:final_output;//if SYSTEM_INSTR type then op2 otherwise final output for aluresult 
-	Bit#(5) 	bit5_out=(inst_type==SYSTEM_INSTR)?immediate_value[16:12]:((inst_type==MEMORY)?{pack(word32),fn}:0);
-	Bit#(2) 	transfer_size=(inst_type==MEMORY)?zeroExtend(funct3[1:0]):?;
-	Bit#(12)	csr_address=(inst_type==SYSTEM_INSTR)?immediate_value[11:0]:?;
-	Access_type mem_type=(inst_type==MEMORY)?mem_access:?;
-	Funct3 funct=(inst_type==SYSTEM_INSTR)?funct3:?;
-	Bit#(TDiv#(XLEN,2)) bit32_out= (inst_type==MEMORY)?truncate(final_output):?;
-	Bit#(1)		signextend=(inst_type==MEMORY)?~funct3[2]:?;
+	Bit#(XLEN) address_op1_result=inst_type==SYSTEM_INSTR?op1:final_output;
+	Bit#(XLEN) data_op2_effaddr  =inst_type==SYSTEM_INSTR?op2:inst_type==MEMORY?immediate_value:zeroExtend(effective_address);
+	Bit#(5)	  meminfo_rs1addr	  =inst_type==SYSTEM_INSTR?immediate_value[16:12]:{pack(flush),funct3[1:0],~funct3[2],pack(mem_access)};
+	Bit#(15)	  funct3_addr		  ={funct3,immediate_value[11:0]};
 
-	Tuple5#(Access_type,Funct3,Bit#(TDiv#(XLEN,2)),Bit#(PADDR),Flush_type) semi_rst=tuple5(mem_type,funct,bit32_out,effective_address,flush);
-	
-	return tuple7(bit64_out1,bit64_out2,bit5_out,transfer_size,csr_address,signextend,semi_rst);
-
-
-
- 	/*Execution_output result;
-		if(inst_type==MEMORY)begin
-			result= tagged MEMORY (Memout{
-				address:truncate(final_output),
-				memory_data:immediate_value,
-				transfer_size:zeroExtend(funct3[1:0]),
-				signextend:~funct3[2],
-				mem_type:mem_access
-				`ifdef atomic ,atomic_op:{pack(word32),fn} `endif	});
-		end
-		else if(inst_type==SYSTEM_INSTR)begin
-			result=tagged SYSTEM (CSRInputs{rs1:op1,rs2:op2,rs1_addr:immediate_value[16:12],funct3:funct3,csr_address:immediate_value[11:0]});	
-		end
-		else
-			result=tagged RESULT (Arithout{aluresult:final_output,fflags:0});
-		return tuple3(result,effective_address,flush);*/
+	return tuple5(inst_type,address_op1_result,data_op2_effaddr,meminfo_rs1addr,funct3_addr);
 	endfunction
 /*module mkTb(Empty);
 	Reg#(Bit#(5)) test_counter <- mkReg(0);
@@ -338,7 +318,7 @@ endfunction
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
 		Bit#(PADDR) next_pc='h07000000+4;
-		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,JAL,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,JAL_R,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=signExtend(next_pc);
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
@@ -354,7 +334,7 @@ endfunction
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
 		Bit#(PADDR) next_pc='h07000000+4;
-		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,JALR,f3_MUL,Load,'h07,word32);
+		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,JAL_R,f3_MUL,Load,'h07,word32);
 		Bit#(64) correct_output=signExtend(next_pc);
 		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
 		begin
