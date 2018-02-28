@@ -42,9 +42,9 @@ function Bit#(XLEN) mul_core(Bit#(XLEN) v1,Bit#(XLEN) v2,Bool complement);
 		return out;
 endfunction
 	(*noinline*)
-		function Tuple3#(Execution_output, Bit#(PADDR),Flush_type) fn_alu(Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(XLEN) immediate_value, Bit#(PADDR) pc , 
-											Instruction_type inst_type, Funct3 funct3,Access_type mem_access, Bit#(5) rd,Bool word32);
-		/*========= Perform all the arithmetic ===== */
+		function Tuple7#(Bit#(XLEN),Bit#(XLEN),Bit#(5),Bit#(2),Bit#(12),Bit#(1),Tuple5#(Access_type,Funct3,Bit#(TDiv#(XLEN,2)),Bit#(PADDR),Flush_type))
+				fn_alu(Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(XLEN) immediate_value, Bit#(PADDR) pc , 
+						Instruction_type inst_type, Bit#(PADDR) npc, Funct3 funct3,Access_type mem_access, Bit#(5) rd,Bool word32);		/*========= Perform all the arithmetic ===== */
 		// ADD* ADDI* SUB* 
 		let inv_op2=(fn[3]==1)?~op2:op2;
 		let op1_xor_op2=op1^inv_op2;
@@ -122,7 +122,29 @@ endfunction
 	Trap_type exception=tagged None;
 	if((inst_type==JALR || inst_type==JAL) && effective_address[1]!=0)
 		exception=tagged Exception Inst_addr_misaligned;
- 	Execution_output result;
+	
+	 /*let main_output={(inst_type==MEMORY)? tagged MEMORY(Memout{memory_data:immediate_value}) : tagged RESULT(Arithout{aluresult:final_output},(inst_type==SYSTEM_INSTR)? tagged SYSTEM(CSRInputs{rs1_addr:immediate_value[16:12]}): tagged RESULT(Arithout{fflags:0}),
+	 		(inst_type==MEMORY)? tagged MEMORY(Memout{address:truncate(final_output)}):tagged SYSTEM (CSRInputs{csr_address:immediate_value[11:0]}),
+	 		(inst_type==MEMORY)? tagged MEMORY(Memout{mem_type:mem_access}):tagged SYSTEM (CSRInputs{rs1:op1}),(inst_type==MEMORY)? tagged MEMORY(Memout{transfer_size:zeroExtend(funct3[1:0])}):tagged SYSTEM (CSRInputs{rs1:op1}),
+	 		(inst_type==SYSTEM_INSTR)? tagged SYSTEM(CSRInputs{funct3:funct3}):signextend:~funct3[2],(inst_type==MEMORY)? tagged MEMORY(Memout{atomic_op:{pack(word32),fn}}:?}
+	*/
+	Bit#(XLEN)	bit64_out1=(inst_type==MEMORY)?immediate_value:op1;//if MEMORY type then immediate_value otherwise op1
+	Bit#(XLEN)	bit64_out2=(inst_type==SYSTEM_INSTR)?op2:final_output;//if SYSTEM_INSTR type then op2 otherwise final output for aluresult 
+	Bit#(5) 	bit5_out=(inst_type==SYSTEM_INSTR)?immediate_value[16:12]:((inst_type==MEMORY)?{pack(word32),fn}:0);
+	Bit#(2) 	transfer_size=(inst_type==MEMORY)?zeroExtend(funct3[1:0]):?;
+	Bit#(12)	csr_address=(inst_type==SYSTEM_INSTR)?immediate_value[11:0]:?;
+	Access_type mem_type=(inst_type==MEMORY)?mem_access:?;
+	Funct3 funct=(inst_type==SYSTEM_INSTR)?funct3:?;
+	Bit#(TDiv#(XLEN,2)) bit32_out= (inst_type==MEMORY)?truncate(final_output):?;
+	Bit#(1)		signextend=(inst_type==MEMORY)?~funct3[2]:?;
+
+	Tuple5#(Access_type,Funct3,Bit#(TDiv#(XLEN,2)),Bit#(PADDR),Flush_type) semi_rst=tuple5(mem_type,funct,bit32_out,effective_address,flush);
+	
+	return tuple7(bit64_out1,bit64_out2,bit5_out,transfer_size,csr_address,signextend,semi_rst);
+
+
+
+ 	/*Execution_output result;
 		if(inst_type==MEMORY)begin
 			result= tagged MEMORY (Memout{
 				address:truncate(final_output),
@@ -137,9 +159,9 @@ endfunction
 		end
 		else
 			result=tagged RESULT (Arithout{aluresult:final_output,fflags:0});
-		return tuple3(result,effective_address,flush);
+		return tuple3(result,effective_address,flush);*/
 	endfunction
-module mkTb(Empty);
+/*module mkTb(Empty);
 	Reg#(Bit#(5)) test_counter <- mkReg(0);
 	Bool word32=False;
 	rule test1;
@@ -360,5 +382,5 @@ module mkTb(Empty);
 			$finish(0);
 		end
 	endrule
-	endmodule
+	endmodule*/
 endpackage
