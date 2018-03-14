@@ -2,7 +2,7 @@
 `define FNSL	1	
 `define FNLR	2	
 `define FNSEQ	2	
-`define FNSC   3	
+`define FNSC    3	
 `define FNSNE	3	
 `define FNXOR	4	
 `define FNSR	5	
@@ -23,3 +23,19 @@
 
 `define FNRAND	8
 `define RV64
+
+/////////////////////////////////////////////////////////////////////////
+////////////////////// opcode definitions of ISA ////////////////////////
+`define JAL_R_op			'b11001
+`define BRANCH_op			'b11000
+`define LOAD_op				'b00000
+`define STORE_op			'b01000
+`define IMM_ARITH_op	    'b00100
+`define	ARITH_op			'b01100
+`ifdef RV64
+	`define IMM_ARITHW_op	'b00110
+	`define	ARITHW_op		'b01110
+	`define MULDIVW_op		'b01110
+`endif
+`define	SYSTEM_INSTR_op		'b11100
+`define	MULDIV_op			'b01100
