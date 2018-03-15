@@ -1,6 +1,9 @@
 package fetch_decode;
 	
 	import GetPut::*;
+	import FIFOF::*;
+
+	import isa_defs::*;
 	import common_types::*;
     `include "common_params.bsv"
 
@@ -97,6 +100,23 @@ package fetch_decode;
       		end
       		else if(opcode==`JAL_R_op || opcode==`LOAD_op || opcode==`STORE_op)
       			fn=0;
+      		else if(opcode==`IMM_ARITH_op)begin
+			fn=case(funct3)
+				'b010: 'b1100;
+				'b011: 'b1110;
+				'b101: 'b0101;
+				default:{1'b0,funct3};
+			endcase;
+			end
+			else if(opcode==`ARITH_op)begin
+				fn=case(funct3)
+					'b000:'b0000;
+					'b010:'b1100;
+					'b011:'b1110;
+					'b101:'b0101;
+					default:{1'b0,funct3};
+			endcase;
+			end		
       		else if(opcode[4:3]=='b10)	
       			fn=opcode[3:0];
 
@@ -109,25 +129,39 @@ package fetch_decode;
 
 /***************************************************Interface for the fetch and decode unit***************************************/
 	interface Ifc_fetch_decode;
-		interface Put#(Bit#(32)) inst_in;//instruction whose addr is needed
-		interface Get#(Bit#(32)) inst_addr;//addr of the given inst
+		interface Get#(Bit#(32)) inst_in;//instruction whose addr is needed
+		interface Put#(Bit#(32)) inst_addr;//addr of the given inst
+		interface Get#(FIFOF#(Tuple7#(Bit#(XLEN),Bit#(XLEN),Bit#(5),Bit#(4),Funct3,Instruction_type,Bit#(XLEN)))) to_opfetch_unit;/*rs1,rs2,rd,fn,funct3,instruction_type  all of this will be passed on to opfetch and execute unit*/
 	endinterface:Ifc_fetch_decode
 /***************************************************************************************************************************/
 
 	module mkFetch_decode(Ifc_fetch_decode);
 
-		Reg#(Bit#(TDiv#(XLEN,2))) pc <- mkRegU;//making program counter
-		/*Method description*/	
-		interface inst_in=interface Put
-			method Action put(Bit#(32) instruction);
+		Reg#(Bit#(32)) pc <- mkRegU;//making program counter
+		FIFOF#(Tuple7#(Bit#(XLEN),Bit#(XLEN),Bit#(5),Bit#(4),Funct3,Instruction_type,Bit#(XLEN))) to_exe_unit<-mkSizedFIFOF(1);
+		
+
+		/*********************************************Interface description****************************************/	
+		
+		interface inst_in=interface Get//instruction whose addr is needed
+			method ActionValue#(Bit#(32)) get;
+				return pc;//for testing purpose
 			endmethod
 		endinterface;
 
-		interface inst_addr= interface Get
-			/*method ActionValue(Bit#(32)) get;
-				return 
-			endmethod*/
+		interface inst_addr= interface Put//getting response from bus 
+			method Action put (Bit#(32) inst);
+				let instruction=inst;//reading the value given by the bus
+				let {fn,rs1,rs2,rd,rs1type,rs2type,rdtype,inst_type,immediate_value,word32,mem_access,funct3}=decoder_func(instruction);//calling the decoder function 
+				Tuple7#(Bit#(XLEN),Bit#(XLEN),Bit#(5),Bit#(4),Funct3,Instruction_type,Bit#(XLEN)) x= tuple7(rs1,rs2,rd,fn,funct3,inst_type,immediate_value);
+				to_exe_unit.enq(x);
+			endmethod
 		endinterface;
 
+		interface to_opfetch_unit=interface Get//placing the inst. details in FIFO, which is to be read by opfetch unit
+			method ActionValue#(FIFOF#(Tuple7#(Bit#(XLEN),Bit#(XLEN),Bit#(5),Bit#(4),Funct3,Instruction_type,Bit#(XLEN)))) get;
+				return to_exe_unit;
+			endmethod
+		endinterface;
 	endmodule:mkFetch_decode
 endpackage:fetch_decode
