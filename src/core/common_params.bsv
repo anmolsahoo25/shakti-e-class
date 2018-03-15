@@ -1,4 +1,4 @@
-`define FNADD  0	
+`define FNADD   0	
 `define FNSL	1	
 `define FNLR	2	
 `define FNSEQ	2	
@@ -37,5 +37,16 @@
 	`define	ARITHW_op		'b01110
 	`define MULDIVW_op		'b01110
 `endif
+`define	CSR_op				'b11100
 `define	SYSTEM_INSTR_op		'b11100
 `define	MULDIV_op			'b01100
+
+////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////// funct3 defintions for ISA ////////////////////
+
+`define MUL_f3		'b000
+`define MULH_f3		'b001
+`define MULHSU_f3	'b010
+`define MULHU_f3	'b011
+`define DIV_f3		'b100
+`define DIVU_f3		'b101
