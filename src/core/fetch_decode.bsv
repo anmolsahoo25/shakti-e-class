@@ -5,9 +5,10 @@ package fetch_decode;
 
 	import isa_defs::*;
 	import common_types::*;
+
     `include "common_params.bsv"
 
-    typedef struct
+    /*typedef struct
     {
       Bit#(4) fn;  
       Bit#(5) rs1;  
@@ -15,27 +16,27 @@ package fetch_decode;
       Bit#(5) rd;  
       Operand_type rs1type;  
       Operand_type rs2type; 
-      Operand_type rdtype; 
       Instruction_type inst_type; 
       Bit#(XLEN) immediate_value; 
       Bool word32; 
       Access_type mem_access;    
       Bit#(3) funct3; 
-    } Decoder_returnvalue deriving(Bits,Eq,FShow);
+    } Decoder_returnvalue deriving(Bits,Eq,FShow);*/
+
 
     (*noinline*)
-    function Decoder_returnvalue decoder_func(Bit#(32) inst);
+    function Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
+    	Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type)) decoder_func(Bit#(32) inst);
 			Bit#(5) rs1=inst[19:15];
 			Bit#(5) rs2=inst[24:20];
 			Bit#(5) rd =inst[11:7] ;
-			Bit#(5) opcode= inst[6:2];//should it be [6:2]
+			Bit#(5) opcode= inst[6:2];
 			Bit#(3) funct3= inst[14:12];
 			Bool word32 =False;
 
 			//operand types
 			Operand_type rs1type=IntegerRF;
 			Operand_type rs2type=IntegerRF;
-			Operand_type rdtype=IntegerRF;
 
 			//memory access type
 			Access_type mem_access=Load;
@@ -121,47 +122,60 @@ package fetch_decode;
       			fn=opcode[3:0];
 
 
-      	return (Decoder_returnvalue {fn:fn,rs1:rs1,rs2:rs2,rd:rd, 
-                        rs1type:rs1type,rs2type:rs2type,rdtype:rdtype, 
-                        inst_type:inst_type,immediate_value:immediate_value, 
-                        word32:word32,mem_access:mem_access,funct3:funct3});		
+      	/*return (Decoder_returnvalue {fn:fn,rs1:rs1,rs2:rs2,rd:rd, 
+                        rs1type:rs1type,rs2type:rs2type,inst_type:inst_type,immediate_value:immediate_value, 
+                        word32:word32,mem_access:mem_access,funct3:funct3});*/		
+            Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type) type_tuple = tuple4(rs1type,rs2type,inst_type,mem_access)            ;
+            return tuple8(fn,rs1,rs2,rd,immediate_value, 
+                        word32,funct3,type_tuple);            
     endfunction
 
 /***************************************************Interface for the fetch and decode unit***************************************/
 	interface Ifc_fetch_decode;
 		interface Get#(Bit#(32)) inst_in;//instruction whose addr is needed
 		interface Put#(Bit#(32)) inst_addr;//addr of the given inst
-		interface Get#(FIFOF#(Tuple7#(Bit#(XLEN),Bit#(XLEN),Bit#(5),Bit#(4),Funct3,Instruction_type,Bit#(XLEN)))) to_opfetch_unit;/*rs1,rs2,rd,fn,funct3,instruction_type  all of this will be passed on to opfetch and execute unit*/
+		interface Get#(FIFOF#(Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
+    	Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type)))) to_opfetch_unit;/*rs1,rs2,rd,fn,funct3,instruction_type  all of this will be passed on to opfetch and execute unit*/
 	endinterface:Ifc_fetch_decode
 /***************************************************************************************************************************/
-
+	
 	module mkFetch_decode(Ifc_fetch_decode);
 
 		Reg#(Bit#(32)) pc <- mkRegU;//making program counter
-		FIFOF#(Tuple7#(Bit#(XLEN),Bit#(XLEN),Bit#(5),Bit#(4),Funct3,Instruction_type,Bit#(XLEN))) to_exe_unit<-mkSizedFIFOF(1);
+		Reg#(Bit#(32)) shadow_pc <-mkRegU;//shadow pc to preserve it
+		FIFOF#((Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type)))) to_exe_unit<-mkSizedFIFOF(1);
 		
 
 		/*********************************************Interface description****************************************/	
 		
 		interface inst_in=interface Get//instruction whose addr is needed
 			method ActionValue#(Bit#(32)) get;
-				return pc;//for testing purpose
+				shadow_pc<=pc;
+				return pc+4;
 			endmethod
 		endinterface;
 
 		interface inst_addr= interface Put//getting response from bus 
 			method Action put (Bit#(32) inst);
 				let instruction=inst;//reading the value given by the bus
-				let {fn,rs1,rs2,rd,rs1type,rs2type,rdtype,inst_type,immediate_value,word32,mem_access,funct3}=decoder_func(instruction);//calling the decoder function 
-				Tuple7#(Bit#(XLEN),Bit#(XLEN),Bit#(5),Bit#(4),Funct3,Instruction_type,Bit#(XLEN)) x= tuple7(rs1,rs2,rd,fn,funct3,inst_type,immediate_value);
+				//let {fn,rs1,rs2,rd,rs1type,rs2type,inst_type,immediate_value,word32,mem_access,funct3}=decoder_func(instruction);//calling the decoder function 
+				Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
+    	             Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type)) x= decoder_func(instruction);
 				to_exe_unit.enq(x);
 			endmethod
 		endinterface;
 
 		interface to_opfetch_unit=interface Get//placing the inst. details in FIFO, which is to be read by opfetch unit
-			method ActionValue#(FIFOF#(Tuple7#(Bit#(XLEN),Bit#(XLEN),Bit#(5),Bit#(4),Funct3,Instruction_type,Bit#(XLEN)))) get;
+			method ActionValue#(FIFOF#(Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
+    	             Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type)))) get;
 				return to_exe_unit;
 			endmethod
 		endinterface;
 	endmodule:mkFetch_decode
+
+	//test bench
+	module mkTest;
+
+	endmodule
+
 endpackage:fetch_decode
