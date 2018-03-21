@@ -41,12 +41,12 @@ function Bit#(XLEN) mul_core(Bit#(XLEN) v1,Bit#(XLEN) v2,Bool complement);
 		out=(complement==True)?(~(out)+1):out;
 		return out;
 endfunction
-
-
+// noinline creates these functions as seperate modules during synthesis in vivado
 	(*noinline*)
 		function Tuple5#(Instruction_type,Bit#(XLEN),Bit#(XLEN),Bit#(5),Bit#(15))
 				fn_alu (Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(XLEN) immediate_value, Bit#(PADDR) pc , 
-						Instruction_type inst_type, Funct3 funct3,Access_type mem_access, Bit#(5) rd,Bool word32);		/*========= Perform all the arithmetic ===== */
+						Instruction_type inst_type, Funct3 funct3,Access_type mem_access, Bit#(5) rd,Bool word32);
+								/*========= Perform all the arithmetic ===== */
 		// ADD* ADDI* SUB* 
 		let inv_op2=(fn[3]==1)?~op2:op2;
 		let op1_xor_op2=op1^inv_op2;
@@ -60,9 +60,9 @@ endfunction
 		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};//word32 is bool,shift_amt is used to describe the amount of shift
 		`ifdef RV64
 			Bit#(TDiv#(XLEN,2)) upper_bits=word32?signExtend(fn[3]&op1[31]):op1[63:32];
-			Bit#(XLEN) shift_inright={upper_bits,op1[31:0]};
+			Bit#(XLEN) shift_inright={upper_bits,op1[31:0]};//size of 64 bit
 		`else
-			Bit#(XLEN) shift_inright=op1[31:0];
+			Bit#(XLEN) shift_inright=zeroExtend(op1[31:0]);//size of 32bit
 		`endif
 		let shin = (fn==`FNSR || fn==`FNSRA)?shift_inright:reverseBits(shift_inright);
 		Int#(TAdd#(XLEN,1)) t=unpack({(fn[3]&shin[valueOf(XLEN)-1]),shin});
@@ -71,13 +71,13 @@ endfunction
 		Bit#(XLEN) shift_output=((fn==`FNSR || fn==`FNSRA)?pack(shift_r):0) | ((fn==`FNSL)?pack(shift_l):0); 
 		// AND OR XOR
 		let logic_output=	((fn==`FNXOR || fn==`FNOR)?op1_xor_op2:0) |
-								((fn==`FNOR || fn==`FNAND)?op1&op2:0);//why is `FNOR checked in the second condition
+								((fn==`FNOR || fn==`FNAND)?op1&op2:0);
 		let shift_logic=zeroExtend(pack(fn==`FNSEQ || fn==`FNSNE || fn >= `FNSLT)&compare_out) |
 							 logic_output|shift_output;
 
 		/********************************mul and div inst***************************/
 				//Data v1 = op1, v2 = op2;//"Data" is defined in ISA_Defs.bsv,it is raw(unsigned) data reg of size 64
-		/*		Data operand1=?;Data operand2=?;Bool is32Bit=False;
+				/*Data operand1=?;Data operand2=?;Bool is32Bit=False;
 
        			Data_S sop1 = unpack(op1), sop2 = unpack(op2);
       			Data_U uop1 = unpack(op1), uop2 = unpack(op2);
@@ -95,7 +95,7 @@ endfunction
        			else if(funct3==f3_MULHSU)begin operand1=mop1;operand2=op2;is32Bit=take_complement; end
        			else if(funct3==f3_MULH)begin operand1=mop1;operand2=mop2;is32Bit=take_complement; end
        			else if(funct3==f3_MULHU)begin operand1=op1;operand2=op2;is32Bit=False; end
-       			res=mul_core(operand1,operand2,is32Bit);
+       			res=mul_core(operand1,operand2,is32Bit);//creates only single instance of the multiplier
 */
      /**********************************************/
      	Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
@@ -137,230 +137,202 @@ endfunction
 	Bit#(XLEN) address_op1_result=inst_type==SYSTEM_INSTR?op1:final_output;
 	Bit#(XLEN) data_op2_effaddr  =inst_type==SYSTEM_INSTR?op2:inst_type==MEMORY?immediate_value:zeroExtend(effective_address);
 	Bit#(5)	  meminfo_rs1addr	  =inst_type==SYSTEM_INSTR?immediate_value[16:12]:{pack(flush),funct3[1:0],~funct3[2],pack(mem_access)};
-	Bit#(15)	  funct3_addr		  ={funct3,immediate_value[11:0]};
+	Bit#(15)   funct3_addr	 ={funct3,immediate_value[11:0]};
 
 	return tuple5(inst_type,address_op1_result,data_op2_effaddr,meminfo_rs1addr,funct3_addr);
 	endfunction
-/*module mkTb(Empty);
-	Reg#(Bit#(5)) test_counter <- mkReg(0);
+module mkTb(Empty);
+	Reg#(Bit#(5)) test_counter <- mkReg(1);
 	Bool word32=False;
-	rule test1;
+	Reg#(Bool) fire1<-mkReg(True);
+	Reg#(Bool) fire2<-mkReg(True);
+	Reg#(Bool) fire3<-mkReg(True);
+	Reg#(Bool) fire4<-mkReg(True);
+	Reg#(Bool) fire5<-mkReg(True);
+	Reg#(Bool) fire7<-mkReg(True);
+	Reg#(Bool) fire8<-mkReg(True);
+	Reg#(Bool) fire9<-mkReg(True);
+	Reg#(Bool) fire10<-mkReg(True);
+	Reg#(Bool) fire11<-mkReg(True);
+	Reg#(Bool) fire12<-mkReg(True);
+	Reg#(Bool) fire13<-mkReg(True);
+	(*descending_urgency="test1,test2,test3,test4,test5,test7,test8,test9,test10,test11,test12,test13"*)
+
+	(*fire_when_enabled*)
+	rule test1(fire1);
+		Bit#(XLEN) op1='h8000000000001234;
+		Bit#(XLEN) op2='h8000000000001234;
+		let {a,b,c,d,e} =fn_alu(`FNADD,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
+		Bit#(XLEN) correct_output1=op1+op2;
+		//if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
+		if(!(b==correct_output1))
+		begin
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output1);
+			$finish(0);
+		end
+		fire1<=False;
+		test_counter<=test_counter+1;
+	endrule
+	rule test2(fire2);
+		Bit#(XLEN) op1='h8000000000001234;
+		Bit#(XLEN) op2='h8000000000001234;
+		let {a,b,c,d,e} =fn_alu(`FNSUB,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
+		Bit#(XLEN) correct_output2=op1-op2;
+		if(!(b==correct_output2))
+		begin
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output2);	
+			$finish(0);
+		end
+		fire2<=False;
+		test_counter<=test_counter+1;
+	endrule
+	rule test3(fire3);
+		Bit#(XLEN) op1='h8000000000001234;
+		Bit#(XLEN) op2='h8000000000001234;
+		let {a,b,c,d,e} =fn_alu(`FNSNE,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
+		Bit#(XLEN) correct_output3=zeroExtend(pack(op1!=op2));
+		if(!(b==correct_output3))
+		begin
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output3);			
+			$finish(0);
+		end
+		fire3<=False;
+		test_counter<=test_counter+1;
+	endrule
+	rule test4(fire4);
+		Bit#(XLEN) op1='h8000000000001234;
+		Bit#(XLEN) op2='h8000000000001234;
+		let {a,b,c,d,e} =fn_alu(`FNSEQ,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
+		Bit#(XLEN) correct_output4=zeroExtend(pack(op1==op2));
+		if(!(b==correct_output4))
+		begin
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output4);
+			$finish(0);
+		end
+		fire4<=False;
+		test_counter<=test_counter+4;
+	endrule
+	rule test5(fire5);
+		Bit#(XLEN) op1='h8000000000001234;
+		Bit#(XLEN) op2='h8000000000001234;
+		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};
+		let {a,b,c,d,e} =fn_alu(`FNSR,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
+		Bit#(XLEN) correct_output5=op1>>shift_amt;
+		if(!(b==correct_output5))
+		begin
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output5);
+			$finish(0);
+		end
+		fire5<=False;
+		test_counter<=test_counter+2;//added two bcaz the next test is skipped
+	endrule
+	/*rule test6(fire6);
 		Bit#(64) op1='h8000000000001234;
 		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNADD,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=op1+op2;
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
+		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};
+		let {a,b,c,d,e} =fn_alu(`FNSRA,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
+		Bit#(64) correct_output6=op1>>shift_amt;
+		if(!(b==correct_output6))
 		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output6);
+			$finish(0);
 		end
-		else
+		fire6<=False;
+		test_counter<=test_counter+1;
+	endrule*/
+	rule test7(fire7);
+		Bit#(XLEN) op1='h8000000000001234;
+		Bit#(XLEN) op2='h8000000000001234;
+		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};
+		let {a,b,c,d,e} =fn_alu(`FNSL,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
+		Bit#(XLEN) correct_output=reverseBits(op1>>shift_amt);
+		if(!(b==correct_output))
 		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output);
 			$finish(0);
 		end
 		test_counter<=test_counter+1;
 	endrule
-	rule test2;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNSUB,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=op1-op2;
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
+	rule test8(fire8);
+		Bit#(XLEN) op1='h8000000000001234;
+		Bit#(XLEN) op2='h8000000000001234;
+		let {a,b,c,d,e} =fn_alu(`FNXOR,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
+		Bit#(XLEN) correct_output8=op1^op2;
+		if(!(b==correct_output8))
 		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output8);
 			$finish(0);
 		end
+		test_counter<=test_counter+1;
+		fire8<=False;
 	endrule
-	rule test3;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNSNE,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=zeroExtend(pack(op1!=op2));
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
+	rule test9(fire9);
+		Bit#(XLEN) op1='h8000000000001234;
+		Bit#(XLEN) op2='h8000000000001234;
+		let {a,b,c,d,e} =fn_alu(`FNOR,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
+		Bit#(XLEN) correct_output9=op1|op2;
+		if(!(b==correct_output9))
 		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output9);
 			$finish(0);
 		end
+		fire9<=False;
+		test_counter<=test_counter+1;
 	endrule
-	rule test4;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNSEQ,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=zeroExtend(pack(op1==op2));
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
+	rule test10(fire10);
+		Bit#(XLEN) op1='h8000000000001234;
+		Bit#(XLEN) op2='h8000000000001234;
+		let {a,b,c,d,e} =fn_alu(`FNSLT,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
+		Bit#(XLEN) correct_output10=zeroExtend(pack(op1<op2));
+		if(!(b==correct_output10))
 		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output10);
 			$finish(0);
 		end
+		fire10<=False;
+		test_counter<=test_counter+1;
 	endrule
-	rule test5;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};
-		let {a,b,c} =fn_alu(`FNSR,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=op1>>shift_amt;
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
+	rule test11(fire11);
+		Bit#(XLEN) op1='h8000000000001234;
+		Bit#(XLEN) op2='h8000000000001234;
+		let {a,b,c,d,e} =fn_alu(`FNAND,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
+		Bit#(XLEN) correct_output11=op1&op2;
+		if(!(b==correct_output11))
 		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output11);
 			$finish(0);
 		end
-	endrule
-	rule test6;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};
-		let {a,b,c} =fn_alu(`FNSRA,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=op1>>shift_amt;
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
-		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
-			$finish(0);
-		end
-	endrule
-	rule test7;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};
-		let {a,b,c} =fn_alu(`FNSL,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=reverseBits(op1>>shift_amt);
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
-		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
-			$finish(0);
-		end
-	endrule
-	rule test8;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNXOR,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=op1^op2;
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
-		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
-			$finish(0);
-		end
-	endrule
-	rule test9;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNOR,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=op1|op2;
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
-		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
-			$finish(0);
-		end
-	endrule
-	rule test10;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNSLT,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=zeroExtend(pack(op1<op2));
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
-		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
-			$finish(0);
-		end
-	endrule
-	rule test11;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,ALU,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=op1&op2;
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
-		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
-			$finish(0);
-		end
+		fire11<=False;
+		test_counter<=test_counter+1;
 	endrule
 				 
-	rule test12;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		Bit#(PADDR) next_pc='h07000000+4;
-		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,JAL_R,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=signExtend(next_pc);
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
+	rule test12(fire12);
+		Bit#(XLEN) op1='h8000000000001234;
+		Bit#(XLEN) op2='h8000000000001234;
+		Bit#(PADDR) npc='h07000000+4;
+		let {a,b,c,d,e} =fn_alu(`FNADD,op1,op2,op1,'h07000000,JAL_R,f3_MUL,Load,'h07,word32);
+		Bit#(XLEN) correct_output12=signExtend(npc);
+		if(!(b==correct_output12))
 		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output12);
 			$finish(0);
 		end
+		fire12<=False;
 	endrule
-	rule test13;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		Bit#(PADDR) next_pc='h07000000+4;
-		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,JAL_R,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=signExtend(next_pc);
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
+	rule test13(fire13);
+		Bit#(XLEN) op1='h8000000000001234;
+		Bit#(XLEN) op2='h8000000000001234;
+		let {a,b,c,d,e} =fn_alu(`FNAND,op1,op2,op1,'h07000000,BRANCH,f3_MUL,Load,'h07,word32);
+		Bit#(XLEN) correct_output13=truncate(op1)+'h07000000;
+		if(!(b==correct_output13))
 		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
+			$display("output does't match with the golden output at test number=%d,b=%d,correct_output=%d",test_counter,b,correct_output13);
 			$finish(0);
 		end
+		fire13<=False;
+		$display("test finished,test_number=%d",test_counter);
+		$finish(0);
+		test_counter<=test_counter+1;
 	endrule
-	rule test14;
-		Bit#(64) op1='h8000000000001234;
-		Bit#(64) op2='h8000000000001234;
-		let {a,b,c} =fn_alu(`FNAND,op1,op2,op1,'h07000000,BRANCH,f3_MUL,Load,'h07,word32);
-		Bit#(64) correct_output=0;
-		if(a matches tagged RESULT .inter &&& inter.aluresult==correct_output)
-		begin
-			$display("output matches with the golden output at test number=%d",test_counter);
-			$finish(0);
-		end
-		else
-		begin
-			$display("output does't match with the golden output at test number=%d",test_counter);
-			$finish(0);
-		end
-	endrule
-	endmodule*/
-endpackage
+endmodule:mkTb
+endpackage:alu
