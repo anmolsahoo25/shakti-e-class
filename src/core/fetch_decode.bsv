@@ -1,7 +1,7 @@
 package fetch_decode;
 /*packages to be imported*/	
 	import GetPut::*;
-	import Connectable::*;
+	import TxRx	::*;
 	import FIFO::*;
 
 
@@ -119,24 +119,35 @@ package fetch_decode;
                         word32,funct3,type_tuple);            
     endfunction
 
-/***************************************************Interface for the fetch and decode unit***************************************/
+//=============================================Interface for the fetch and decode unit=========================================
 	interface Ifc_fetch_decode;
 		interface Get#(Bit#(32)) inst_in;//instruction whose addr is needed
 		interface Put#(Bit#(32)) inst_addr;//addr of the given inst
-		interface Get#(Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
-    	Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type))) to_opfetch_unit;/*rs1,rs2,rd,fn,funct3,instruction_type  all of this will be passed on to opfetch and execute unit*/
+		
+//		new TXRX interface added to replace the previous GET interface		
+
+//		interface Get#(Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
+//   	Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type))) to_opfetch_unit;/*rs1,rs2,rd,fn,funct3,instruction_type  all of this will be passed on to opfetch and execute unit*/
+
+
+    	interface TXe#(Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
+    		Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type))) to_opfetch_unit;/*rs1,rs2,rd,fn,funct3,instruction_type  all of this will be passed on to opfetch and execute unit*/
+
 	endinterface:Ifc_fetch_decode
-/***************************************************************************************************************************/
+//=====================================================================================================================
 	(*synthesize*)
 	module mkFetch_decode(Ifc_fetch_decode);
 
 		Reg#(Bit#(32)) pc <- mkRegU;//making program counter
 		Reg#(Bit#(32)) shadow_pc <-mkRegU;//shadow pc to preserve it
-		
-		FIFO#((Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type)))) to_exe_unit<-mkSizedFIFO(1);
+		TX#(Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
+    	Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type))) tx<-mkTX;//instantiating the tx interface with name tx
+
+		//TXRX replaced FIFO for the communication with the opfetch unit
+		//FIFO#((Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type)))) to_exe_unit<-mkSizedFIFO(1);
 		
 
-		/*********************************************Interface description****************************************/	
+		//==================================================Interface description============================================
 		
 		interface inst_in=interface Get//instruction whose addr is needed
 			method ActionValue#(Bit#(32)) get;
@@ -151,16 +162,23 @@ package fetch_decode;
 				//let {fn,rs1,rs2,rd,rs1type,rs2type,inst_type,immediate_value,word32,mem_access,funct3}=decoder_func(instruction);//calling the decoder function 
 				Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
     	             Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type)) x= decoder_func(inst);
-				to_exe_unit.enq(x);
+				
+				//to_exe_unit.enq(x);//fifo enq
+
+				tx.u.enq(x);//enq the output of the decoder function in the tx interface
 			endmethod
 		endinterface;
 
-		interface to_opfetch_unit=interface Get//placing the inst. details in FIFO, which is to be read by opfetch unit
+		/*interface to_opfetch_unit=interface Get//placing the inst. details in FIFO, which is to be read by opfetch unit
 			method ActionValue#(Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
     	             Tuple4#(Operand_type,Operand_type,Instruction_type,Access_type))) get;
 					to_exe_unit.deq;
 				return to_exe_unit.first;
 			endmethod
-		endinterface;
+		endinterface;*/
+
+		interface to_opfetch_unit=tx.e;//providing the output of the decoder function to the opfetch unit via tx interface
+
+
 	endmodule:mkFetch_decode
 endpackage:fetch_decode
