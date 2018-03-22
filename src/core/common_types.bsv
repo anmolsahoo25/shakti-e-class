@@ -1,6 +1,6 @@
 package common_types;
-	import isa_defs::*;
 	`include "common_params.bsv"
+	import isa_defs::*;
 
 	`ifdef RV64
 		typedef 64 XLEN;
@@ -13,7 +13,8 @@ package common_types;
 	typedef Int #(XLEN) Data_S;   // Signed register data
 	typedef UInt#(XLEN) Data_U;
 	typedef 32 PADDR ;
-	typedef enum {ALU,MUL,DIV,MEMORY,BRANCH,JAL_R,SYSTEM_INSTR,NOP}Instruction_type deriving(Bits, Eq,FShow); // the type of the decoded instruction.
+	typedef enum {ALU, MUL, DIV, MEMORY, BRANCH, JAL_R, SYSTEM_INSTR, NOP} Instruction_type 
+                                  deriving(Bits, Eq,FShow); // the type of the decoded instruction.
 	typedef enum {Load, Store} Access_type deriving (Bits,Eq,FShow);
 	typedef enum {Flush,None} Flush_type deriving (Bits,Eq,FShow);
 	typedef enum {IntegerRF, Immediate, PC} Operand_type deriving(Bits,Eq,FShow);
@@ -58,33 +59,4 @@ package common_types;
 	  Interrupt_cause Interrupt;
 	  void None;
 	} Trap_type deriving(Bits,Eq,FShow);
-
-	/*typedef struct{
-		Bit#(PADDR) address;
-		Bit#(XLEN) memory_data; // data to be written in the memory
-		Bit#(TLog#(TDiv#(PADDR, 8))) transfer_size; // 0 -8 bits, 1- 16 bits, 2 -32 bits 3 - 64-bits;
-		Bit#(1) signextend; // whether the loaded value has to be signextended
-		Access_type mem_type; // STORE or AMO or LOAD or FENCE
-		`ifdef atomic Bit#(5) atomic_op;`endif
-	}Memout deriving(Bits,Eq,FShow);
-
-	typedef struct{
-		Bit#(XLEN) aluresult;
-		Bit#(5) fflags;
-	} Arithout deriving(Bits,Eq,FShow); // output struct from the alu.
-
-	typedef struct{
-		Bit#(XLEN) rs1;
-		Bit#(XLEN) rs2;
-		Bit#(5) rs1_addr;
-		Bit#(12) csr_address;
-		Bit#(3) funct3;
-	}CSRInputs deriving(Bits,Eq,FShow);
-	
-	typedef union tagged{
-		Arithout RESULT;	// 64+5
-		Memout MEMORY;		// 64+64+3+1+3+5 = 140
-		CSRInputs SYSTEM; // 64+64+5+12+3 = 148
-		void Busy;
-	} Execution_output deriving(Bits,Eq,FShow);*/
 endpackage

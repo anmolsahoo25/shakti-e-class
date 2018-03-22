@@ -26,20 +26,20 @@
 
 /////////////////////////////////////////////////////////////////////////
 ////////////////////// opcode definitions of ISA ////////////////////////
-`define JAL_R_op			'b11001
-`define BRANCH_op			'b11000
-`define LOAD_op				'b00000
-`define STORE_op			'b01000
+`define JAL_R_op			    'b11001
+`define BRANCH_op			    'b11000
+`define LOAD_op				    'b00000
+`define STORE_op			    'b01000
 `define IMM_ARITH_op	    'b00100
-`define	ARITH_op			'b01100
+`define	ARITH_op			    'b01100
 `ifdef RV64
-	`define IMM_ARITHW_op	'b00110
-	`define	ARITHW_op		'b01110
-	`define MULDIVW_op		'b01110
+	`define IMM_ARITHW_op	  'b00110
+	`define	ARITHW_op		    'b01110
+	`define MULDIVW_op		  'b01110
 `endif
-`define	CSR_op				'b11100
+`define	CSR_op				    'b11100
 `define	SYSTEM_INSTR_op		'b11100
-`define	MULDIV_op			'b01100
+`define	MULDIV_op			    'b01100
 
 ////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// funct3 defintions for ISA ////////////////////
