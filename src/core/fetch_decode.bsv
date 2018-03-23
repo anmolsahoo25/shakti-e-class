@@ -109,12 +109,7 @@ package fetch_decode;
 			end		
       		else if(opcode[4:3]=='b10)	
       			fn=opcode[3:0];
-
-
-      	/*return (Decoder_returnvalue {fn:fn,rs1:rs1,rs2:rs2,rd:rd, 
-                        rs1type:rs1type,rs2type:rs2type,inst_type:inst_type,
-                        immediate_value:immediate_value, 
-                        word32:word32,mem_access:mem_access,funct3:funct3});*/		
+		
 
             Tuple5#(Operand_type,Operand_type,Instruction_type,Access_type,Bit#(32)) type_tuple = 
             tuple5(rs1type,rs2type,inst_type,mem_access,pc);
