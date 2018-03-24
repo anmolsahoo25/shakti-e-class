@@ -4,8 +4,8 @@
 include ./old_vars
 include soc_config.inc
 
-TOP_MODULE:=fn_alu
-TOP_FILE:=alu.bsv
+TOP_MODULE:=mkcore
+TOP_FILE:=core.bsv
 TOP_DIR:=./src/core/
 WORKING_DIR := $(shell pwd)
 
@@ -55,7 +55,7 @@ check-py:
 	@if ! [ -a /usr/bin/python3 ] ; then echo "Python3 is required in /usr/bin to run AAPG" ; exit 1; fi;
 
 ###### Setting the variables for bluespec compile #$############################
-BSVCOMPILEOPTS:= -check-assert -suppress-warnings G0020:T0054 -keep-fires -opt-undetermined-vals -remove-false-rules -remove-empty-rules -remove-starved-rules 
+BSVCOMPILEOPTS:= -check-assert  -keep-fires -opt-undetermined-vals -remove-false-rules -remove-empty-rules -remove-starved-rules 
 BSVLINKOPTS:=-parallel-sim-link 8 -keep-fires
 VERILOGDIR:=./verilog/
 BSVBUILDDIR:=./bsv_build/
@@ -96,8 +96,8 @@ generate_verilog: check-restore check-blue
 	@mkdir -p $(VERILOGDIR); 
 	@echo "old_define_macros = $(define_macros)" > old_vars
 	bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR) $(define_macros) -D verilog=True $(BSVCOMPILEOPTS) -verilog-filter ${BLUESPECDIR}/bin/basicinout -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE) 2>&1 | tee bsv_compile.log
-	@sed -i "s/39'h0000001000/reset_vector/g" ./verilog/mkfetch.v
-	@sed -i "s/(rg_tdo)/(rg_tdo\$$D_IN)/g" ./verilog/mkTbSoc.v
+	@cp ${BLUESPECDIR}/Verilog.Vivado/RegFile.v ./verilog/
+	@cp ${BLUESPECDIR}/Verilog/FIFO2.v ./verilog/
 	@echo Compilation finished
 
 .PHONY: link_vcs

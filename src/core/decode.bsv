@@ -1,29 +1,52 @@
-package fetch_decode;
-// packages to be imported
-	import GetPut::*;
-	import TxRx	::*;
-	import FIFO::*;
+/* 
+Copyright (c) 2013, IIT Madras All rights reserved.
 
-// project files to be imported/included
-	import isa_defs::*;
-	import common_types::*;
+Redistribution and use in source and binary forms, with or without modification, are permitted
+provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this list of conditions
+  and the following disclaimer.  
+* Redistributions in binary form must reproduce the above copyright notice, this list of 
+  conditions and the following disclaimer in the documentation and/or other materials provided 
+ with the distribution.  
+* Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
+  promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
+OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
+AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT 
+OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+--------------------------------------------------------------------------------------------------
+
+Author: Neel Gala, Aditya Mathur
+Email id: neelgala@gmail.com
+Details:
+
+--------------------------------------------------------------------------------------------------
+*/
+package decode;
+  
+  // pacakge imports from project
+  import common_types::*;
   `include "common_params.bsv"
 
   (*noinline*)
-    function Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
-    	Tuple5#(Operand_type,Operand_type,Instruction_type,Access_type,Bit#(32)))
-    		 decoder_func(Bit#(32) inst,Bit#(32) shadow_pc);
+    function PIPE1_DS decoder_func(Bit#(32) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch);
 			Bit#(5) rs1=inst[19:15];
 			Bit#(5) rs2=inst[24:20];
 			Bit#(5) rd =inst[11:7] ;
 			Bit#(5) opcode= inst[6:2];
 			Bit#(3) funct3= inst[14:12];
 			Bool word32 =False;
-			Bit#(32) pc=shadow_pc;
+			Bit#(PADDR) pc=shadow_pc;
 
 			//operand types
-			Operand_type rs1type=IntegerRF;
-			Operand_type rs2type=IntegerRF;
+			Operand1_type rs1type=IntegerRF;
+			Operand2_type rs2type=IntegerRF;
 
 			//memory access type
 			Access_type mem_access=Load;
@@ -111,50 +134,10 @@ package fetch_decode;
       			fn=opcode[3:0];
 		
 
-            Tuple5#(Operand_type,Operand_type,Instruction_type,Access_type,Bit#(32)) type_tuple = 
-            tuple5(rs1type,rs2type,inst_type,mem_access,pc);
+            Tuple6#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(32), Bit#(1)) 
+                                type_tuple = tuple6(rs1type,rs2type,inst_type,mem_access,pc,epoch);
 
             return tuple8(fn,rs1,rs2,rd,immediate_value, 
                         word32,funct3,type_tuple);            
     endfunction
-
-
-  // Interface for the fetch and decode unit
-	interface Ifc_fetch_decode;
-	interface Get#(Bit#(32)) inst_in;//instruction whose addr is needed
-	interface Put#(Bit#(32)) inst_addr;//addr of the given inst
-  // rs1,rs2,rd,fn,funct3,instruction_type will be passed on to opfetch and execute unit
-    interface TXe#(Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
-    	Tuple5#(Operand_type,Operand_type,Instruction_type,Access_type,Bit#(32)))) to_opfetch_unit;
-
-	endinterface:Ifc_fetch_decode
-	(*synthesize*)
-	module mkFetch_decode(Ifc_fetch_decode);
-
-		Reg#(Bit#(32)) pc <- mkRegU;//making program counter
-		Reg#(Bit#(32)) shadow_pc <-mkRegU;//shadow pc to preserve it
-    //instantiating the tx interface with name tx
-		TX#(Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),
-    	Tuple5#(Operand_type,Operand_type,Instruction_type,Access_type,Bit#(32)))) tx<-mkTX;
-    
-    //instruction whose addr is needed
-		interface inst_in=interface Get
-			method ActionValue#(Bit#(32)) get;
-				shadow_pc<=pc;
-				return pc+4;
-			endmethod
-		endinterface;
-    
-    //getting response from bus 
-		interface inst_addr= interface Put
-			method Action put (Bit#(32) inst);
-				Tuple8#(Bit#(4),Bit#(5),Bit#(5),Bit#(5),Bit#(XLEN),Bool,Bit#(3),Tuple5#(Operand_type,
-			Operand_type,Instruction_type,Access_type,Bit#(32))) x= decoder_func(inst,shadow_pc);
-				tx.u.enq(x);//enq the output of the decoder function in the tx interface
-			endmethod
-		endinterface;
-
-    //providing the output of the decoder function to the opfetch unit via tx interface
-		interface to_opfetch_unit=tx.e;
-	endmodule:mkFetch_decode
-endpackage:fetch_decode
+endpackage
