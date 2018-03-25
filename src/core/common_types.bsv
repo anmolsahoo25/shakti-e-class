@@ -52,9 +52,9 @@ package common_types;
 	typedef enum {IntegerRF, PC} Operand1_type deriving(Bits, Eq, FShow);
 	typedef enum {IntegerRF, Immediate} Operand2_type deriving(Bits, Eq, FShow);
   typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq, Bits, FShow);
-  typedef enum {Machine=0, User=3} Privilege_mode deriving(Eq, Bits, FShow);
-  typedef enum {Inst_addr_misaligned, Inst_access_fault, Illegal_inst, Breakpoint, Ecall, None} 
-                                                              ExcpStage1 deriving(Bits, Eq, FShow);
+  typedef enum {Machine=3, User=0} Privilege_mode deriving(Eq, Bits, FShow);
+  typedef enum {Inst_addr_misaligned, Inst_access_fault, Illegal_inst, Breakpoint, Ecall_from_user,
+                                     Ecall_from_machine, None} ExcpStage1 deriving(Bits, Eq, FShow);
 
 
   // define all tuples here
@@ -68,7 +68,8 @@ package common_types;
   typedef Tuple5#(Bit#(PADDR), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
 
   typedef Tuple3#(Bit#(5), Bool, Bit#(XLEN)) OpFwding;
-
+  // rg_prv,  csr_mip, rg_mie, csr_mideleg, 
+  typedef Tuple4#(Privilege_mode, Bit#(XLEN), Bit#(1), Bit#(XLEN)) CSRtoDecode;
 
 
 	typedef enum {

@@ -317,43 +317,6 @@ package csr;
 	  	return ret;
 	  endfunction
 
-	  function Bool address_valid(Bit#(12) csr_address);
-	  	case(csr_address[11:8])
-	  		'h3: begin // machine read-write registers
-	  			if((csr_address[7:0]>'h6 && csr_address[7:0]<'h23) || 
-	  			  (csr_address[7:0]>'h26 && csr_address[7:0]<'h40) ||
-	  			  (csr_address[7:0]>'h44 && csr_address[7:0]<='hA0) ||
-	  			  (csr_address[7:0]>'hA3 && csr_address[7:0]<'hB8) ||
-	  			  (csr_address[7:0]>'hbf))
-	  				return False;
-	  			else
-	  				return True;
-	  		end
-	  		'hB:begin
-	  			if((csr_address[7:0]>'h6 && csr_address[7:0]<'h80 && csr_address[7:0]!='h20)||
-	  			 (csr_address[7:0]>'h86 && csr_address[7:0]<'hA0)||
-	  			 (csr_address[7:0]>'hA6))
-	  				return False;
-	  			else
-	  				return True;
-	  		end
-	  		'hC:begin
-	  			if((csr_address[7:0]>'h6 && csr_address[7:0]<'h83)|| 
-	  			 (csr_address[7:0]>'h86))
-	  				return False; 
-	  			else
-	  				return True;
-	  		end
-	  		'hF:begin
-	  			if(csr_address[7:0]<'h11 || csr_address[7:0]>'h15)
-	  				return False;
-	  			else
-	  				return True;
-	  		end
-	  		default:return False;
-	  	endcase
-	  endfunction
-
     rule increment_cycle_counter;
 	  	`ifdef RV64
       	csr_mcycle[0]<=csr_mcycle[0]+1;

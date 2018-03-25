@@ -73,7 +73,7 @@ package fetch_decode_stage;
 		interface inst_response= interface Put
 			method Action put (Tuple2#(Bit#(32),Bool) resp);
         let {inst,err}=resp;
-			  PIPE1_DS x= decoder_func(inst,shadow_pc,shadow_epoch, err);
+			  PIPE1_DS x= decoder_func(inst,shadow_pc,shadow_epoch, err, ?);
 				tx.u.enq(x);  //enq the output of the decoder function in the tx interface
 			endmethod
 		endinterface;
