@@ -28,7 +28,7 @@ Details:
 
 --------------------------------------------------------------------------------------------------
 */
-package core;
+package riscv;
   // project imports
   import common_types::*;
   import fetch_decode_stage::*;
@@ -41,14 +41,14 @@ package core;
   import FIFO::*;
   import FIFOF::*;
 
-  interface Ifc_core;
+  interface Ifc_riscv;
   	interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
 	  interface Put#(Bit#(PADDR)) inst_response;//addr of the given inst
     interface Get#(MemoryRequest) memory_request;
     interface Put#(Tuple2#(Bit#(XLEN),Bool)) memory_response;
-  endinterface:Ifc_core
+  endinterface:Ifc_riscv
 
-  module mkcore(Ifc_core);
+  module mkriscv(Ifc_riscv);
     // instantiate each stage here
     Ifc_fetch_decode_stage stage1 <- mkfetch_decode_stage;        // stage-1: fetch n decode
     Ifc_opfetch_execute_stage stage2 <- mkopfetch_execute_stage;  // stage-2: op-fetch n execute
@@ -80,5 +80,5 @@ package core;
     interface inst_response = stage1.inst_response;
     interface memory_request = stage2.memory_request;
     interface memory_response = stage3.memory_response;
-  endmodule:mkcore
-endpackage: core
+  endmodule:mkriscv
+endpackage: riscv
