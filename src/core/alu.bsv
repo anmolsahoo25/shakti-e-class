@@ -45,7 +45,7 @@ package alu;
   
   //basic mul function
   (*noinline*)
-  function Bit#(XLEN) mul_core(Bit#(XLEN) v1,Bit#(XLEN) v2,Bool complement);
+  function Bit#(XLEN) mul_core(Bit#(XLEN) v1, Bit#(XLEN) v2, Bool complement);
   		let out =v1*v2;
   		out=(complement==True)?(~(out)+1):out;
   		return out;
@@ -53,8 +53,8 @@ package alu;
 
 	(*noinline*)
 	function ALU_OUT fn_alu (Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(XLEN) imm_value, 
-        Bit#(PADDR) pc,	Instruction_type inst_type, Funct3 funct3,Access_type mem_access, 
-          Bit#(5) rd,Bool word32);
+        Bit#(PADDR) pc, Instruction_type inst_type, Funct3 funct3, Access_type mem_access, 
+          Bit#(5) rd, Bool word32);
 	  /*========= Perform all the arithmetic ===== */
 	  // ADD* ADDI* SUB* 
 	  let inv_op2=(fn[3]==1)?~op2:op2;
@@ -66,18 +66,18 @@ package alu;
 						(op1[valueOf(XLEN)-1]==op2[valueOf(XLEN)-1])?adder_output[valueOf(XLEN)-1]:
 						(fn[1]==1)?op2[valueOf(XLEN)-1]:op1[valueOf(XLEN)-1]);
 	  // SLL SRL SRA
-    //word32 is bool,shift_amt is used to describe the amount of shift
-	  Bit#(6) shift_amt={((!word32)?op2[5]:0),op2[4:0]};
+    //word32 is bool, shift_amt is used to describe the amount of shift
+	  Bit#(6) shift_amt={((!word32)?op2[5]:0), op2[4:0]};
 
 	  `ifdef RV64
-	  	Bit#(TDiv#(XLEN,2)) upper_bits=word32?signExtend(fn[3]&op1[31]):op1[63:32];
-	  	Bit#(XLEN) shift_inright={upper_bits,op1[31:0]};//size of 64 bit
+	  	Bit#(TDiv#(XLEN, 2)) upper_bits=word32?signExtend(fn[3]&op1[31]):op1[63:32];
+	  	Bit#(XLEN) shift_inright={upper_bits, op1[31:0]};//size of 64 bit
 	  `else
 	  	Bit#(XLEN) shift_inright=zeroExtend(op1[31:0]);//size of 32bit
 	  `endif
 
 	  let shin = (fn==`FNSR || fn==`FNSRA)?shift_inright:reverseBits(shift_inright);
-	  Int#(TAdd#(XLEN,1)) t=unpack({(fn[3]&shin[valueOf(XLEN)-1]),shin});
+	  Int#(TAdd#(XLEN, 1)) t=unpack({(fn[3]&shin[valueOf(XLEN)-1]), shin});
 	  Int#(XLEN) shift_r=unpack(pack(t>>shift_amt)[valueOf(XLEN)-1:0]);//shift right by shift_amt
 	  let shift_l=reverseBits(pack(shift_r));//shift left
 	  Bit#(XLEN) shift_output=((fn==`FNSR || fn==`FNSRA)?pack(shift_r):0) | 
@@ -90,7 +90,7 @@ package alu;
 	  					 logic_output|shift_output;
 
 		// mul and div inst
-		// Data v1 = op1, v2 = op2;//"Data" is defined in ISA_Defs.bsv,it is raw(unsigned) 
+		// Data v1 = op1, v2 = op2;//"Data" is defined in ISA_Defs.bsv, it is raw(unsigned) 
     // data reg of size 64
 		/*
     Data operand1=?;Data operand2=?;Bool is32Bit=False;
@@ -110,7 +110,7 @@ package alu;
     else if(funct3==f3_MULHSU)begin operand1=mop1;operand2=op2;is32Bit=take_complement; end
     else if(funct3==f3_MULH)begin operand1=mop1;operand2=mop2;is32Bit=take_complement; end
     else if(funct3==f3_MULHU)begin operand1=op1;operand2=op2;is32Bit=False; end
-    res=mul_core(operand1,operand2,is32Bit);//creates only single instance of the multiplier
+    res=mul_core(operand1, operand2, is32Bit);//creates only single instance of the multiplier
 */
     Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
 		if(word32)
@@ -144,8 +144,8 @@ package alu;
 	
 	  Bit#(XLEN) effaddr_maddr_op1_result = (flush == Flush)? zeroExtend(effective_address): 
                                                       committype == SYSTEM_INSTR?op1: final_output;
-	  Bit#(21)  funct3_rs1_csr = {pack(flush),funct3,imm_value[16:0]};
+	  Bit#(21)  funct3_rs1_csr = {pack(flush), funct3, imm_value[16:0]};
 
-	  return tuple3(committype,effaddr_maddr_op1_result,funct3_rs1_csr);
+	  return tuple3(committype, effaddr_maddr_op1_result, funct3_rs1_csr);
 	endfunction
 endpackage:alu
