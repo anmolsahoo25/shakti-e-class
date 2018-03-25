@@ -4,8 +4,8 @@
 include ./old_vars
 include soc_config.inc
 
-TOP_MODULE:=mkcore
-TOP_FILE:=core.bsv
+TOP_MODULE:=mkriscv
+TOP_FILE:=riscv.bsv
 TOP_DIR:=./src/core/
 WORKING_DIR := $(shell pwd)
 
