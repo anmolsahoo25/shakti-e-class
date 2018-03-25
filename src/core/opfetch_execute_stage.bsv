@@ -100,9 +100,6 @@ package opfetch_execute_stage;
       Bool operands_avail=True;
       if( (rs1_addr == rd || rs2_addr == rd) && !valid && rd!=0)
         operands_avail=False;
-     
-      `ifdef verbose $display($time,"\nReg1 :%d : ",rs1_addr,fshow(rs1),"\nReg2 : %d : ",
-                                                                     rs2_addr,fshow(rs2)); `endif
       return tuple3(rs1,rs2,operands_avail);
     endfunction
 
@@ -125,19 +122,18 @@ package opfetch_execute_stage;
            insttype,mem_access,pc,epoch}=rx.u.first;
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
-      if(epoch==rg_epoch[0] || inst_type==NOP)begin
-        let {op1,op2,available}=operand_provider(rs1_addr_in,rs1_type_in,rs2_addr_in,rs2_type_in,
+      let {op1,op2,available}=operand_provider(rs1_addr_in,rs1_type_in,rs2_addr_in,rs2_type_in,
                                                pc,immediate);
-  
+      if(epoch==rg_epoch[0] || insttype!=NOP)begin
         //passing the result to next stage via fifo
         if(available)begin
           rx.u.deq;
-          let {inst_type,address_op1_result, data_op2_effaddr, funct3_rs1_csr} =
+          let {committype,address_op1_result, data_op2_effaddr, funct3_rs1_csr} =
                             fn_alu(fn,op1,op2,immediate,pc,insttype,funct3,mem_access,rd,word32);
-          if(inst_type == MEMORY)
+          if(committype == MEMORY)
             ff_memory_request.enq(tuple5(truncate(address_op1_result), immediate, mem_access,
                                                                          funct3[1:0], ~funct3[2]));
-          tx.u.enq(tuple7(inst_type,address_op1_result, data_op2_effaddr, funct3_rs1_csr, pc, rd, 
+          tx.u.enq(tuple7(committype,address_op1_result, data_op2_effaddr, funct3_rs1_csr, pc, rd, 
                                                                                      rg_epoch[0]));
         end
       end
