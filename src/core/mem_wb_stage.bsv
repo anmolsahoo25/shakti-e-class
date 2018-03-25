@@ -66,14 +66,14 @@ package mem_wb_stage;
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
 
     rule instruction_commit;
-      let {committype, effaddr_maddr_op1_result,funct3_rs1_csr,pc,rd, epoch}=rx.u.first;
+      let {committype, reslt,funct3_rs1_csr,pc,rd, epoch}=rx.u.first;
 
       // continue commit only if epochs match. Else deque the ex fifo
       if(rg_epoch==epoch)begin
 
         // if it is a branch/JAL_R instruction generate a flush signal to the pipe. 
         Flush_type fl = unpack(funct3_rs1_csr[20]);
-        wr_flush<=tuple2(truncate(effaddr_maddr_op1_result),(fl==Flush));
+        wr_flush<=tuple2(truncate(reslt),(fl==Flush));
 
         // in case of a flush also flip the local epoch register.
         if(fl==Flush)
@@ -100,8 +100,8 @@ package mem_wb_stage;
         end
         else begin
           // in case of regular instruction simply update RF and forward the data.
-          wr_operand_fwding <= tuple3(rd,True, effaddr_maddr_op1_result);
-          wr_commit <= tagged Valid (tuple2(rd,effaddr_maddr_op1_result));
+          wr_operand_fwding <= tuple3(rd,True, reslt);
+          wr_commit <= tagged Valid (tuple2(rd,reslt));
           rx.u.deq;
         end
       end

@@ -128,13 +128,12 @@ package opfetch_execute_stage;
         //passing the result to next stage via fifo
         if(available)begin
           rx.u.deq;
-          let {committype, effaddr_maddr_op1_result, funct3_rs1_csr} = fn_alu(fn,op1,op2,
-                                                immediate,pc,insttype,funct3,mem_access,rd,word32);
+          let {committype, reslt, funct3_rs1_csr} = fn_alu(fn, op1, op2, immediate, pc, insttype,
+                                                                   funct3, mem_access, rd, word32);
           if(committype == MEMORY)
-            ff_memory_request.enq(tuple5(truncate(effaddr_maddr_op1_result), immediate, mem_access,
-                                                                         funct3[1:0], ~funct3[2]));
-          tx.u.enq(tuple6(committype,effaddr_maddr_op1_result, funct3_rs1_csr, pc, rd, 
-                                                                                     rg_epoch[0]));
+            ff_memory_request.enq(tuple5(truncate(reslt), immediate, mem_access,
+                                                                        funct3[1:0], ~funct3[2]));
+          tx.u.enq(tuple6(committype,reslt, funct3_rs1_csr, pc, rd, rg_epoch[0]));
         end
       end
       else
