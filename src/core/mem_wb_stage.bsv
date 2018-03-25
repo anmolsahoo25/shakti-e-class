@@ -66,7 +66,7 @@ package mem_wb_stage;
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
 
     rule instruction_commit;
-      let {inst_type,address_op1_result,data_op2_effaddr,funct3_rs1_csr,pc,rd, epoch}=rx.u.first;
+      let {committype,address_op1_result,data_op2_effaddr,funct3_rs1_csr,pc,rd, epoch}=rx.u.first;
 
       // continue commit only if epochs match. Else deque the ex fifo
       if(rg_epoch==epoch)begin
@@ -80,7 +80,7 @@ package mem_wb_stage;
           rg_epoch <= ~rg_epoch;
 
         // if instruction is of memory type then wait for response from memory
-        if(inst_type == MEMORY) begin
+        if(committype == MEMORY) begin
           if (wr_memory_response matches tagged Valid .resp)begin
             let {data,err}=resp;
             if(!err) // no bus error
@@ -92,7 +92,7 @@ package mem_wb_stage;
             wr_operand_fwding <= tuple3(rd,False,?);
           end
         end
-        else if(inst_type == SYSTEM_INSTR)begin
+        else if(committype == SYSTEM_INSTR)begin
           $display("CSR SUPPORT NOR PRESENT YET");
           $finish(0);
           wr_operand_fwding <= tuple3(rd,False,?);

@@ -150,7 +150,12 @@ package alu;
 	  Bit#(XLEN) address_op1_result = inst_type == SYSTEM_INSTR?op1:final_output;
 	  Bit#(XLEN) op2_effaddr = inst_type == SYSTEM_INSTR?op2:zeroExtend(effective_address);
 	  Bit#(21)  funct3_rs1_csr = {pack(flush),funct3,imm_value[16:0]};
+    Commit_type committype = REGULAR;
+    if(inst_type==MEMORY)
+      committype = MEMORY;
+    else if(inst_type == SYSTEM_INSTR)
+      committype = SYSTEM_INSTR;
 
-	  return tuple4(inst_type,address_op1_result,op2_effaddr,funct3_rs1_csr);
+	  return tuple4(committype,address_op1_result,op2_effaddr,funct3_rs1_csr);
 	endfunction
 endpackage:alu
