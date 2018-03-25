@@ -116,7 +116,7 @@ package opfetch_execute_stage;
     RX#(PIPE1_DS) rx<-mkRX;
     TX#(PIPE2_DS) tx<-mkTX;
   
-    rule fetch_execute_pass;
+    rule fetch_execute_pass(!initialize);
       // receiving the decoded data from the previous stage
       let {fn,rs1_addr_in,rs2_addr_in,rd,immediate,word32,funct3,rs1_type_in,rs2_type_in,
            insttype,mem_access,pc,epoch}=rx.u.first;
@@ -128,12 +128,12 @@ package opfetch_execute_stage;
         //passing the result to next stage via fifo
         if(available)begin
           rx.u.deq;
-          let {committype,address_op1_result, data_op2_effaddr, funct3_rs1_csr} =
-                            fn_alu(fn,op1,op2,immediate,pc,insttype,funct3,mem_access,rd,word32);
+          let {committype, effaddr_maddr_op1_result, funct3_rs1_csr} = fn_alu(fn,op1,op2,
+                                                immediate,pc,insttype,funct3,mem_access,rd,word32);
           if(committype == MEMORY)
-            ff_memory_request.enq(tuple5(truncate(address_op1_result), immediate, mem_access,
+            ff_memory_request.enq(tuple5(truncate(effaddr_maddr_op1_result), immediate, mem_access,
                                                                          funct3[1:0], ~funct3[2]));
-          tx.u.enq(tuple7(committype,address_op1_result, data_op2_effaddr, funct3_rs1_csr, pc, rd, 
+          tx.u.enq(tuple6(committype,effaddr_maddr_op1_result, funct3_rs1_csr, pc, rd, 
                                                                                      rg_epoch[0]));
         end
       end

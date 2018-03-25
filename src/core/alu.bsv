@@ -131,34 +131,21 @@ package alu;
 			if(inst_type==BRANCH)
 				final_output=0;
 		`endif
+
 //	Trap_type exception=tagged None;
 //	if((inst_type==JAL_R) && effective_address[1]!=0)
 //		exception=tagged Exception Inst_addr_misaligned;
-
-
-	  // Explanation of the return type:
-	  // First field		:  Instruction_type: This fields holds the type of instruction being executed.
-	  // Second field	:	Bit#(XLEN)	:	if instruction is SYSTEM_INSTR then this holds op1. If the 
-    //                              instruction is MEMORY then the lower PADDR bits hold the address 
-    //                              of the Load/Store. Else it holds the result of the ALU operation.
-	  // Third field	:	Bit#(XLEN)	:	if instruction is SYSTEM_INSTR then this holds op2. if 
-    //                              instruction is MEMORY then this holds	the data for Store 
-    //                              operations. Else it holds the effective branch address in case 
-    //                              of BRANCH or JAL operations
-	  // Fourth field	:	Bit#(5)	: if instruction is SYSTEM_INSTR then this holds the address of rs1. 
-    //                          Else this field holds the concatenation	of {Flush (if pc needs to 
-    //                          change), transfer_size, signextend and type of mem_access}
-	  // Fifth	field	:	Bit#(15):	This holds the concatenation of funct3 and the 12-bit CSR address.
-	
-	  Bit#(XLEN) address_op1_result = inst_type == SYSTEM_INSTR?op1:final_output;
-	  Bit#(XLEN) op2_effaddr = inst_type == SYSTEM_INSTR?op2:zeroExtend(effective_address);
-	  Bit#(21)  funct3_rs1_csr = {pack(flush),funct3,imm_value[16:0]};
+    
     Commit_type committype = REGULAR;
     if(inst_type==MEMORY)
       committype = MEMORY;
     else if(inst_type == SYSTEM_INSTR)
       committype = SYSTEM_INSTR;
+	
+	  Bit#(XLEN) effaddr_maddr_op1_result = (flush == Flush)? zeroExtend(effective_address): 
+                                                      committype == SYSTEM_INSTR?op1: final_output;
+	  Bit#(21)  funct3_rs1_csr = {pack(flush),funct3,imm_value[16:0]};
 
-	  return tuple4(committype,address_op1_result,op2_effaddr,funct3_rs1_csr);
+	  return tuple3(committype,effaddr_maddr_op1_result,funct3_rs1_csr);
 	endfunction
 endpackage:alu

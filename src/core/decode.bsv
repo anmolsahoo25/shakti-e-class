@@ -90,36 +90,36 @@ package decode;
       		//word32=True;
       			
 
-      		Instruction_type inst_type=NOP;
-      		if(opcode[4:3]=='b11)begin
-      			case(opcode[2:0])
-      				'b001:inst_type=JAL_R;
-      				'b000:inst_type=BRANCH;
-      				'b100:inst_type=SYSTEM_INSTR;
-      			endcase
-      		end
-      		else if(opcode[4:3]=='b00)begin
-      			case(opcode[2:0])
-      				'b000,'b001:inst_type=MEMORY;
-      				'b101,'b100,'b110:inst_type=ALU;
-      			endcase
-      		end
-      		Bit#(4) fn=0;
-      		if(opcode==`BRANCH_op)begin
-      			if(funct3[2]==0)
-      				fn={2'b0,1,funct3[0]};
-      			else
-      				fn={1'b1,funct3}	;
-      		end
-      		else if(opcode==`JAL_R_op || opcode==`LOAD_op || opcode==`STORE_op)
-      			fn=0;
-      		else if(opcode==`IMM_ARITH_op)begin
-			fn=case(funct3)
-				'b010: 'b1100;
-				'b011: 'b1110;
-				'b101: 'b0101;
-				default:{1'b0,funct3};
-			endcase;
+      Instruction_type inst_type=NOP;
+      if(opcode[4:3]=='b11)begin
+      	case(opcode[2:0])
+      		'b001:inst_type=JAL_R;
+      		'b000:inst_type=BRANCH;
+      		'b100:inst_type=SYSTEM_INSTR;
+      	endcase
+      end
+      else if(opcode[4:3]=='b00)begin
+      	case(opcode[2:0])
+      		'b000,'b001:inst_type=MEMORY;
+      		'b101,'b100,'b110:inst_type=ALU;
+      	endcase
+      end
+      Bit#(4) fn=0;
+      if(opcode==`BRANCH_op)begin
+      	if(funct3[2]==0)
+      		fn={2'b0,1,funct3[0]};
+      	else
+      		fn={1'b1,funct3}	;
+      end
+      else if(opcode==`JAL_R_op || opcode==`LOAD_op || opcode==`STORE_op)
+      	fn=0;
+      else if(opcode==`IMM_ARITH_op)begin
+			  fn=case(funct3)
+			  	'b010: 'b1100;
+			  	'b011: 'b1110;
+			  	'b101: 'b0101;
+			  	default:{1'b0,funct3};
+			  endcase;
 			end
 			else if(opcode==`ARITH_op)begin
 				fn=case(funct3)
