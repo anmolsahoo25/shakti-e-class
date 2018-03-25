@@ -14,6 +14,7 @@ ifneq (,$(findstring RV64,$(ISA)))
   XLEN=64
 endif
 ifneq (,$(findstring RV32,$(ISA)))
+  define_macros += -D RV32=True
   XLEN=32
 endif
 ifneq (,$(findstring M,$(ISA)))

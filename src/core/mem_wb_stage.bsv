@@ -33,6 +33,7 @@ package mem_wb_stage;
   import common_types::*;
   `include "common_params.bsv"
   import TxRx::*;
+  import csr::*;
 
   // package imports
   import GetPut::*; 
@@ -49,7 +50,8 @@ package mem_wb_stage;
   module mkmem_wb_stage(Ifc_mem_wb_stage);
 
     RX#(PIPE2_DS) rx<-mkRX;
-   
+    Ifc_csr csr <- mkcsr();
+
     // wire that captures the response coming from the external memory or cache.
     Wire#(Maybe#(Tuple2#(Bit#(XLEN),Bool))) wr_memory_response <- mkDWire(tagged Invalid);
 
@@ -67,18 +69,12 @@ package mem_wb_stage;
 
     rule instruction_commit;
       let {committype, reslt,funct3_rs1_csr,pc,rd, epoch}=rx.u.first;
-
+      Bit#(PADDR) jump_address=truncate(reslt);
+      Flush_type fl = unpack(funct3_rs1_csr[20]);
       // continue commit only if epochs match. Else deque the ex fifo
       if(rg_epoch==epoch)begin
 
-        // if it is a branch/JAL_R instruction generate a flush signal to the pipe. 
-        Flush_type fl = unpack(funct3_rs1_csr[20]);
-        wr_flush<=tuple2(truncate(reslt),(fl==Flush));
-
         // in case of a flush also flip the local epoch register.
-        if(fl==Flush)
-          rg_epoch <= ~rg_epoch;
-
         // if instruction is of memory type then wait for response from memory
         if(committype == MEMORY) begin
           if (wr_memory_response matches tagged Valid .resp)begin
@@ -93,9 +89,12 @@ package mem_wb_stage;
           end
         end
         else if(committype == SYSTEM_INSTR)begin
-          $display("CSR SUPPORT NOR PRESENT YET");
-          $finish(0);
-          wr_operand_fwding <= tuple3(rd,False,?);
+          let {drain,newpc,dest}<-csr.system_instruction(funct3_rs1_csr[11:0],funct3_rs1_csr[16:12],
+                            reslt, funct3_rs1_csr[19:17]);
+          jump_address=newpc;
+          if(drain) fl=Flush;
+          wr_operand_fwding <= tuple3(rd,True,dest);
+          wr_commit <= tagged Valid (tuple2(rd,dest));
           rx.u.deq;
         end
         else begin
@@ -104,6 +103,12 @@ package mem_wb_stage;
           wr_commit <= tagged Valid (tuple2(rd,reslt));
           rx.u.deq;
         end
+        
+        // if it is a branch/JAL_R instruction generate a flush signal to the pipe. 
+        wr_flush<=tuple2(jump_address,(fl==Flush));
+        if(fl==Flush)
+          rg_epoch <= ~rg_epoch;
+
       end
       else begin
         rx.u.deq;

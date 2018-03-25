@@ -50,6 +50,7 @@ package common_types;
 	typedef enum {IntegerRF, PC} Operand1_type deriving(Bits,Eq,FShow);
 	typedef enum {IntegerRF, Immediate} Operand2_type deriving(Bits,Eq,FShow);
   typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq,Bits,FShow);
+  typedef enum {Machine=0,User=3} Privilege_mode deriving(Eq,Bits,FShow);
 
   typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(XLEN), Bool, Bit#(3),
             Tuple6#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
@@ -103,4 +104,5 @@ package common_types;
 	  Interrupt_cause Interrupt;
 	  void None;
 	} Trap_type deriving(Bits,Eq,FShow);
+
 endpackage

@@ -124,12 +124,12 @@ package opfetch_execute_stage;
       // parameters reqiured by the alu function will be passed
       let {op1,op2,available}=operand_provider(rs1_addr_in,rs1_type_in,rs2_addr_in,rs2_type_in,
                                                pc,immediate);
+      let {committype, reslt, funct3_rs1_csr} = fn_alu(fn, op1, op2, immediate, pc, insttype,
+                                                                   funct3, mem_access, rd, word32);
       if(epoch==rg_epoch[0] || insttype!=NOP)begin
         //passing the result to next stage via fifo
         if(available)begin
           rx.u.deq;
-          let {committype, reslt, funct3_rs1_csr} = fn_alu(fn, op1, op2, immediate, pc, insttype,
-                                                                   funct3, mem_access, rd, word32);
           if(committype == MEMORY)
             ff_memory_request.enq(tuple5(truncate(reslt), immediate, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
