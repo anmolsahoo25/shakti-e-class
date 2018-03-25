@@ -41,6 +41,7 @@ package csr;
   interface Ifc_csr;
 	  method ActionValue#(Tuple3#(Bool, Bit#(PADDR),Bit#(XLEN))) system_instruction(
             Bit#(12) csr_address, Bit#(5) rs1_addr, Bit#(XLEN) op1, Bit#(3) funct3);
+    method CSRtoDecode csrs_to_decode;
 		`ifdef CLINT
 			method Action clint_mtip(Bit#(1) intrpt);
 			method Action clint_mtime(Bit#(XLEN) c_mtime);
@@ -356,5 +357,7 @@ package csr;
       endcase
 	  	return tuple3(flush,jump_address,destination_value);
 	  endmethod
+
+    method csrs_to_decode = tuple4(rg_prv, csr_mip, rg_mie, csr_mideleg);
   endmodule
 endpackage

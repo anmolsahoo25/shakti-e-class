@@ -47,6 +47,7 @@ package fetch_decode_stage;
     // rs1,rs2,rd,fn,funct3,instruction_type will be passed on to opfetch and execute unit
     interface TXe#(PIPE1_DS) to_opfetch_unit;
     method Action flush_from_wb( Bit#(PADDR) newpc, Bool fl);
+    method Action csrs (CSRtoDecode csr);
 	endinterface:Ifc_fetch_decode_stage
 	(*synthesize*)
 	module mkfetch_decode_stage(Ifc_fetch_decode_stage);
@@ -55,7 +56,7 @@ package fetch_decode_stage;
 		Reg#(Bit#(PADDR)) shadow_pc <-mkRegU;  //shadow pc to preserve it
     Reg#(Bit#(1)) rg_epoch[2] <- mkCReg(2,0);
 		Reg#(Bit#(1)) shadow_epoch <- mkReg(0);  //shadow pc to preserve it
-
+    Wire#(CSRtoDecode) wr_csr <-mkWire();
     //instantiating the tx interface with name tx
 		TX#(PIPE1_DS) tx<-mkTX;
     
@@ -73,7 +74,7 @@ package fetch_decode_stage;
 		interface inst_response= interface Put
 			method Action put (Tuple2#(Bit#(32),Bool) resp);
         let {inst,err}=resp;
-			  PIPE1_DS x= decoder_func(inst,shadow_pc,shadow_epoch, err, ?);
+			  PIPE1_DS x= decoder_func(inst,shadow_pc,shadow_epoch, err, wr_csr);
 				tx.u.enq(x);  //enq the output of the decoder function in the tx interface
 			endmethod
 		endinterface;
@@ -84,6 +85,10 @@ package fetch_decode_stage;
       if(fl)
         rg_epoch[1]<=~rg_epoch[1];
       pc[1]<=newpc;
+    endmethod
+
+    method Action csrs (CSRtoDecode csr);
+      wr_csr <= csr;
     endmethod
 	endmodule:mkfetch_decode_stage
 endpackage:fetch_decode_stage

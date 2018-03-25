@@ -44,6 +44,7 @@ package mem_wb_stage;
     interface Get#(Tuple2#(Bit#(5),Bit#(XLEN))) commit_rd;
     interface Get#(OpFwding) operand_fwding;
     method Tuple2#(Bit#(PADDR),Bool) flush;
+    method CSRtoDecode csrs_to_decode;
   endinterface:Ifc_mem_wb_stage
 
   (*synthesize*)
@@ -136,6 +137,7 @@ package mem_wb_stage;
     endinterface;
 
     method flush=wr_flush;
+    method csrs_to_decode = csr.csrs_to_decode;
 
   endmodule:mkmem_wb_stage
 endpackage:mem_wb_stage
