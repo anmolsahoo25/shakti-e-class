@@ -43,18 +43,24 @@ package common_types;
 	typedef Int #(XLEN) Data_S;   // Signed register data
 	typedef UInt#(XLEN) Data_U;
 	typedef 32 PADDR ;
-	typedef enum {ALU, MUL, DIV, MEMORY, BRANCH, JAL_R, SYSTEM_INSTR, NOP} Instruction_type 
-                                  deriving(Bits, Eq,FShow); // the type of the decoded instruction.
-	typedef enum {Load, Store} Access_type deriving (Bits,Eq,FShow);
-	typedef enum {Flush,None} Flush_type deriving (Bits,Eq,FShow);
-	typedef enum {IntegerRF, PC} Operand1_type deriving(Bits,Eq,FShow);
-	typedef enum {IntegerRF, Immediate} Operand2_type deriving(Bits,Eq,FShow);
-  typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq,Bits,FShow);
-  typedef enum {Machine=0,User=3} Privilege_mode deriving(Eq,Bits,FShow);
 
+  // Define all enums here 
+	typedef enum {ALU, MUL, DIV, MEMORY, BRANCH, JAL_R, SYSTEM_INSTR, ILLEGAL} Instruction_type 
+                                  deriving(Bits, Eq, FShow); // the type of the decoded instruction.
+	typedef enum {Load, Store} Access_type deriving (Bits, Eq, FShow);
+	typedef enum {Flush, None} Flush_type deriving (Bits, Eq, FShow);
+	typedef enum {IntegerRF, PC} Operand1_type deriving(Bits, Eq, FShow);
+	typedef enum {IntegerRF, Immediate} Operand2_type deriving(Bits, Eq, FShow);
+  typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq, Bits, FShow);
+  typedef enum {Machine=0, User=3} Privilege_mode deriving(Eq, Bits, FShow);
+  typedef enum {Inst_addr_misaligned, Inst_access_fault, Illegal_inst, Breakpoint, Ecall, None} 
+                                                              ExcpStage1 deriving(Bits, Eq, FShow);
+
+
+  // define all tuples here
   typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(XLEN), Bool, Bit#(3),
-            Tuple6#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
-                                                                          Bit#(1))) PIPE1_DS;
+            Tuple7#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
+                                                                    ExcpStage1, Bit#(1))) PIPE1_DS;
 
   typedef Tuple6#(Commit_type, Bit#(XLEN), Bit#(21), Bit#(PADDR), Bit#(5), Bit#(1)) PIPE2_DS;
   typedef Tuple3#(Commit_type, Bit#(XLEN), Bit#(21)) ALU_OUT;
@@ -62,6 +68,7 @@ package common_types;
   typedef Tuple5#(Bit#(PADDR), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
 
   typedef Tuple3#(Bit#(5), Bool, Bit#(XLEN)) OpFwding;
+
 
 
 	typedef enum {

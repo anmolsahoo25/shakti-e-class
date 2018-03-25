@@ -43,7 +43,7 @@ package riscv;
 
   interface Ifc_riscv;
   	interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
-	  interface Put#(Bit#(PADDR)) inst_response;//addr of the given inst
+	  interface Put#(Tuple2#(Bit#(PADDR),Bool)) inst_response;//addr of the given inst
     interface Get#(MemoryRequest) memory_request;
     interface Put#(Tuple2#(Bit#(XLEN),Bool)) memory_response;
   endinterface:Ifc_riscv

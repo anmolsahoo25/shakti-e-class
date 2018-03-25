@@ -35,7 +35,7 @@ package decode;
   `include "common_params.bsv"
 
   (*noinline*)
-    function PIPE1_DS decoder_func(Bit#(32) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch);
+    function PIPE1_DS decoder_func(Bit#(32) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch, Bool err);
 			Bit#(5) rs1=inst[19:15];
 			Bit#(5) rs2=inst[24:20];
 			Bit#(5) rd =inst[11:7] ;
@@ -43,7 +43,7 @@ package decode;
 			Bit#(3) funct3= inst[14:12];
 			Bool word32 =False;
 			Bit#(PADDR) pc=shadow_pc;
-
+      
 			//operand types
 			Operand1_type rs1type=IntegerRF;
 			Operand2_type rs2type=IntegerRF;
@@ -90,7 +90,7 @@ package decode;
       		//word32=True;
       			
 
-      Instruction_type inst_type=NOP;
+      Instruction_type inst_type=ILLEGAL;
       if(opcode[4:3]=='b11)begin
       	case(opcode[2:0])
       		'b001:inst_type=JAL_R;
@@ -130,13 +130,26 @@ package decode;
 					default:{1'b0,funct3};
 			endcase;
 			end		
-      		else if(opcode[4:3]=='b10)	
-      			fn=opcode[3:0];
-		
+   		else if(opcode[4:3]=='b10)	
+ 			  fn=opcode[3:0];
 
-            Tuple6#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Bit#(1)) 
-                                type_tuple = tuple6(rs1type,rs2type,inst_type,mem_access,pc,epoch);
+      ExcpStage1 exception = None;
+      if(pc[1:0]!=0)
+        exception = Inst_addr_misaligned;
+      else if(err)
+        exception = Inst_access_fault;
+      else if(inst_type==ILLEGAL)
+	      exception = Illegal_inst;
+      else if(inst_type == SYSTEM_INSTR)begin
+        if(funct3 == 0)
+          if(inst[20]==1)
+            exception = Breakpoint;
+          else 
+            exception = Ecall;
+      end
+      Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), ExcpStage1, 
+      Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, exception, epoch);
 
-            return tuple8(fn, rs1, rs2, rd, immediate_value, word32, funct3, type_tuple);            
+      return tuple8(fn, rs1, rs2, rd, immediate_value, word32, funct3, type_tuple);            
     endfunction
 endpackage

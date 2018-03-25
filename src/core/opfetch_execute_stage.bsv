@@ -118,20 +118,19 @@ package opfetch_execute_stage;
   
     rule fetch_execute_pass(!initialize);
       // receiving the decoded data from the previous stage
-      let {fn,rs1_addr_in,rs2_addr_in,rd,immediate,word32,funct3,rs1_type_in,rs2_type_in,
-           insttype,mem_access,pc,epoch}=rx.u.first;
+      let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
+                                                                  pc, exception, epoch}=rx.u.first;
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
-      let {op1,op2,available}=operand_provider(rs1_addr_in,rs1_type_in,rs2_addr_in,rs2_type_in,
-                                               pc,immediate);
-      let {committype, reslt, funct3_rs1_csr} = fn_alu(fn, op1, op2, immediate, pc, insttype,
+      let {op1, op2, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, imm);
+      let {committype, reslt, funct3_rs1_csr} = fn_alu(fn, op1, op2, imm, pc, insttype,
                                                                    funct3, mem_access, rd, word32);
-      if(epoch==rg_epoch[0] || insttype!=NOP)begin
+      if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
         if(available)begin
           rx.u.deq;
           if(committype == MEMORY)
-            ff_memory_request.enq(tuple5(truncate(reslt), immediate, mem_access,
+            ff_memory_request.enq(tuple5(truncate(reslt), imm, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
           tx.u.enq(tuple6(committype,reslt, funct3_rs1_csr, pc, rd, rg_epoch[0]));
         end

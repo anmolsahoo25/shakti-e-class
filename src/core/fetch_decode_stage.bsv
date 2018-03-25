@@ -43,7 +43,7 @@ package fetch_decode_stage;
   // Interface for the fetch and decode unit
 	interface Ifc_fetch_decode_stage;
   	interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
-	  interface Put#(Bit#(PADDR)) inst_response;//addr of the given inst
+	  interface Put#(Tuple2#(Bit#(PADDR),Bool)) inst_response;//addr of the given inst
     // rs1,rs2,rd,fn,funct3,instruction_type will be passed on to opfetch and execute unit
     interface TXe#(PIPE1_DS) to_opfetch_unit;
     method Action flush_from_wb( Bit#(PADDR) newpc, Bool fl);
@@ -71,8 +71,9 @@ package fetch_decode_stage;
     
     //getting response from bus 
 		interface inst_response= interface Put
-			method Action put (Bit#(32) inst);
-			  PIPE1_DS x= decoder_func(inst,shadow_pc,shadow_epoch);
+			method Action put (Tuple2#(Bit#(32),Bool) resp);
+        let {inst,err}=resp;
+			  PIPE1_DS x= decoder_func(inst,shadow_pc,shadow_epoch, err);
 				tx.u.enq(x);  //enq the output of the decoder function in the tx interface
 			endmethod
 		endinterface;
