@@ -134,10 +134,9 @@ package decode;
       			fn=opcode[3:0];
 		
 
-            Tuple6#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(32), Bit#(1)) 
+            Tuple6#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Bit#(1)) 
                                 type_tuple = tuple6(rs1type,rs2type,inst_type,mem_access,pc,epoch);
 
-            return tuple8(fn,rs1,rs2,rd,immediate_value, 
-                        word32,funct3,type_tuple);            
+            return tuple8(fn, rs1, rs2, rd, immediate_value, word32, funct3, type_tuple);            
     endfunction
 endpackage
