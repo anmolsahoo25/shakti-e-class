@@ -69,19 +69,33 @@ package mem_wb_stage;
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
 
     rule instruction_commit;
-      let {committype, reslt,funct3_rs1_csr,pc,rd, epoch}=rx.u.first;
+      let {committype, reslt,funct3_rs1_csr,pc,rd, epoch, trap}=rx.u.first;
       Bit#(PADDR) jump_address=truncate(reslt);
       Flush_type fl = unpack(funct3_rs1_csr[20]);
       // continue commit only if epochs match. Else deque the ex fifo
-      if(rg_epoch==epoch)begin
-
+      if(trap matches tagged Interrupt .in)begin
+        let newpc<-  csr.take_trap(trap, pc, ?);
+        wr_flush<=tuple2(newpc,True);
+        rg_epoch <= ~rg_epoch;
+        rx.u.deq;
+      end
+      else if(rg_epoch==epoch)begin
         // in case of a flush also flip the local epoch register.
         // if instruction is of memory type then wait for response from memory
-        if(committype == MEMORY) begin
+        if(trap matches tagged Exception .ex)begin
+          jump_address<- csr.take_trap(trap, pc, ?);
+          fl= Flush;
+          rx.u.deq;
+        end
+        else if(committype == MEMORY) begin
           if (wr_memory_response matches tagged Valid .resp)begin
             let {data,err}=resp;
             if(!err) // no bus error
               wr_operand_fwding <= tuple3(rd,True,data);
+            else begin
+              jump_address<- csr.take_trap(trap, pc, truncate(reslt));
+              fl= Flush;
+            end
             rx.u.deq;
           end
           else begin
@@ -139,5 +153,16 @@ package mem_wb_stage;
     method flush=wr_flush;
     method csrs_to_decode = csr.csrs_to_decode;
 
+		`ifdef CLINT
+	  	method Action clint_msip(Bit#(1) intrpt);
+        csr.clint_msip(intrpt);
+      endmethod
+			method Action clint_mtip(Bit#(1) intrpt);
+        csr.clint_mtip(intrpt);
+      endmethod
+			method Action clint_mtime(Bit#(XLEN) c_mtime);
+        csr.clint_mtime(c_mtime);
+      endmethod
+		`endif
   endmodule:mkmem_wb_stage
 endpackage:mem_wb_stage

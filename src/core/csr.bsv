@@ -42,7 +42,9 @@ package csr;
 	  method ActionValue#(Tuple3#(Bool, Bit#(PADDR),Bit#(XLEN))) system_instruction(
             Bit#(12) csr_address, Bit#(5) rs1_addr, Bit#(XLEN) op1, Bit#(3) funct3);
     method CSRtoDecode csrs_to_decode;
+    method ActionValue#(Bit#(PADDR)) take_trap(Trap_type trap, Bit#(PADDR) pc, Bit#(PADDR) badaddr);
 		`ifdef CLINT
+	  	method Action clint_msip(Bit#(1) intrpt);
 			method Action clint_mtip(Bit#(1) intrpt);
 			method Action clint_mtime(Bit#(XLEN) c_mtime);
 		`endif
@@ -118,6 +120,7 @@ package csr;
     Reg#(Bit#(1)) rg_sie = readOnlyReg(0);
     Reg#(Bit#(1)) rg_uie <- mkReg(0);
     Reg#(Bit#(1)) rg_sd	 	=  readOnlyReg(pack((rg_xs == 2'b11) || (rg_fs == 2'b11)));
+    `ifdef RV64
     Reg#(Bit#(XLEN)) csr_mstatus =  concatReg24(
              rg_sd,
              readOnlyReg(0),
@@ -129,7 +132,17 @@ package csr;
              rg_mpp, rg_hpp, rg_spp, // previous privileges
              rg_mpie, rg_hpie, rg_spie, rg_upie, // previous interrupt enables
              rg_mie, rg_hie, rg_sie, rg_uie); // interrupt enables
-
+    `else
+    Reg#(Bit#(XLEN)) csr_mstatus =  concatReg21(
+             rg_sd,
+             readOnlyReg(0),
+	  				 rg_tsr, rg_tw, rg_tvm,
+             rg_mxr, rg_sum, rg_mprv, // memory privilege
+             rg_xs, rg_fs, // coprocessor states
+             rg_mpp, rg_hpp, rg_spp, // previous privileges
+             rg_mpie, rg_hpie, rg_spie, rg_upie, // previous interrupt enables
+             rg_mie, rg_hie, rg_sie, rg_uie); // interrupt enables
+    `endif
 	  // trap delegation fields
     Reg#(Bit#(16)) rg_medeleg<-mkReg(0);
     Reg#(Bit#(15)) rg_mideleg<-mkReg(0);
@@ -212,7 +225,7 @@ package csr;
              rg_mtip, rg_htip, rg_stip, rg_utip,
              rg_msip, rg_hsip, rg_ssip, rg_usip);
 	  Reg#(Bit#(32)) reg_mcounteren<-mkReg(0);
-  	Reg#(Bit#(XLEN)) csr_mcounteren=concatReg2(readOnlyReg(32'd0),reg_mcounteren);
+  	Reg#(Bit#(XLEN)) csr_mcounteren=concatReg2(readOnlyReg(0),reg_mcounteren);
 	  //////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////// User level registers ///////////////////////////////////
 	  `ifdef RV64
@@ -322,7 +335,7 @@ package csr;
 	  	`ifdef RV64
       	csr_mcycle[0]<=csr_mcycle[0]+1;
 	  	`else
-	  		Bit#(64) new_cycle={csr_mcycleh[0],csr_mcycle[0]);
+	  		Bit#(64) new_cycle={csr_mcycleh[0],csr_mcycle[0]};
 	  		new_cycle=new_cycle+1;
 	  		csr_mcycle[0]<=new_cycle[31:0];
 	  		csr_mcycleh[0]<=new_cycle[63:32];
@@ -357,7 +370,49 @@ package csr;
       endcase
 	  	return tuple3(flush,jump_address,destination_value);
 	  endmethod
+	
+    method ActionValue#(Bit#(PADDR)) take_trap(Trap_type trap, Bit#(PADDR) pc, Bit#(PADDR) badaddr);
+		  if(trap matches tagged Exception .ex)begin
+		  	if(ex==Inst_addr_misaligned || ex==Inst_access_fault)
+		  		badaddr=pc;
+		  	else if(ex==Illegal_inst)
+		  		badaddr=0;
+		  end
+		  Bit#(XLEN) cause = 0;
+		  Bit#(TSub #(XLEN, 1)) cause_code = 0;
+		  Bit#(1) cause_type = 0;
+		  case(trap) matches
+		  	tagged Interrupt .i: begin cause_type = 1; cause_code = zeroExtend(pack(i)); end
+		  	tagged Exception .e: begin cause_type = 0; cause_code = zeroExtend(pack(e)); 
+	  		`ifdef simulate if(e==Endsimulation) $finish(0); `endif 
+		  	end
+		  endcase
+			cause = {cause_type, cause_code};
+			rg_prv <= Machine;
+			if(trap matches tagged Exception .ex)
+				if(ex==Inst_addr_misaligned || ex==Inst_access_fault || ex==Illegal_inst || 
+            ex==Load_access_fault || ex==Load_addr_misaligned ||  ex==Store_addr_misaligned 
+              || ex==Store_access_fault)
+  			  csr_mtval<=zeroExtend(badaddr);
+			csr_mepc<=signExtend(pc);
+			csr_mcause<=cause;
+			rg_mie <= 0;
+			rg_mpp <= pack(rg_prv);
+			rg_mpie <= rg_mie;
+		  return truncate(csr_mtvec);
+  	endmethod
 
     method csrs_to_decode = tuple5(rg_prv, csr_mip, csr_mie, csr_mideleg, rg_mie);
+	  `ifdef CLINT
+	  	method Action clint_msip(Bit#(1) intrpt);
+	  		rg_msip<=intrpt;
+	  	endmethod
+	  	method Action clint_mtip(Bit#(1) intrpt);
+	  		rg_mtip<=intrpt;
+	  	endmethod
+	  	method Action clint_mtime(Bit#(`Reg_width) c_mtime);
+	  		rg_clint_mtime<=c_mtime;
+	  	endmethod
+	  `endif
   endmodule
 endpackage

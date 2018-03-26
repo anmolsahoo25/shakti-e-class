@@ -46,6 +46,11 @@ package riscv;
 	  interface Put#(Tuple2#(Bit#(PADDR),Bool)) inst_response;//addr of the given inst
     interface Get#(MemoryRequest) memory_request;
     interface Put#(Tuple2#(Bit#(XLEN),Bool)) memory_response;
+		`ifdef CLINT
+	  	method Action clint_msip(Bit#(1) intrpt);
+			method Action clint_mtip(Bit#(1) intrpt);
+			method Action clint_mtime(Bit#(XLEN) c_mtime);
+		`endif
   endinterface:Ifc_riscv
 
   module mkriscv(Ifc_riscv);
@@ -84,5 +89,17 @@ package riscv;
     interface inst_response = stage1.inst_response;
     interface memory_request = stage2.memory_request;
     interface memory_response = stage3.memory_response;
+
+		`ifdef CLINT
+	  	method Action clint_msip(Bit#(1) intrpt);
+        stage3.clint_msip(intrpt);
+      endmethod
+			method Action clint_mtip(Bit#(1) intrpt);
+        stage3.clint_mtip(intrpt);
+      endmethod
+			method Action clint_mtime(Bit#(XLEN) c_mtime);
+        stage3.clint_mtime(c_mtime);
+      endmethod
+		`endif
   endmodule:mkriscv
 endpackage: riscv

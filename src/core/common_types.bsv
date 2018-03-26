@@ -60,7 +60,8 @@ package common_types;
             Tuple7#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
               Trap_type, Bit#(1))) PIPE1_DS;
 
-  typedef Tuple6#(Commit_type, Bit#(XLEN), Bit#(21), Bit#(PADDR), Bit#(5), Bit#(1)) PIPE2_DS;
+  typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(21), Bit#(PADDR), Bit#(5), Bit#(1), 
+                  Trap_type) PIPE2_DS;
   typedef Tuple3#(Commit_type, Bit#(XLEN), Bit#(21)) ALU_OUT;
   
   typedef Tuple5#(Bit#(PADDR), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
