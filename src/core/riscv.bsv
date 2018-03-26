@@ -43,7 +43,7 @@ package riscv;
 
   interface Ifc_riscv;
   	interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
-	  interface Put#(Tuple2#(Bit#(PADDR),Bool)) inst_response;//addr of the given inst
+	  interface Put#(Tuple2#(Bit#(32),Bool)) inst_response;//addr of the given inst
     interface Get#(MemoryRequest) memory_request;
     interface Put#(Tuple2#(Bit#(XLEN),Bool)) memory_response;
 		`ifdef CLINT
@@ -53,6 +53,7 @@ package riscv;
 		`endif
   endinterface:Ifc_riscv
 
+  (*synthesize*)
   module mkriscv(Ifc_riscv);
     // instantiate each stage here
     Ifc_fetch_decode_stage stage1 <- mkfetch_decode_stage;        // stage-1: fetch n decode
