@@ -44,6 +44,14 @@ package common_types;
 	typedef UInt#(XLEN) Data_U;
 	typedef 32 PADDR ;
 
+	typedef Bit #(3)  Funct3;
+	Funct3 f3_MUL     = 3'b000;     // 0
+	Funct3 f3_MULH    = 3'b001;     // 1
+	Funct3 f3_MULHSU  = 3'b010;     // 2
+	Funct3 f3_MULHU   = 3'b011;     // 3
+	Funct3 f3_DIV     = 3'b100;     // 4
+	Funct3 f3_DIVU    = 3'b101;     // 5
+
   // Define all enums here 
 	typedef enum {ALU, MUL, DIV, MEMORY, BRANCH, JAL_R, SYSTEM_INSTR, ILLEGAL} Instruction_type 
                                   deriving(Bits, Eq, FShow); // the type of the decoded instruction.
