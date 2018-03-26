@@ -358,6 +358,6 @@ package csr;
 	  	return tuple3(flush,jump_address,destination_value);
 	  endmethod
 
-    method csrs_to_decode = tuple4(rg_prv, csr_mip, rg_mie, csr_mideleg);
+    method csrs_to_decode = tuple5(rg_prv, csr_mip, csr_mie, csr_mideleg, rg_mie);
   endmodule
 endpackage

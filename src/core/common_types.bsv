@@ -53,14 +53,12 @@ package common_types;
 	typedef enum {IntegerRF, Immediate} Operand2_type deriving(Bits, Eq, FShow);
   typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq, Bits, FShow);
   typedef enum {Machine=3, User=0} Privilege_mode deriving(Eq, Bits, FShow);
-  typedef enum {Inst_addr_misaligned, Inst_access_fault, Illegal_inst, Breakpoint, Ecall_from_user,
-                                     Ecall_from_machine, None} ExcpStage1 deriving(Bits, Eq, FShow);
 
 
   // define all tuples here
   typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(XLEN), Bool, Bit#(3),
             Tuple7#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
-                                                                    ExcpStage1, Bit#(1))) PIPE1_DS;
+              Trap_type, Bit#(1))) PIPE1_DS;
 
   typedef Tuple6#(Commit_type, Bit#(XLEN), Bit#(21), Bit#(PADDR), Bit#(5), Bit#(1)) PIPE2_DS;
   typedef Tuple3#(Commit_type, Bit#(XLEN), Bit#(21)) ALU_OUT;
@@ -68,8 +66,8 @@ package common_types;
   typedef Tuple5#(Bit#(PADDR), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
 
   typedef Tuple3#(Bit#(5), Bool, Bit#(XLEN)) OpFwding;
-  // rg_prv,  csr_mip, rg_mie, csr_mideleg, 
-  typedef Tuple4#(Privilege_mode, Bit#(XLEN), Bit#(1), Bit#(XLEN)) CSRtoDecode;
+  // rg_prv,  csr_mip, csr_mie, csr_mideleg, rg_mie 
+  typedef Tuple5#(Privilege_mode, Bit#(XLEN), Bit#(XLEN), Bit#(XLEN), Bit#(1)) CSRtoDecode;
 
 
 	typedef enum {
@@ -82,29 +80,17 @@ package common_types;
 		Store_addr_misaligned=6,
 		Store_access_fault=7,
 		Ecall_from_user=8,
-		Ecall_from_supervisor=9,
-		Ecall_from_machine=11,
-		Inst_pagefault=12,
-		Load_pagefault=13,
-		Store_pagefault=15
+		Ecall_from_machine=11
 		`ifdef simulate ,Endsimulation =16 `endif
 	} Exception_cause deriving (Bits,Eq,FShow);
+
 	typedef enum{
-		/*==== Standard Interrupts =============== */
 		User_soft_int=0,
-		Supervisor_soft_int=1,
 		Machine_soft_int=3,
 		User_timer_int=4,
-		Supervisor_timer_int=5,
 		Machine_timer_int=7,
 		User_external_int=8,
-		Supervisor_external_int=9,
-		Machine_external_int=11,
-		/*=============================*/
-		/*===== Non Standard Interrupts ========= */
-		DebugInterrupt =12,
-		DebugResume=13,
-		DebugReset=14
+		Machine_external_int=11
 	} Interrupt_cause deriving (Bits,Eq,FShow);
 
 	typedef union tagged{

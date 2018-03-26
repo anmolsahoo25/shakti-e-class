@@ -83,11 +83,26 @@ package decode;
                                                                                               prv);
 		return ret;
 	endfunction
+	
+	function Trap_type chk_interrupt(Privilege_mode prv, Bit#(XLEN) mip, Bit#(XLEN) csr_mie, 
+                                                        Bit#(XLEN) mideleg,  Bit#(1) mie);
+		Bit#(15) pending_interrupts = (truncate(mip)) & truncate(csr_mie) ;
+		let pending_machine_interrupts = pending_interrupts & ~truncate(mideleg);
+		let machine_interrupts_enabled = (mie == 1) || (prv != Machine);
+		pending_interrupts =	(machine_interrupts_enabled ? pending_machine_interrupts : 0);
+
+		// format pendingInterrupt value to return
+		Trap_type ret = tagged None;
+		if (pending_interrupts != 0) begin
+			ret = tagged Interrupt unpack(zeroExtend(pack(countZerosLSB(pending_interrupts))));
+		end
+		return ret;
+	endfunction
 
   (*noinline*)
   function PIPE1_DS decoder_func(Bit#(32) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch, Bool err, 
                                                                                CSRtoDecode csrs);
-    let {prv, mip, mie, mideleg}=csrs;
+    let {prv, mip, csr_mie, mideleg, mie}=csrs;
 		Bit#(5) rs1=inst[19:15];
 		Bit#(5) rs2=inst[24:20];
 		Bit#(5) rd =inst[11:7] ;
@@ -185,31 +200,34 @@ package decode;
   	else if(opcode[4:3]=='b10)	
  		  fn=opcode[3:0];
 
-    ExcpStage1 exception = None;
+    Trap_type exception = tagged None;
+    Trap_type interrupt = chk_interrupt(prv, mip, csr_mie, mideleg, mie);
 		Bool address_is_valid=address_valid(inst[31:20]);
 		Bool access_is_valid=valid_csr_access(inst[31:20],inst[19:15], inst[13:12], prv);
     if(pc[1:0]!=0)
-      exception = Inst_addr_misaligned;
+      exception = tagged Exception Inst_addr_misaligned;
     else if(err)
-      exception = Inst_access_fault;
+      exception = tagged Exception Inst_access_fault;
     else if(inst_type==ILLEGAL)
-	    exception = Illegal_inst;
+	    exception = tagged Exception Illegal_inst;
     else if(inst_type == SYSTEM_INSTR)begin
       if(funct3 == 0)
         case(inst[31:20])
-          'h000: exception = (prv==User)?Ecall_from_user:Ecall_from_machine; // ECALL
-          'h001: exception = Breakpoint;
-          'h302: exception = (prv!=Machine)?Illegal_inst:None;
-          default: exception = None;
+          'h000: exception = tagged Exception ((prv==User)?Ecall_from_user:Ecall_from_machine);
+          'h001: exception = tagged Exception Breakpoint;
+          'h302: exception = (prv!=Machine)?tagged Exception Illegal_inst:tagged None;
+          default: exception = tagged None;
         endcase
       else begin // CSR read write operation
   		  if(!(address_is_valid && access_is_valid))
-          exception = Illegal_inst;
+          exception = tagged Exception Illegal_inst;
       end
     end
+    if(interrupt matches tagged None)
+      interrupt =  exception;
 
-    Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), ExcpStage1, 
-    Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, exception, epoch);
+    Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
+    Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt, epoch);
 
     return tuple8(fn, rs1, rs2, rd, immediate_value, word32, funct3, type_tuple);            
   endfunction
