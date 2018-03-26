@@ -4,8 +4,8 @@
 include ./old_vars
 include soc_config.inc
 
-TOP_MODULE:=mkriscv
-TOP_FILE:=riscv.bsv
+TOP_MODULE:=mkcore
+TOP_FILE:=core.bsv
 TOP_DIR:=./src/core/
 WORKING_DIR := $(shell pwd)
 
@@ -43,10 +43,11 @@ ifeq ($(SYNTH),SIM)
 endif
 
 CORE:=./src/core/
+FABRIC:=./src/fabric/axi4:./src/fabric/axi4lite
 #TESTBENCH:=./src/testbench/
 LIB:=./src/lib/
 VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS -static --x-assign fast --x-initial fast --noassert --cc --bbox-sys -Wno-STMTDLY -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY -Wno-INFINITELOOP
-BSVINCDIR:= .:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB)
+BSVINCDIR:= .:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB):$(FABRIC)
 default: compile_bluesim link_bluesim 
 
 check-blue:
@@ -80,7 +81,7 @@ compile_bluesim: check-restore check-blue
 link_bluesim:check-blue
 	@echo "Linking $(TOP_MODULE) in Bluesim..."
 	@mkdir -p $(BSVOUTDIR)
-	bsc -e $(TOP_MODULE) -sim -o $(BSVOUTDIR)/out -simdir $(BSVBUILDDIR) -p $(BSVINCDIR) -bdir $(BSVBUILDDIR) $(BSVLINKOPTS) ./src/uncore/debug/RBB_Shakti.c 2>&1 | tee bsv_link.log
+	bsc -e $(TOP_MODULE) -sim -o $(BSVOUTDIR)/out -simdir $(BSVBUILDDIR) -p $(BSVINCDIR) -bdir $(BSVBUILDDIR) $(BSVLINKOPTS) 2>&1 | tee bsv_link.log
 	@echo Linking finished
 
 .PHONY: simulate
