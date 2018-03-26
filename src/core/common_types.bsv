@@ -30,7 +30,6 @@ Details:
 */
 package common_types;
 	`include "common_params.bsv"
-	import isa_defs::*;
 
 	`ifdef RV64
 		typedef 64 XLEN;
@@ -108,4 +107,6 @@ package common_types;
 	  void None;
 	} Trap_type deriving(Bits,Eq,FShow);
 
+  // fabrics related definitions.
+  typedef 0 USERSPACE;
 endpackage

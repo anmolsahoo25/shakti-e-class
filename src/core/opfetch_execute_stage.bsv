@@ -35,7 +35,6 @@ package opfetch_execute_stage;
   import FIFOF::*;
 
   // files to be included
-  import isa_defs::*;
   import common_types::*;
   import TxRx ::*;
   import alu::*;

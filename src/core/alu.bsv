@@ -39,7 +39,6 @@ This module contains single cycle MUL instruction execution.
 package alu;
 
   // Project imports 
-  import isa_defs::*;
   import common_types::*;
   `include "common_params.bsv"
   

@@ -34,7 +34,6 @@ package fetch_decode_stage;
 	import TxRx	::*;
 
   // project files to be imported/included
-	import isa_defs::*;
 	import common_types::*;
   `include "common_params.bsv"
   import decode::*;
@@ -43,7 +42,7 @@ package fetch_decode_stage;
   // Interface for the fetch and decode unit
 	interface Ifc_fetch_decode_stage;
   	interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
-	  interface Put#(Tuple2#(Bit#(PADDR),Bool)) inst_response;//addr of the given inst
+	  interface Put#(Tuple2#(Bit#(32),Bool)) inst_response;//addr of the given inst
     // rs1,rs2,rd,fn,funct3,instruction_type will be passed on to opfetch and execute unit
     interface TXe#(PIPE1_DS) to_opfetch_unit;
     method Action flush_from_wb( Bit#(PADDR) newpc, Bool fl);
