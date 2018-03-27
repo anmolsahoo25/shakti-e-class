@@ -1,0 +1,15 @@
+`define Num_Masters 2 
+`define Num_Slaves 1  
+// master numbers on fabric
+`define Mem_master_num 0
+`define Fetch_master_num 1
+
+// slave numbers of fabric
+`define Memory_slave_num 0
+
+`define Addr_space 17
+
+`define MemoryBase 'h8000_0000
+`define MemoryEnd  'hFFFF_FFFF
+
+
