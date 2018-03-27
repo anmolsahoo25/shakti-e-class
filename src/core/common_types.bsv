@@ -43,6 +43,12 @@ package common_types;
 	typedef UInt#(XLEN) Data_U;
 	typedef 32 PADDR ;
 
+  `ifdef RV64
+    typedef 2 Byte_offset;
+  `else
+    typedef 1 Byte_offset;
+  `endif
+
 	typedef Bit #(3)  Funct3;
 	Funct3 f3_MUL     = 3'b000;     // 0
 	Funct3 f3_MULH    = 3'b001;     // 1
