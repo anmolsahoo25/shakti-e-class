@@ -79,8 +79,8 @@ package fetch_decode_stage;
         let {inst,err}=resp;
 			  PIPE1_DS x= decoder_func(inst,shadow_pc,shadow_epoch, err, wr_csr);
         if(verbosity!=0)
-          $display($time, "\tSTAGE1: Received from Bus: Inst: %h, PC: %h Err: %b Epoch: %b", inst,
-            shadow_pc, err, shadow_epoch);
+          $display($time, "\tSTAGE1: PC: %h Inst: %h, Err: %b Epoch: %b", shadow_pc, inst, err, 
+              shadow_epoch);
 				tx.u.enq(x);  //enq the output of the decoder function in the tx interface
 			endmethod
 		endinterface;
