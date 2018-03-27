@@ -58,6 +58,8 @@ package alu;
 	  // ADD* ADDI* SUB* 
 	  let inv_op2=(fn[3]==1)?~op2:op2;
 	  let op1_xor_op2=op1^inv_op2;
+    if(inst_type== JAL_R)
+      inv_op2= imm_value;
 	  let adder_output=op1+inv_op2+zeroExtend(fn[3]);
 	  // SLT SLTU
 	  Bit#(1) compare_out=fn[0]^(
@@ -121,10 +123,10 @@ package alu;
 		end
 		
     // generate the effective address to jump to 
-		Bit#(PADDR) effective_address=truncate(imm_value)+pc;
+		Bit#(PADDR) effective_address=truncate(adder_output);
 		Bit#(PADDR) npc=pc+4;
 		if(inst_type==JAL_R)
-			 final_output=signExtend(npc);
+			 final_output=zeroExtend(npc);
 		`ifdef simulate
 			if(inst_type==BRANCH)
 				final_output=0;
@@ -140,10 +142,10 @@ package alu;
     else if(inst_type == SYSTEM_INSTR)
       committype = SYSTEM_INSTR;
 	
-	  Bit#(XLEN) effaddr_maddr_op1_result = (flush == Flush)? zeroExtend(effective_address): 
-                                                      committype == SYSTEM_INSTR?op1: final_output;
-	  Bit#(21)  funct3_rs1_csr = {pack(flush), funct3, imm_value[16:0]};
+	  Bit#(XLEN) op1_result = committype == SYSTEM_INSTR?op1: final_output;
+	  Bit#(TAdd#(PADDR, 1)) effaddr_csrdata = (flush == Flush)? zeroExtend({1'b1, effective_address}): 
+                                          zeroExtend({funct3, imm_value[16:0]});
 
-	  return tuple3(committype, effaddr_maddr_op1_result, funct3_rs1_csr);
+	  return tuple3(committype, op1_result, effaddr_csrdata);
 	endfunction
 endpackage:alu
