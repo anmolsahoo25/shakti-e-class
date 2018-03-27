@@ -89,7 +89,7 @@ package alu;
 	  					 logic_output|shift_output;
 
 		// mul and div inst
-		
+	/*	
     Data operand1=?;Data operand2=?;Bool is32Bit=False;
     Data_S sop1 = unpack(op1), sop2 = unpack(op2);
     Data_U uop1 = unpack(op1), uop2 = unpack(op2);
@@ -108,8 +108,8 @@ package alu;
     else if(funct3==f3_MULH)begin operand1=mop1;operand2=mop2;is32Bit=take_complement; end
     else if(funct3==f3_MULHU)begin operand1=op1;operand2=op2;is32Bit=False; end
     res=mul_core(operand1, operand2, is32Bit);//creates only single instance of the multiplier
-
-    Bit#(XLEN) final_output=(inst_type==MUL)?res:(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
+*/
+    Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
     //Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
 		if(word32)
 			 final_output=signExtend(final_output[31:0]);
