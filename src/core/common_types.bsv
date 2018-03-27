@@ -61,7 +61,7 @@ package common_types;
 	typedef enum {ALU, MUL, DIV, MEMORY, BRANCH, JAL_R, SYSTEM_INSTR, ILLEGAL} Instruction_type 
                                   deriving(Bits, Eq, FShow); // the type of the decoded instruction.
 	typedef enum {Load, Store} Access_type deriving (Bits, Eq, FShow);
-	typedef enum {Flush, None} Flush_type deriving (Bits, Eq, FShow);
+	typedef enum {Flush= 1, None= 0} Flush_type deriving (Bits, Eq, FShow);
 	typedef enum {IntegerRF, PC} Operand1_type deriving(Bits, Eq, FShow);
 	typedef enum {IntegerRF, Immediate} Operand2_type deriving(Bits, Eq, FShow);
   typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq, Bits, FShow);
@@ -71,19 +71,19 @@ package common_types;
   `ifdef simulate
     typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(XLEN), Bool, Bit#(3),
               Tuple8#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
-                Trap_type, Bit#(1) `ifdef simulate , Bit#(32) `endif )) PIPE1_DS;
+                Trap_type, Bit#(1), Bit#(32))) PIPE1_DS;
 
-    typedef Tuple8#(Commit_type, Bit#(XLEN), Bit#(21), Bit#(PADDR), Bit#(5), Bit#(1), 
-                    Trap_type `ifdef simulate , Bit#(32) `endif ) PIPE2_DS;
+    typedef Tuple8#(Commit_type, Bit#(XLEN), Bit#(TAdd#(PADDR, 1)), Bit#(PADDR), Bit#(5), Bit#(1), 
+                    Trap_type, Bit#(32)) PIPE2_DS;
   `else
     typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(XLEN), Bool, Bit#(3),
               Tuple7#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
                 Trap_type, Bit#(1))) PIPE1_DS;
 
-    typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(21), Bit#(PADDR), Bit#(5), Bit#(1), 
+    typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(TAdd#(PADDR, 1)), Bit#(PADDR), Bit#(5), Bit#(1), 
                     Trap_type) PIPE2_DS;
   `endif
-  typedef Tuple3#(Commit_type, Bit#(XLEN), Bit#(21)) ALU_OUT;
+  typedef Tuple3#(Commit_type, Bit#(XLEN), Bit#(TAdd#(PADDR, 1))) ALU_OUT;
   
   typedef Tuple5#(Bit#(PADDR), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
 

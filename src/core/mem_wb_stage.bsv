@@ -81,12 +81,15 @@ package mem_wb_stage;
     Integer verbosity = `VERBOSITY;
 
     rule instruction_commit;
-      let {committype, reslt, funct3_rs1_csr, pc, rd, epoch, trap `ifdef simulate , inst `endif } = 
+      let {committype, reslt, effaddr_csrdata, pc, rd, epoch, trap `ifdef simulate , inst `endif } = 
                                                                                         rx.u.first;
       if(verbosity!=0)
-        $display($time, "\tSTAGE3: ", fshow(rx.u.first));
-      Bit#(PADDR) jump_address=truncate(reslt);
-      Flush_type fl = unpack(funct3_rs1_csr[20]);
+        $display($time, "\tSTAGE3: PC: %h committype: ", pc, fshow(committype), " result: %h",
+            reslt);
+        $display($time, "\t        csr_data: %h", effaddr_csrdata, " rd: %d", rd, " epoch: %b", 
+            epoch, " trap: ", fshow(trap));
+      Bit#(PADDR) jump_address=truncate(effaddr_csrdata);
+      Flush_type fl = unpack(effaddr_csrdata[valueOf(PADDR)]);
       // continue commit only if epochs match. Else deque the ex fifo
       if(trap matches tagged Interrupt .in)begin
         let newpc<-  csr.take_trap(trap, pc, ?);
@@ -129,8 +132,8 @@ package mem_wb_stage;
           end
         end
         else if(committype == SYSTEM_INSTR)begin
-          let {drain, newpc, dest}<-csr.system_instruction(funct3_rs1_csr[11:0], 
-                                              funct3_rs1_csr[16:12], reslt, funct3_rs1_csr[19:17]);
+          let {drain, newpc, dest}<-csr.system_instruction(effaddr_csrdata[11:0], 
+                                              effaddr_csrdata[16:12], reslt, effaddr_csrdata[19:17]);
           jump_address=newpc;
           if(drain) 
             fl=Flush;

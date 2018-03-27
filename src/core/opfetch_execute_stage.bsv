@@ -81,7 +81,7 @@ package opfetch_execute_stage;
       Bit#(XLEN) rs2=0;
     
       if(rs1_type==PC)
-        rs1=signExtend(pc);
+        rs1=zeroExtend(pc);
       else if(rs1_addr==0)
         rs1=0;
       else if(rs1_addr == rd)
@@ -124,28 +124,32 @@ package opfetch_execute_stage;
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
                                         pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
       if(verbosity!=0)begin
-        $display($time, "\tSTAGE2: pc: %h fn: %b rs1: %d rs2: %d imm: %h", pc, fn, rs1, rs2, imm);
-        $display($time, "\t        funt3: %b epoch: %b insttype: ", funct3, epoch, fshow(insttype));
+        $display($time, "\tSTAGE2: PC: %h", pc);
+        $display($time, "\t        fn: %b rs1: %d rs2: %d rd: %d imm: %h", fn, rs1, rs2, rd, imm);
+        $display($time, "\t        rs1type: ", fshow(rs1_type), " rs2type: ", fshow(rs2_type),
+            " insttype: ", fshow(insttype));
+        $display($time, "\t        funt3: %b epoch: %b ", funct3, epoch, " mem_access: ", 
+            fshow(mem_access), " trap ", fshow(trap));
       end
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
       let {op1, op2, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, imm);
-      let {committype, reslt, funct3_rs1_csr} = fn_alu(fn, op1, op2, imm, pc, insttype,
+      let {committype, op1_reslt, effaddr_csrdata} = fn_alu(fn, op1, op2, imm, pc, insttype,
                                                                    funct3, mem_access, rd, word32);
       if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
         if(available)begin
           if(verbosity!=0)
-            $display($time, "\tSTAGE2: Operands Received. rs1: %d op1: %h rs2: %d op2: %h Type: ", 
+            $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h Type: ", 
             rs1, op1, rs2, op2, fshow(committype));
           rx.u.deq;
           if(committype == MEMORY &&& trap matches tagged None)
-            ff_memory_request.enq(tuple5(truncate(reslt), imm, mem_access,
+            ff_memory_request.enq(tuple5(truncate(op1_reslt), imm, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
           `ifdef simulate
-            tx.u.enq(tuple8(committype,reslt, funct3_rs1_csr, pc, rd, rg_epoch[0], trap, inst));
+            tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
           `else
-            tx.u.enq(tuple7(committype,reslt, funct3_rs1_csr, pc, rd, rg_epoch[0], trap));
+            tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
           `endif
         end
       end
@@ -165,15 +169,18 @@ package opfetch_execute_stage;
     // to be forwarded
     interface operand_fwding=interface Put
       method Action put (Tuple3#(Bit#(5),Bool,Bit#(XLEN)) from_mem_to_opfetch );
+        let {rd, valid, data} =  from_mem_to_opfetch;
+        if(verbosity!= 0)
+          $display($time, "\tSTAGE2: Forwarding Rd: %d Valid: %b Data: %h", rd, valid, data);
         wr_opfwding <= from_mem_to_opfetch;
       endmethod 
     endinterface;
     
     interface commit_rd=interface Put
       method Action put (Tuple2#(Bit#(5),Bit#(XLEN)) from_mem_to_rf ) if(!initialize);
-        if(verbosity!=0)
-          $display($time, "\tSTAGE2: Commiting ", fshow(from_mem_to_rf));
         let {rd,value} = from_mem_to_rf;
+        if(verbosity!=0)
+          $display($time, "\tSTAGE2: Commiting Rd: %d, Data: %h", rd, value);
         if(rd!=0)
           integer_rf.upd(rd,value);
       endmethod
