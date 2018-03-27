@@ -78,9 +78,13 @@ package mem_wb_stage;
       let prv=tpl_1(csr.csrs_to_decode);
     `endif
 
+    Integer verbosity = `VERBOSITY;
+
     rule instruction_commit;
       let {committype, reslt, funct3_rs1_csr, pc, rd, epoch, trap `ifdef simulate , inst `endif } = 
                                                                                         rx.u.first;
+      if(verbosity!=0)
+        $display($time, "\tSTAGE3: ", fshow(rx.u.first));
       Bit#(PADDR) jump_address=truncate(reslt);
       Flush_type fl = unpack(funct3_rs1_csr[20]);
       // continue commit only if epochs match. Else deque the ex fifo
@@ -89,6 +93,8 @@ package mem_wb_stage;
         wr_flush<=tuple2(newpc, True);
         rg_epoch <= ~rg_epoch;
         rx.u.deq;
+        if(verbosity!=0)
+          $display($time, "\tSTAGE3: Received Interrupt: ", fshow(trap));
       end
       else if(rg_epoch==epoch)begin
         // in case of a flush also flip the local epoch register.
@@ -97,6 +103,8 @@ package mem_wb_stage;
           jump_address<- csr.take_trap(trap, pc, ?);
           fl= Flush;
           rx.u.deq;
+          if(verbosity!=0)
+            $display($time, "\tSTAGE3: Received Exception: ", fshow(trap));
         end
         else if(committype == MEMORY) begin
           if (wr_memory_response matches tagged Valid .resp)begin
@@ -104,10 +112,12 @@ package mem_wb_stage;
             if(!err)begin // no bus error
               wr_operand_fwding <= tuple3(rd, True, data);
               `ifdef simulate 
-                dump_ff.enq(tuple5(prv, pc, inst, rd, data));
+                dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
               `endif
             end
             else begin
+              if(verbosity!=0)
+                $display($time, "\tSTAGE3: Received Exception from Memory: ", fshow(resp));
               jump_address<- csr.take_trap(trap, pc, truncate(reslt));
               fl= Flush;
             end
@@ -126,7 +136,7 @@ package mem_wb_stage;
             fl=Flush;
           `ifdef simulate 
           else
-            dump_ff.enq(tuple5(prv, pc, inst, rd, dest));
+            dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, dest));
           `endif
           wr_operand_fwding <= tuple3(rd, True, dest);
           wr_commit <= tagged Valid (tuple2(rd, dest));
@@ -138,7 +148,7 @@ package mem_wb_stage;
           wr_commit <= tagged Valid (tuple2(rd, reslt));
           rx.u.deq;
           `ifdef simulate 
-            dump_ff.enq(tuple5(prv, pc, inst, rd, reslt));
+            dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, reslt));
           `endif
         end
         
@@ -149,6 +159,8 @@ package mem_wb_stage;
 
       end
       else begin
+        if(verbosity!=0)
+          $display($time, "\tSTAGE3: Dropping instruction");
         rx.u.deq;
       end
     endrule

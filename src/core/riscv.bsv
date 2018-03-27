@@ -89,6 +89,12 @@ package riscv;
       stage1.csrs(stage3.csrs_to_decode);
     endrule
 
+    `ifdef simulate
+      rule display_eol;
+        $display("\n\n");
+      endrule
+    `endif
+
     interface inst_request = stage1.inst_request;
     interface inst_response = stage1.inst_response;
     interface memory_request = stage2.memory_request;

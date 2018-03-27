@@ -50,13 +50,14 @@ package TbSoC;
     	rg_cnt <= 1 ;
     endrule
 
-    rule write_dump_file(rg_cnt!=0);
-      let {prv, pc, instruction, rd, data}<- soc.dump.get;
-      if(instruction=='h00006f)
-        $finish(0);
-			$fwrite(dump, prv, " 0x%16h", pc, " (0x%8h", instruction, ")"); 
-			$fwrite(dump, " x%d", rd, " 0x%16h", data, "\n"); 
-    endrule
-
+    `ifdef simulate
+      rule write_dump_file(rg_cnt!=0);
+        let {prv, pc, instruction, rd, data}<- soc.dump.get;
+        if(instruction=='h00006f)
+          $finish(0);
+		  	$fwrite(dump, prv, " 0x%16h", pc, " (0x%8h", instruction, ")"); 
+		  	$fwrite(dump, " x%d", rd, " 0x%16h", data, "\n"); 
+      endrule
+    `endif
   endmodule
 endpackage: TbSoC

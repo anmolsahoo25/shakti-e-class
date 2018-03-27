@@ -58,6 +58,8 @@ package fetch_decode_stage;
     Wire#(CSRtoDecode) wr_csr <-mkWire();
     //instantiating the tx interface with name tx
 		TX#(PIPE1_DS) tx<-mkTX;
+
+    Integer verbosity = valueOf(`VERBOSITY);
     
     //instruction whose addr is needed
 		interface inst_request = interface Get
@@ -65,6 +67,8 @@ package fetch_decode_stage;
 				shadow_pc<=pc[0];
         shadow_epoch<=rg_epoch[0];
         pc[0]<=pc[0]+4;
+        if(verbosity!=0)
+          $display($time, "\tSTAGE1: Sending Instruction Addr: %h", pc[0]);
 				return pc[0];
 			endmethod
 		endinterface;
@@ -74,6 +78,9 @@ package fetch_decode_stage;
 			method Action put (Tuple2#(Bit#(32),Bool) resp);
         let {inst,err}=resp;
 			  PIPE1_DS x= decoder_func(inst,shadow_pc,shadow_epoch, err, wr_csr);
+        if(verbosity!=0)
+          $display($time, "\tSTAGE1: Received from Bus: Inst: %h, PC: %h Err: %b Epoch: %b", inst,
+            shadow_pc, err, shadow_epoch);
 				tx.u.enq(x);  //enq the output of the decoder function in the tx interface
 			endmethod
 		endinterface;
@@ -81,9 +88,12 @@ package fetch_decode_stage;
     //providing the output of the decoder function to the opfetch unit via tx interface
 		interface to_opfetch_unit=tx.e;
     method Action flush_from_wb( Bit#(PADDR) newpc, Bool fl);
-      if(fl)
+      if(fl)begin
         rg_epoch[1]<=~rg_epoch[1];
-      pc[1]<=newpc;
+        pc[1]<=newpc;
+        if(verbosity>1)
+          $display($time, "\tSTAGE1: Received Flush. PC: %h Flush: ",newpc, fshow(fl)); 
+      end
     endmethod
 
     method Action csrs (CSRtoDecode csr);

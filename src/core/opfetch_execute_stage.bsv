@@ -61,6 +61,8 @@ package opfetch_execute_stage;
   
   (*synthesize*)
   module mkopfetch_execute_stage(Ifc_opfetch_execute_stage);
+
+    let verbosity = `VERBOSITY;
      
     // generating the register file
     RegFile#(Bit#(5),Bit#(XLEN)) integer_rf <-mkRegFileWCF(0,31);
@@ -105,6 +107,8 @@ package opfetch_execute_stage;
   
     // rule to initialize all the registers to 0 on reset
     rule initialize_regfile(initialize);
+      if(verbosity!=0)
+        $display($time, "\tSTAGE2: Initializing the RF. Index: %d", rg_index);
       integer_rf.upd(rg_index,0);
       rg_index<=rg_index+1;
       if(rg_index=='d31)
@@ -119,6 +123,10 @@ package opfetch_execute_stage;
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
                                         pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
+      if(verbosity!=0)begin
+        $display($time, "\tSTAGE2: pc: %h fn: %b rs1: %d rs2: %d imm: %h", pc, fn, rs1, rs2, imm);
+        $display($time, "\t        funt3: %b epoch: %b insttype: ", funct3, epoch, fshow(insttype));
+      end
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
       let {op1, op2, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, imm);
@@ -127,6 +135,9 @@ package opfetch_execute_stage;
       if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
         if(available)begin
+          if(verbosity!=0)
+            $display($time, "\tSTAGE2: Operands Received. rs1: %d op1: %h rs2: %d op2: %h Type: ", 
+            rs1, op1, rs2, op2, fshow(committype));
           rx.u.deq;
           if(committype == MEMORY &&& trap matches tagged None)
             ff_memory_request.enq(tuple5(truncate(reslt), imm, mem_access,
@@ -138,8 +149,11 @@ package opfetch_execute_stage;
           `endif
         end
       end
-      else
+      else begin
+        if(verbosity!=0)
+          $display($time, "\tSTAGE2: Dropping instruction");
         rx.u.deq;
+      end
     endrule
   
     // interface definition
@@ -157,6 +171,8 @@ package opfetch_execute_stage;
     
     interface commit_rd=interface Put
       method Action put (Tuple2#(Bit#(5),Bit#(XLEN)) from_mem_to_rf ) if(!initialize);
+        if(verbosity!=0)
+          $display($time, "\tSTAGE2: Commiting ", fshow(from_mem_to_rf));
         let {rd,value} = from_mem_to_rf;
         if(rd!=0)
           integer_rf.upd(rd,value);
@@ -165,14 +181,19 @@ package opfetch_execute_stage;
     
     interface memory_request = interface Get
       method ActionValue#(MemoryRequest) get ;
+        if(verbosity>1)
+          $display($time, "\tSTAGE2: Sending Memory Request: ", fshow(ff_memory_request.first));
         ff_memory_request.deq;
         return ff_memory_request.first;
       endmethod
     endinterface;
 
     method Action flush_from_wb(Bool fl);
-      if(fl)
+      if(fl)begin
         rg_epoch[1]<=~rg_epoch[1];
+        if(verbosity>1)
+          $display($time, "\tSTAGE2: Received Flush");
+      end
     endmethod
   endmodule:mkopfetch_execute_stage
 endpackage:opfetch_execute_stage

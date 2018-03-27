@@ -63,18 +63,25 @@ package core;
     Reg#(TxnState) fetch_state<- mkReg(Request);
     Reg#(TxnState) memory_state<- mkReg(Request);
     Reg#(MemoryRequest) memory_request <- mkReg(unpack(0));
+
+    Integer verbosity = `VERBOSITY;
+
     rule handle_fetch_request(fetch_state == Request) ;
       let inst_addr<- riscv.inst_request.get;
-			let read_request = AXI4_Rd_Addr {araddr: inst_addr, aruser: ?, arlen: 0, arsize: 2, arburst:
-      'b01, arid:'d1}; // arburst: 00-FIXED 01-INCR 10-WRAP
+			AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: inst_addr, aruser: ?, arlen: 0, 
+          arsize: 2, arburst: 'b01, arid:'d1}; // arburst: 00-FIXED 01-INCR 10-WRAP
 			fetch_xactor.i_rd_addr.enq(read_request);	
       fetch_state<= Response;
+      if(verbosity!=0)
+        $display($time, "\tCORE: Fetch Request ", fshow(read_request));
     endrule
     rule handle_fetch_response(fetch_state == Response);
 			let response <- pop_o (fetch_xactor.o_rd_data);	
 			Bool bus_error = !(response.rresp==AXI4_OKAY);
       riscv.inst_response.put(tuple2(truncate(response.rdata), bus_error));
       fetch_state<= Request;
+      if(verbosity!=0)
+        $display($time, "\tCORE: Fetch Response ", fshow(response));
     endrule
     rule handle_memory_request(memory_state ==  Request);
       let {address, data, access, size, sign}<- riscv.memory_request.get;
@@ -84,14 +91,20 @@ package core;
 				write_strobe=write_strobe<<(address[2:0]);
 			end
       if(access == Load) begin
-        let read_request = AXI4_Rd_Addr {araddr: address, aruser: 0, arlen: 0, arsize: 
-          zeroExtend(size), arburst:'b01, arid:'d0}; // arburst: 00-FIXED 01-INCR 10-WRAP
+        AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: address, aruser: 0, arlen: 0, 
+            arsize: zeroExtend(size), arburst:'b01, arid:'d0}; //arburst: 00-FIXED 01-INCR 10-WRAP
    	   		memory_xactor.i_rd_addr.enq(read_request);	
+        if(verbosity!=0)
+          $display($time, "\tCORE: Memory Read Request ", fshow(read_request));
       end
       else begin
-			  let aw = AXI4_Wr_Addr {awaddr: truncate(address), awuser:0, awlen: 0, awsize: 
-          zeroExtend(size), awburst: 'b01, awid:'d0}; // arburst: 00-FIXED 01-INCR 10-WRAP
+			   AXI4_Wr_Addr#(PADDR, 0) aw = AXI4_Wr_Addr {awaddr: truncate(address), awuser:0, awlen: 0, 
+            awsize: zeroExtend(size), awburst: 'b01, awid:'d0}; //arburst: 00-FIXED 01-INCR 10-WRAP
   			let w  = AXI4_Wr_Data {wdata: data, wstrb: write_strobe, wlast:True, wid:'d0};
+        if(verbosity!=0)begin
+          $display($time, "\tCORE: Memory write Request ", fshow(aw));
+          $display($time, "\tCORE: Memory write Request ", fshow(w));
+        end
 	  		memory_xactor.i_wr_addr.enq(aw);
 		  	memory_xactor.i_wr_data.enq(w);
       end
@@ -103,6 +116,8 @@ package core;
 			let bus_error = !(response.rresp==AXI4_OKAY);
       // TODO shift, and perform signextension before sending to core.
 			riscv.memory_response.put(tuple2(response.rdata, bus_error));
+      if(verbosity!=0)
+        $display($time, "\tCORE: Memory Read Response ", fshow(response));
       memory_state<= Request;
     endrule
     rule handle_memoryWrite_response(memory_state == Response && tpl_3(memory_request) == Store);
@@ -110,6 +125,8 @@ package core;
 			let response<-pop_o(memory_xactor.o_wr_resp);
 			let bus_error = !(response.bresp==AXI4_OKAY);
 			riscv.memory_response.put(tuple2(0, bus_error));
+      if(verbosity!=0)
+        $display($time, "\tCORE: Memory Write Response ", fshow(response));
       memory_state<= Request;
     endrule
 		`ifdef CLINT

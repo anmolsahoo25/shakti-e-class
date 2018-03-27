@@ -1,4 +1,4 @@
-ISA=RV64IMAFD
+ISA=RV64IM
 MUL=sequential
 PERF=enable
 VERBOSE=disable
@@ -6,3 +6,4 @@ PREFETCH=enable
 DEBUG=disable
 OPENOCD=disable
 SYNTH=SIM
+VERBOSITY=2

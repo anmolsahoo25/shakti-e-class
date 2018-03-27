@@ -41,6 +41,7 @@ endif
 ifeq ($(SYNTH),SIM)
   define_macros += -D simulate=True
 endif
+define_macros += -D VERBOSITY=$(VERBOSITY)
 
 CORE:=./src/core/
 FABRIC:=./src/fabric/axi4:./src/fabric/axi4lite
@@ -101,6 +102,7 @@ generate_verilog: check-restore check-blue
 	bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR) $(define_macros) -D verilog=True $(BSVCOMPILEOPTS) -verilog-filter ${BLUESPECDIR}/bin/basicinout -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE) 2>&1 | tee bsv_compile.log
 	@cp ${BLUESPECDIR}/Verilog.Vivado/RegFile.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFO2.v ./verilog/
+	@cp ${BLUESPECDIR}/Verilog/FIFOL1.v ./verilog/
 	@echo Compilation finished
 
 .PHONY: link_vcs
