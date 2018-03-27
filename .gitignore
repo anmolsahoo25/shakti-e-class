@@ -2,3 +2,5 @@
 bsv_build/
 
 verilog/
+
+bin/
