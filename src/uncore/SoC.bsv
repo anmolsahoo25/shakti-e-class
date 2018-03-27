@@ -54,8 +54,14 @@ package SoC;
     return tuple2(slave_exist, slave_num);
   endfunction:fn_slave_map
 
+  interface Ifc_SoC;
+    `ifdef simulate
+      interface Get#(DumpType) dump;
+    `endif
+  endinterface
 
-  module mkSoC(Empty);
+  (*synthesize*)
+  module mkSoC(Ifc_SoC);
     Ifc_core core <- mkcore();
     AXI4_Fabric_IFC #(`Num_Masters, `Num_Slaves, PADDR, XLEN, USERSPACE) 
                                                     fabric <- mkAXI4_Fabric(fn_slave_map);
@@ -67,5 +73,8 @@ package SoC;
    	mkConnection(core.fetch_master, fabric.v_from_masters[`Fetch_master_num]);
 
 		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.axi_slave);
+    `ifdef simulate
+      interface dump= core.dump;
+    `endif
   endmodule: mkSoC
 endpackage: SoC

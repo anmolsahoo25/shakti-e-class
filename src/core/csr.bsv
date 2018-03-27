@@ -383,9 +383,7 @@ package csr;
 		  Bit#(1) cause_type = 0;
 		  case(trap) matches
 		  	tagged Interrupt .i: begin cause_type = 1; cause_code = zeroExtend(pack(i)); end
-		  	tagged Exception .e: begin cause_type = 0; cause_code = zeroExtend(pack(e)); 
-	  		`ifdef simulate if(e==Endsimulation) $finish(0); `endif 
-		  	end
+		  	tagged Exception .e: begin cause_type = 0; cause_code = zeroExtend(pack(e)); end
 		  endcase
 			cause = {cause_type, cause_code};
 			rg_prv <= Machine;

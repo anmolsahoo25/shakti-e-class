@@ -67,14 +67,22 @@ package common_types;
   typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq, Bits, FShow);
   typedef enum {Machine=3, User=0} Privilege_mode deriving(Eq, Bits, FShow);
 
-
   // define all tuples here
-  typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(XLEN), Bool, Bit#(3),
-            Tuple7#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
-              Trap_type, Bit#(1))) PIPE1_DS;
+  `ifdef simulate
+    typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(XLEN), Bool, Bit#(3),
+              Tuple8#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
+                Trap_type, Bit#(1) `ifdef simulate , Bit#(32) `endif )) PIPE1_DS;
 
-  typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(21), Bit#(PADDR), Bit#(5), Bit#(1), 
-                  Trap_type) PIPE2_DS;
+    typedef Tuple8#(Commit_type, Bit#(XLEN), Bit#(21), Bit#(PADDR), Bit#(5), Bit#(1), 
+                    Trap_type `ifdef simulate , Bit#(32) `endif ) PIPE2_DS;
+  `else
+    typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(XLEN), Bool, Bit#(3),
+              Tuple7#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
+                Trap_type, Bit#(1))) PIPE1_DS;
+
+    typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(21), Bit#(PADDR), Bit#(5), Bit#(1), 
+                    Trap_type) PIPE2_DS;
+  `endif
   typedef Tuple3#(Commit_type, Bit#(XLEN), Bit#(21)) ALU_OUT;
   
   typedef Tuple5#(Bit#(PADDR), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
@@ -83,6 +91,7 @@ package common_types;
   // rg_prv,  csr_mip, csr_mie, csr_mideleg, rg_mie 
   typedef Tuple5#(Privilege_mode, Bit#(XLEN), Bit#(XLEN), Bit#(XLEN), Bit#(1)) CSRtoDecode;
 
+  typedef Tuple5#(Privilege_mode, Bit#(XLEN), Bit#(32), Bit#(5), Bit#(XLEN)) DumpType;
 
 	typedef enum {
 		Inst_addr_misaligned=0,
@@ -95,7 +104,6 @@ package common_types;
 		Store_access_fault=7,
 		Ecall_from_user=8,
 		Ecall_from_machine=11
-		`ifdef simulate ,Endsimulation =16 `endif
 	} Exception_cause deriving (Bits,Eq,FShow);
 
 	typedef enum{

@@ -226,9 +226,14 @@ package decode;
     if(interrupt matches tagged None)
       interrupt =  exception;
 
-    Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
-    Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt, epoch);
-
+    `ifdef simulate 
+      Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
+        Bit#(1) `ifdef simulate , Bit#(32) `endif ) type_tuple = tuple8(rs1type, rs2type, inst_type, 
+          mem_access, pc, interrupt, epoch, inst);
+    `else
+      Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
+      Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt, epoch);
+    `endif
     return tuple8(fn, rs1, rs2, rd, immediate_value, word32, funct3, type_tuple);            
   endfunction
 endpackage

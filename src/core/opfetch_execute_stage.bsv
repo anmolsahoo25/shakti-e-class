@@ -118,7 +118,7 @@ package opfetch_execute_stage;
     rule fetch_execute_pass(!initialize);
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
-                                                                  pc, trap, epoch}=rx.u.first;
+                                        pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
       let {op1, op2, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, imm);
@@ -131,7 +131,11 @@ package opfetch_execute_stage;
           if(committype == MEMORY &&& trap matches tagged None)
             ff_memory_request.enq(tuple5(truncate(reslt), imm, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
-          tx.u.enq(tuple7(committype,reslt, funct3_rs1_csr, pc, rd, rg_epoch[0], trap));
+          `ifdef simulate
+            tx.u.enq(tuple8(committype,reslt, funct3_rs1_csr, pc, rd, rg_epoch[0], trap, inst));
+          `else
+            tx.u.enq(tuple7(committype,reslt, funct3_rs1_csr, pc, rd, rg_epoch[0], trap));
+          `endif
         end
       end
       else

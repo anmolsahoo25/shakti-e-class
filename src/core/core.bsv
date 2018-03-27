@@ -50,6 +50,9 @@ package core;
 			method Action clint_mtip(Bit#(1) intrpt);
 			method Action clint_mtime(Bit#(XLEN) c_mtime);
 		`endif
+    `ifdef simulate
+      interface Get#(DumpType) dump;
+    `endif
   endinterface: Ifc_core
 
   (*synthesize*)
@@ -122,5 +125,8 @@ package core;
 		`endif
 		interface fetch_master= fetch_xactor.axi_side;
 		interface mem_master= memory_xactor.axi_side;
+    `ifdef simulate
+      interface dump=riscv.dump;
+    `endif
   endmodule: mkcore
 endpackage

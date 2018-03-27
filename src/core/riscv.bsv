@@ -51,6 +51,9 @@ package riscv;
 			method Action clint_mtip(Bit#(1) intrpt);
 			method Action clint_mtime(Bit#(XLEN) c_mtime);
 		`endif
+    `ifdef simulate
+      interface Get#(DumpType) dump;
+    `endif
   endinterface:Ifc_riscv
 
   (*synthesize*)
@@ -102,5 +105,8 @@ package riscv;
         stage3.clint_mtime(c_mtime);
       endmethod
 		`endif
+    `ifdef simulate
+      interface dump=stage3.dump;
+    `endif
   endmodule:mkriscv
 endpackage: riscv
