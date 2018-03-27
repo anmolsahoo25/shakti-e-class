@@ -41,16 +41,20 @@ endif
 ifeq ($(SYNTH),SIM)
   define_macros += -D simulate=True
 endif
-define_macros += -D VERBOSITY=$(VERBOSITY)
+ifeq ($(BOOTROM), enable)
+  define_macros += -D BOOTROM=True
+endif
 
+define_macros += -D VERBOSITY=$(VERBOSITY)
 CORE:=./src/core/
 FABRIC:=./src/fabric/axi4:./src/fabric/axi4lite
 UNCORE:=./src/uncore
 TESTBENCH:=./src/testbench/
+PERIPHERALS:=./src/peripherals/bootrom
 LIB:=./src/lib/
 VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS -static --x-assign fast --x-initial fast --noassert --cc --bbox-sys -Wno-STMTDLY -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY -Wno-INFINITELOOP
-BSVINCDIR:=.:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB):$(FABRIC):$(UNCORE):$(TESTBENCH)
-default: compile_bluesim link_bluesim 
+BSVINCDIR:=.:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB):$(FABRIC):$(UNCORE):$(TESTBENCH):$(PERIPHERALS)
+default: compile_bluesim link_bluesim generate_boot_files
 
 check-blue:
 	@if test -z "$$BLUESPECDIR"; then echo "BLUESPECDIR variable not set"; exit 1; fi; 
