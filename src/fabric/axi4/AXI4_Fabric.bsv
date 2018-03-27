@@ -46,7 +46,6 @@ interface AXI4_Fabric_IFC #(numeric type num_masters,
 				 numeric type wd_data,
 				 numeric type wd_user);
    method Action reset;
-   method Action set_verbosity (Bit #(4) verbosity);
 
    // From masters
    interface Vector #(num_masters, AXI4_Slave_IFC #(wd_addr, wd_data, wd_user))  v_from_masters;
@@ -71,7 +70,7 @@ module mkAXI4_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 	     Log #(TAdd #(num_slaves,  1), log_ns_plus_1),
 	     Add #(_dummy, TLog #(num_slaves), log_ns_plus_1));
 
-
+   Integer verbosity =  `VERBOSITY;
    // Transactors facing masters
    Vector #(num_masters, AXI4_Slave_Xactor_IFC  #(wd_addr, wd_data, wd_user))
       xactors_from_masters <- replicateM (mkAXI4_Slave_Xactor);
@@ -137,11 +136,11 @@ module mkAXI4_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 	    v_f_wr_mis        [sj].enq (fromInteger (mi));
 	    v_f_wr_sjs        [mi].enq (fromInteger (sj));
 
-		 `ifdef verbose
+		  if(verbosity!= 0)begin
 	       $display ($time,"\tAXI4_Fabric: wr master [%0d] -> slave [%0d]", mi, sj);
-	       $display ($time,"\t        ", fshow (a));
-	       $display ($time,"\t        ", fshow (d));
-	    `endif
+	       $display ($time,"\t", fshow (a));
+	       $display ($time,"\t", fshow (d));
+	    end
 	 endrule
    
 	for (Integer mi = 0; mi < valueOf (num_masters); mi = mi + 1)
@@ -151,7 +150,9 @@ module mkAXI4_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 					  && (v_f_wr_sjs [mi].first == fromInteger (sj)));
 	    AXI4_Wr_Data #(wd_data)          d <- pop_o (xactors_from_masters [mi].o_wr_data);
 	    xactors_to_slaves [sj].i_wr_data.enq(d);
-       `ifdef verbose $display ($time,"\tAXI4_Fabric: Write Data -> slave[%0d] \n",sj,$time,"\t", fshow (d)); `endif
+		  if(verbosity!= 0)begin
+        $display ($time,"\tAXI4_Fabric: Write Data -> slave[%0d] \n",sj,$time,"\t", fshow (d)); 
+      end
 	 endrule
 
 
@@ -163,10 +164,10 @@ module mkAXI4_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 
 	    v_f_wr_sjs        [mi].enq (fromInteger (valueOf (num_slaves)));
 	    v_f_wr_err_user   [mi].enq (a.awuser);
-		 `ifdef verbose
+		  if(verbosity!= 0)begin
 	       $display ($time,"\tAXI4_Fabric: wr master [%0d] -> illegal addr", mi);
-	       $display ($time,"\t        ", fshow (a));
-	    `endif
+	       $display ($time,"\t", fshow (a));
+	    end
 	 endrule
 
    // ----------------
@@ -184,10 +185,10 @@ module mkAXI4_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 	    v_f_rd_mis [sj].enq (fromInteger (mi));
 	    v_f_rd_sjs [mi].enq (fromInteger (sj));
 
-		 `ifdef verbose
+		  if(verbosity!= 0)begin
 	       $display ($time,"\tAXI4_Fabric: rd master [%0d] -> slave [%0d]", mi, sj);
-	       $display ($time,"\t        ", fshow (a));
-	    `endif
+	       $display ($time,"\t", fshow (a));
+	    end
 	 endrule
 
    // Non-existent destination slaves
@@ -198,10 +199,10 @@ module mkAXI4_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 	    v_f_rd_sjs      [mi].enq (fromInteger (valueOf (num_slaves)));
 	    v_f_rd_err_user [mi].enq (a.aruser);
 
-	    `ifdef verbose
+		  if(verbosity!= 0)begin
 	       $display ($time,"\tAXI4_Fabric: rd master [%0d] -> illegal addr", mi);
-	       $display ($time,"\t        ", fshow (a));
-	    `endif
+	       $display ($time,"\t", fshow (a));
+	    end
 	 endrule
 
    // ----------------
@@ -218,10 +219,10 @@ module mkAXI4_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 
 	    xactors_from_masters [mi].i_wr_resp.enq (b);
 
-		 `ifdef verbose
+		 if(verbosity!=0)begin
 	       $display ($time,"\tAXI4_Fabric: wr master [%0d] <- slave [%0d]", mi, sj);
-	       $display ($time,"\t        ", fshow (b));
-	    `endif
+	       $display ($time,"\t", fshow (b));
+	   end
 	 endrule
 
    // ----------------
@@ -240,10 +241,10 @@ module mkAXI4_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 
 	 xactors_from_masters [mi].i_wr_resp.enq (b);
 
-	 `ifdef verbose
+	 if(verbosity!=0)begin
 	    $display ($time,"\tAXI4_Fabric: wr master [%0d] <- error", mi);
-	    $display ($time,"\t        ", fshow (b));
-	 `endif
+	    $display ($time,"\t", fshow (b));
+	 end
       endrule
 
    // ----------------
@@ -262,10 +263,10 @@ module mkAXI4_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 		    v_f_rd_sjs [mi].deq;
 		 end
 
-		 `ifdef verbose
+		 if(verbosity!=0)begin
 	       $display ($time,"\tAXI4_Fabric: rd master [%0d] <- slave [%0d]", mi, sj);
-	       $display ($time,"\t        ", fshow (r));
-	    `endif
+	       $display ($time,"\t", fshow (r));
+	    end
 	 endrule
 
    // ----------------
@@ -284,10 +285,10 @@ module mkAXI4_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 
 	 xactors_from_masters [mi].i_rd_data.enq (r);
 
-	 `ifdef verbose
+	 if(verbosity!=0)begin
 		 $display ($time,"\tAXI4_Fabric: rd master [%0d] <- error", mi);
-	    $display ($time,"\t        ", fshow (r));
-	 `endif
+	    $display ($time,"\t", fshow (r));
+	 end
       endrule
 
    // ----------------------------------------------------------------
