@@ -35,10 +35,14 @@ package SoC;
 	import AXI4_Fabric:: *;
   import core:: * ;
   import common_types:: * ;
-  import Memory_AXI4::*;
   `include "common_params.bsv"
   `include "SoC.defines"
 
+  // peripheral imports
+  import Memory_AXI4::*;
+  `ifdef BOOTROM
+    import BootRom:: *;
+  `endif
   // package imports
   import Connectable:: *;
   import GetPut:: *;
@@ -49,6 +53,11 @@ package SoC;
     if(addr >= `MemoryBase && addr<= `MemoryEnd)
       slave_num = `Memory_slave_num;
     else
+    `ifdef BOOTROM
+      if(addr>= `BootRomBase && addr<= `BootRomEnd)
+        slave_num =  `BootRom_slave_num;
+      else
+    `endif
       slave_exist = False;
       
     return tuple2(slave_exist, slave_num);
@@ -68,11 +77,18 @@ package SoC;
 		Memory_IFC#(`MemoryBase,`Addr_space) main_memory <- mkMemory(`ifdef RV64 "code.mem.MSB", `endif
                                                                 "code.mem.LSB",
                                                                 "MainMEM");
+		`ifdef BOOTROM
+			BootRom_IFC bootrom <-mkBootRom(`BootRomBase);
+		`endif
 
    	mkConnection(core.mem_master,	fabric.v_from_masters[`Mem_master_num]);
    	mkConnection(core.fetch_master, fabric.v_from_masters[`Fetch_master_num]);
 
 		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.axi_slave);
+		`ifdef BOOTROM
+			mkConnection (fabric.v_to_slaves [`BootRom_slave_num],bootrom.axi_slave);
+		`endif
+
     `ifdef simulate
       interface dump= core.dump;
     `endif
