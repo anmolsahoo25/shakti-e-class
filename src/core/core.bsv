@@ -44,7 +44,7 @@ package core;
   typedef enum {Request, Response} TxnState deriving(Bits, Eq, FShow);
   interface Ifc_core;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) fetch_master;
-		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) memory_master;
+		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
 		`ifdef CLINT
 			method Action clint_msip(Bit#(1) intrpt);
 			method Action clint_mtip(Bit#(1) intrpt);
@@ -76,7 +76,7 @@ package core;
     rule handle_memory_request(memory_state ==  Request);
       let {address, data, access, size, sign}<- riscv.memory_request.get;
       memory_request<= tuple5(address, data, access, size, sign);
-			Bit#(8) write_strobe=size==0?8'b1:size==1?8'b11:size==2?8'hf:8'hff;
+			Bit#(TDiv#(XLEN, 8)) write_strobe=size==0?'b1:size==1?'b11:size==2?'hf:'1;
 			if(size!=3)begin			// 8-bit write;
 				write_strobe=write_strobe<<(address[2:0]);
 			end
@@ -98,6 +98,7 @@ package core;
       let {address, data, access, size, sign}=  memory_request;
 			let response <- pop_o (memory_xactor.o_rd_data);	
 			let bus_error = !(response.rresp==AXI4_OKAY);
+      // TODO shift, and perform signextension before sending to core.
 			riscv.memory_response.put(tuple2(response.rdata, bus_error));
       memory_state<= Request;
     endrule
@@ -120,6 +121,6 @@ package core;
       endmethod
 		`endif
 		interface fetch_master= fetch_xactor.axi_side;
-		interface memory_master= memory_xactor.axi_side;
+		interface mem_master= memory_xactor.axi_side;
   endmodule: mkcore
 endpackage
