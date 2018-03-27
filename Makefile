@@ -4,9 +4,9 @@
 include ./old_vars
 include soc_config.inc
 
-TOP_MODULE:=mkSoC
-TOP_FILE:=SoC.bsv
-TOP_DIR:=./src/uncore/
+TOP_MODULE:=mkTbSoC
+TOP_FILE:=TbSoC.bsv
+TOP_DIR:=./src/testbench/
 WORKING_DIR := $(shell pwd)
 
 ifneq (,$(findstring RV64,$(ISA)))
