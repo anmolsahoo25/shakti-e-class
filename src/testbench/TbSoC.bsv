@@ -59,5 +59,11 @@ package TbSoC;
 		  	$fwrite(dump, " x%d", rd, " 0x%16h", data, "\n"); 
       endrule
     `endif
+
+    `ifdef simulate
+      rule display_eol;
+        $display("\n");
+      endrule
+    `endif
   endmodule
 endpackage: TbSoC
