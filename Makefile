@@ -4,9 +4,9 @@
 include ./old_vars
 include soc_config.inc
 
-TOP_MODULE:=mkcore
-TOP_FILE:=core.bsv
-TOP_DIR:=./src/core/
+TOP_MODULE:=mkSoC
+TOP_FILE:=SoC.bsv
+TOP_DIR:=./src/uncore/
 WORKING_DIR := $(shell pwd)
 
 ifneq (,$(findstring RV64,$(ISA)))
@@ -44,10 +44,11 @@ endif
 
 CORE:=./src/core/
 FABRIC:=./src/fabric/axi4:./src/fabric/axi4lite
-#TESTBENCH:=./src/testbench/
+UNCORE:=./src/uncore
+TESTBENCH:=./src/testbench/
 LIB:=./src/lib/
 VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS -static --x-assign fast --x-initial fast --noassert --cc --bbox-sys -Wno-STMTDLY -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY -Wno-INFINITELOOP
-BSVINCDIR:= .:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB):$(FABRIC)
+BSVINCDIR:=.:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB):$(FABRIC):$(UNCORE):$(TESTBENCH)
 default: compile_bluesim link_bluesim 
 
 check-blue:
