@@ -122,8 +122,12 @@ package decode;
 
 		//immediate value 
 		Bit#(XLEN) immediate_value=signExtend(inst[31:20]);
-		if(opcode==`JAL_R_op)
-			immediate_value=signExtend({inst[31:20],1'b0});
+    if(opcode==`LUI_op|| opcode==`AUIPC_op) 
+      immediate_value=signExtend({inst[31:12],12'd0}); 
+   else if(opcode==`JAL_op) 
+      immediate_value=signExtend({inst[31], inst[19:12], inst[20], inst[30:21],1'b0}); 
+   else if(opcode==`JALR_op) 
+      immediate_value=signExtend({inst[31:21],1'b0}); 
 		else if(opcode==`BRANCH_op)
 			immediate_value=signExtend({inst[31],inst[7],inst[30:25],inst[11:8],1'b0}); 
 		else if	(opcode==`STORE_op)
@@ -133,19 +137,21 @@ package decode;
 
 		//instruction following U OR UJ TYPE INSTRUCTION FORMAT	
 		//funct3[2]==1 might not be required as division is not included till now
-		if (opcode==`JAL_R_op || (opcode==`SYSTEM_INSTR_op && funct3[2]==1))	
+		if (opcode==`JAL_op  || opcode==`LUI_op || opcode==`AUIPC_op || 
+        (opcode==`SYSTEM_INSTR_op && funct3[2]==1))	
 			rs1=0;
 		//instruction following I,U OR UJ INSTRUCTION FORMAT	
-		if (opcode==`SYSTEM_INSTR_op || opcode[4:2]=='b000// CSR or ( (F)Load or FENCE ) 
-  			||opcode[4:2]=='b001 || opcode==`JAL_R_op)	//LUI or JAL 
+		if (opcode==`SYSTEM_INSTR_op || opcode[4:2]=='b000 || opcode==`LUI_op // CSR or (Load) or LUI 
+  			 ||opcode[4:2]=='b001 || opcode==`JAL_op || opcode==`JALR_op)	// JAL or JALR
 			rs2=0;
 		//insturction following S OR SB TYPE INSTRUCTION FORMAT
 		if (opcode==`BRANCH_op || opcode[4:1]=='b0100)	
 			rd=0;
 
-		if(opcode==`JAL_R_op)	
+		if(opcode==`JAL_op || opcode==`AUIPC_op)	
 			rs1type=PC;
-		if(opcode==`JAL_R_op || opcode=='b001)	
+		if(opcode==`JALR_op || opcode==`JAL_op || opcode[4:2] == 'b001 || opcode==`LUI_op 
+        || opcode[4:1]==0)	
 			rs2type=Immediate;
 		
 		//instructions which support word lenght operation in RV64 are to be added in Alu
@@ -160,7 +166,7 @@ package decode;
     Instruction_type inst_type=ILLEGAL;
     if(opcode[4:3]=='b11)begin
     	case(opcode[2:0])
-    		'b001:inst_type=JAL_R;
+    		'b001, 'b011:inst_type=JAL_R;
     		'b000:inst_type=BRANCH;
     		'b100:inst_type=SYSTEM_INSTR;
     	endcase
@@ -178,7 +184,8 @@ package decode;
     	else
     		fn={1'b1,funct3}	;
     end
-    else if(opcode==`JAL_R_op || opcode==`LOAD_op || opcode==`STORE_op)
+    else if(opcode==`JAL_op || opcode==`LOAD_op || opcode==`STORE_op || opcode==`AUIPC_op 
+        || opcode==`LUI_op || opcode==`JAL_op)
     	fn=0;
     else if(opcode==`IMM_ARITH_op)begin
 		  fn=case(funct3)

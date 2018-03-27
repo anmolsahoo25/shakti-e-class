@@ -25,7 +25,10 @@
 
 /////////////////////////////////////////////////////////////////////////
 ////////////////////// opcode definitions of ISA ////////////////////////
-`define JAL_R_op			    'b11001
+`define AUIPC_op			    'b00101
+`define LUI_op				    'b01101
+`define JAL_op  			    'b11011
+`define JALR_op  			    'b11001
 `define BRANCH_op			    'b11000
 `define LOAD_op				    'b00000
 `define STORE_op			    'b01000
