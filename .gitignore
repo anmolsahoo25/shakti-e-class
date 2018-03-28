@@ -10,3 +10,7 @@ verification/dts/config\.spike
 verification/dts/boot\.hex
 
 verification/dts/shakti\.dtb
+
+verification/workdir/
+
+*.dump
