@@ -56,8 +56,9 @@ VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS -static --x-assign fast --x-i
 BSVINCDIR:=.:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB):$(FABRIC):$(UNCORE):$(TESTBENCH):$(PERIPHERALS)
 default: compile_bluesim link_bluesim generate_boot_files
 
-check-blue:
-	@if test -z "$$BLUESPECDIR"; then echo "BLUESPECDIR variable not set"; exit 1; fi; 
+check-env:
+	@if test -z "$$BLUESPECDIR"; then echo "BLUESPECDIR variable not set"; exit 1; fi;
+	@if test -z "$$SHAKTI_E_HOME"; then echo "SHAKTI_E_HOME variable not set"; exit 1; fi;
 
 check-py:
 	@if ! [ -a /usr/bin/python3 ] ; then echo "Python3 is required in /usr/bin to run AAPG" ; exit 1; fi;
@@ -76,7 +77,7 @@ check-restore:
 	@if [ "$(define_macros)" != "$(old_define_macros)" ];	then	make clean ;	fi;
 
 .PHONY:  compile_bluesim
-compile_bluesim: check-restore check-blue
+compile_bluesim: check-restore check-env
 	@echo "Compiling $(TOP_MODULE) in Bluesim..."
 	@mkdir -p $(BSVBUILDDIR) 
 	@echo "old_define_macros = $(define_macros)" > old_vars
@@ -84,7 +85,7 @@ compile_bluesim: check-restore check-blue
 	@echo "Compilation finished"
 
 .PHONY: link_bluesim
-link_bluesim:check-blue
+link_bluesim:check-env
 	@echo "Linking $(TOP_MODULE) in Bluesim..."
 	@mkdir -p $(BSVOUTDIR)
 	bsc -e $(TOP_MODULE) -sim -o $(BSVOUTDIR)/out -simdir $(BSVBUILDDIR) -p $(BSVINCDIR) -bdir $(BSVBUILDDIR) $(BSVLINKOPTS) 2>&1 | tee bsv_link.log
@@ -98,7 +99,7 @@ simulate:
 ########################################################################################
 
 .PHONY: generate_verilog 
-generate_verilog: check-restore check-blue 
+generate_verilog: check-restore check-env 
 	@echo Compiling mkTbSoc in Verilog for simulations ...
 	@mkdir -p $(BSVBUILDDIR); 
 	@mkdir -p $(VERILOGDIR); 

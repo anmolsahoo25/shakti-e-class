@@ -270,7 +270,7 @@ if ($submit) {
     my $tSuite = $line[1];
     my $pv = $line[2];
     unless (-e $workdir or mkdir -p $workdir/$tSuite) {
-      die "ERROR: Unable to create workdir, check SHAKTI_HOME is set!\n";
+      die "ERROR: Unable to create workdir, check SHAKTI_E_HOME is set!\n";
     }
     system("nohup perl -I $shaktiHome/verification/scripts $shaktiHome/verification/scripts/makeTest.pl --test=$test --suite=$tSuite --type=$pv --sim=$simulator &");
     print "$test\t\t\t$tSuite\t\t\t$pv\t\t\tRunning\n";
