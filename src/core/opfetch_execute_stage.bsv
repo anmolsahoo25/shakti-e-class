@@ -124,7 +124,7 @@ package opfetch_execute_stage;
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
                                         pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
       if(verbosity!=0)begin
-        $display($time, "\tSTAGE2: PC: %h", pc);
+        $display($time, "\tSTAGE2: PC: %h Inst: %h", pc, inst);
         $display($time, "\t        fn: %b rs1: %d rs2: %d rd: %d imm: %h", fn, rs1, rs2, rd, imm);
         $display($time, "\t        rs1type: ", fshow(rs1_type), " rs2type: ", fshow(rs2_type),
             " insttype: ", fshow(insttype), " word32: ", word32);
