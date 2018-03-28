@@ -186,35 +186,35 @@ package decode;
     		'b101,'b100,'b110:inst_type=ALU;
     	endcase
     end
-    Bit#(4) fn=0;
-    if(opcode==`BRANCH_op)begin
-    	if(funct3[2]==0)
-    		fn={2'b0,1,funct3[0]};
-    	else
-    		fn={1'b1,funct3}	;
-    end
-    else if(opcode==`JAL_op || opcode==`LOAD_op || opcode==`STORE_op || opcode==`AUIPC_op 
-        || opcode==`LUI_op || opcode==`JALR_op)
-    	fn=0;
-    else if(opcode==`IMM_ARITH_op)begin
-		  fn=case(funct3)
-		  	'b010: 'b1100;
-		  	'b011: 'b1110;
-		  	'b101: 'b0101;
-		  	default:{1'b0,funct3};
-		  endcase;
+		Bit#(4) fn=0;
+		if(opcode==`BRANCH_op)begin
+			if(funct3[2]==0)
+				fn={2'b0,1,funct3[0]};
+			else
+				fn={1'b1,funct3};
 		end
-		else if(opcode==`ARITH_op)begin
+		else if(opcode==`JAL_op || opcode==`JALR_op || opcode==`LOAD_op `ifdef spfpu || opcode==`FLOAD_op `endif
+				|| opcode==`STORE_op `ifdef spfpu || opcode==`FSTORE_op `endif || opcode==`AUIPC_op || opcode==`LUI_op)
+			fn=0;
+		else if(opcode==`IMM_ARITHW_op || opcode==`IMM_ARITH_op)begin
 			fn=case(funct3)
-				'b000:'b0000;
+				'b010: 'b1100;
+				'b011: 'b1110;
+				'b101: if(funct7[5]==1) 'b1011; else 'b0101;
+				default:{1'b0,funct3};
+			endcase;
+		end
+		else if(opcode==`ARITHW_op || opcode==`ARITH_op)begin
+			fn=case(funct3)
+				'b000:if(funct7[5]==1) 'b1010; else 'b0000;
 				'b010:'b1100;
 				'b011:'b1110;
-				'b101:'b0101;
+				'b101:if (funct7[5]==1) 'b1011;else 'b0101;
 				default:{1'b0,funct3};
-		endcase;
-		end		
-  	else if(opcode[4:3]=='b10)	
- 		  fn=opcode[3:0];
+			endcase;
+		end
+		else if(opcode[4:3]=='b10)
+			fn=opcode[3:0];
 
     Trap_type exception = tagged None;
     Trap_type interrupt = chk_interrupt(prv, mip, csr_mie, mideleg, mie);
