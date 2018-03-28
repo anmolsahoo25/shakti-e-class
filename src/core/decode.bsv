@@ -121,7 +121,7 @@ package decode;
 			mem_access=Store;
 
 		//immediate value 
-		Bit#(XLEN) immediate_value=signExtend(inst[31:20]);
+		Bit#(32) immediate_value=signExtend(inst[31:20]);
     if(opcode==`LUI_op|| opcode==`AUIPC_op) 
       immediate_value=signExtend({inst[31:12],12'd0}); 
    else if(opcode==`JAL_op) 
@@ -241,6 +241,6 @@ package decode;
       Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
       Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt, epoch);
     `endif
-    return tuple8(fn, rs1, rs2, rd, immediate_value, word32, funct3, type_tuple);            
+    return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
   endfunction
 endpackage
