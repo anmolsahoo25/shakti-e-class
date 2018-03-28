@@ -63,7 +63,7 @@ package core;
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
     Reg#(TxnState) fetch_state<- mkReg(Request);
     Reg#(TxnState) memory_state<- mkReg(Request);
-    Reg#(MemoryRequest) memory_request <- mkReg(unpack(0));
+    Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
 
     Integer verbosity = `VERBOSITY;
 
@@ -86,7 +86,7 @@ package core;
     endrule
     rule handle_memory_request(memory_state ==  Request);
       let {address, data, access, size, sign}<- riscv.memory_request.get;
-      memory_request<= tuple5(address, data, access, size, sign);
+      memory_request<= tuple4(address, access, size, sign);
       if(size==0)
         data=duplicate(data[7:0]);
       else if(size==1)
@@ -117,8 +117,8 @@ package core;
       end
       memory_state<= Response;
     endrule
-    rule handle_memoryRead_response(memory_state == Response && tpl_3(memory_request) == Load);
-      let {address, data, access, size, sign}=  memory_request;
+    rule handle_memoryRead_response(memory_state == Response && tpl_2(memory_request) == Load);
+      let {address, access, size, sign}=  memory_request;
 			let response <- pop_o (memory_xactor.o_rd_data);	
 			let bus_error = !(response.rresp==AXI4_OKAY);
       let rdata=response.rdata;
@@ -134,8 +134,8 @@ package core;
         $display($time, "\tCORE: Memory Read Response ", fshow(response));
       memory_state<= Request;
     endrule
-    rule handle_memoryWrite_response(memory_state == Response && tpl_3(memory_request) == Store);
-      let {address, data, access, size, sign}=  memory_request;
+    rule handle_memoryWrite_response(memory_state == Response && tpl_2(memory_request) == Store);
+      let {address, access, size, sign}=  memory_request;
 			let response<-pop_o(memory_xactor.o_wr_resp);
 			let bus_error = !(response.bresp==AXI4_OKAY);
 			riscv.memory_response.put(tuple2(0, bus_error));
