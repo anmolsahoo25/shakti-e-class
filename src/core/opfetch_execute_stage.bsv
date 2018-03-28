@@ -127,7 +127,7 @@ package opfetch_execute_stage;
         $display($time, "\tSTAGE2: PC: %h", pc);
         $display($time, "\t        fn: %b rs1: %d rs2: %d rd: %d imm: %h", fn, rs1, rs2, rd, imm);
         $display($time, "\t        rs1type: ", fshow(rs1_type), " rs2type: ", fshow(rs2_type),
-            " insttype: ", fshow(insttype));
+            " insttype: ", fshow(insttype), " word32: ", word32);
         $display($time, "\t        funt3: %b epoch: %b ", funct3, epoch, " mem_access: ", 
             fshow(mem_access), " trap ", fshow(trap));
       end
@@ -144,7 +144,7 @@ package opfetch_execute_stage;
             rs1, op1, rs2, op2, fshow(committype));
           rx.u.deq;
           if(committype == MEMORY &&& trap matches tagged None)
-            ff_memory_request.enq(tuple5(truncate(op1_reslt), imm, mem_access,
+            ff_memory_request.enq(tuple5(truncate(op1_reslt), op2, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
           `ifdef simulate
             tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
