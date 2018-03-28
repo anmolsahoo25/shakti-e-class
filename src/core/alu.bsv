@@ -56,10 +56,11 @@ package alu;
           Bit#(5) rd, Bool word32);
 	  /*========= Perform all the arithmetic ===== */
 	  // ADD* ADDI* SUB* 
-	  let inv_op2=(fn[3]==1)?~op2:op2;
+    Bit#(XLEN) inv = signExtend(fn[3]);
+	  let inv_op2=op2^inv;
 	  let op1_xor_op2=op1^inv_op2;
     let op1_add=op1;
-    let op2_add=op2;
+    let op2_add=inv_op2;
     let carry = fn[3];
     if(inst_type== JAL_R || inst_type==BRANCH)begin
       carry=0;
@@ -70,10 +71,11 @@ package alu;
     if(inst_type==BRANCH)
       op1_add=zeroExtend(pc);
 	  let adder_output=op1_add+op2_add+zeroExtend(carry);
+    let inter=op1+ inv_op2+ zeroExtend(fn[3]);
 	  // SLT SLTU
 	  Bit#(1) compare_out=fn[0]^(
 						(fn[3]==0)?pack(op1_xor_op2==0):
-						(op1[valueOf(XLEN)-1]==op2[valueOf(XLEN)-1])?adder_output[valueOf(XLEN)-1]:
+						(op1[valueOf(XLEN)-1]==op2[valueOf(XLEN)-1])?inter[valueOf(XLEN)-1]:
 						(fn[1]==1)?op2[valueOf(XLEN)-1]:op1[valueOf(XLEN)-1]);
 	  // SLL SRL SRA
     //word32 is bool, shift_amt is used to describe the amount of shift
