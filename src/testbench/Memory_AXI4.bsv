@@ -85,7 +85,8 @@ package Memory_AXI4;
 			else
 		   	s_xactor.i_wr_resp.enq (b);
 			$display($time,"\t",module_name,":\t Recieved Write Request for Address: %h data: %h \
-strb: %b awlen: %d awburst: %b",aw.awaddr,w.wdata,w.wstrb,aw.awlen, aw.awburst);
+strb: %b awlen: %d awburst: %b Index: %h",aw.awaddr,w.wdata,w.wstrb,aw.awlen, aw.awburst,
+index_address);
 		endrule
 	
 		rule rl_wr_burst_response(wr_state==HandleBurst);
