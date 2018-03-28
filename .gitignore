@@ -4,3 +4,9 @@ bsv_build/
 verilog/
 
 bin/
+
+verification/dts/config\.spike
+
+verification/dts/boot\.hex
+
+verification/dts/shakti\.dtb
