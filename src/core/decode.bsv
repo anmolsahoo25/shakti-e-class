@@ -108,6 +108,7 @@ package decode;
 		Bit#(5) rd =inst[11:7] ;
 		Bit#(5) opcode= inst[6:2];
 		Bit#(3) funct3= inst[14:12];
+    Bit#(7) funct7 = inst[31:25]; 
 		Bool word32 =False;
 		Bit#(PADDR) pc=shadow_pc;
     
@@ -157,10 +158,11 @@ package decode;
 		//instructions which support word lenght operation in RV64 are to be added in Alu
 		//need to be edited according to the supported instruction
 
-		//if(opcode==`IMM_ARITHW_op || opcode==`MULDIVW_op ||
-		 //opcode==`ARITHW_op ||(opcode[4:3]=='b10 && funct7[0]==0)||
-		  //(opcode[4:1]=='b0101 && funct3[0]==0)) 
-    		//word32=True;
+    `ifdef RV64
+  		if(opcode==`IMM_ARITHW_op || opcode==`MULDIVW_op ||  opcode==`ARITHW_op ||
+          (opcode[4:3]=='b10 && funct7[0]==0)|| (opcode[4:1]=='b0101 && funct3[0]==0)) 
+      	word32=True;
+    `endif
     			
 
     Instruction_type inst_type=ILLEGAL;
@@ -171,6 +173,13 @@ package decode;
     		'b100:inst_type=SYSTEM_INSTR;
     	endcase
     end
+   else if(opcode[4:3]=='b01)begin 
+      case (opcode[2:0])  
+         'b000:inst_type=MEMORY; // STORE
+         'b101:inst_type=ALU;      // LUI 
+         'b100,'b110:inst_type=(funct7[0]==1)?(funct3[2]==0)?MUL:DIV:ALU; 
+      endcase 
+   end 
     else if(opcode[4:3]=='b00)begin
     	case(opcode[2:0])
     		'b000,'b001:inst_type=MEMORY;
@@ -185,7 +194,7 @@ package decode;
     		fn={1'b1,funct3}	;
     end
     else if(opcode==`JAL_op || opcode==`LOAD_op || opcode==`STORE_op || opcode==`AUIPC_op 
-        || opcode==`LUI_op || opcode==`JAL_op)
+        || opcode==`LUI_op || opcode==`JALR_op)
     	fn=0;
     else if(opcode==`IMM_ARITH_op)begin
 		  fn=case(funct3)
