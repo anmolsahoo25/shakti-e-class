@@ -58,9 +58,18 @@ package alu;
 	  // ADD* ADDI* SUB* 
 	  let inv_op2=(fn[3]==1)?~op2:op2;
 	  let op1_xor_op2=op1^inv_op2;
-    if(inst_type== JAL_R)
-      inv_op2= imm_value;
-	  let adder_output=op1+inv_op2+zeroExtend(fn[3]);
+    let op1_add=op1;
+    let op2_add=op2;
+    let carry = fn[3];
+    if(inst_type== JAL_R || inst_type==BRANCH)begin
+      carry=0;
+    end
+    if(inst_type== JAL_R || inst_type==BRANCH || inst_type==MEMORY)begin
+      op2_add= imm_value;
+    end
+    if(inst_type==BRANCH)
+      op1_add=zeroExtend(pc);
+	  let adder_output=op1_add+op2_add+zeroExtend(carry);
 	  // SLT SLTU
 	  Bit#(1) compare_out=fn[0]^(
 						(fn[3]==0)?pack(op1_xor_op2==0):
@@ -113,8 +122,10 @@ package alu;
 */
     Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
     //Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
-		if(word32)
-			 final_output=signExtend(final_output[31:0]);
+    `ifdef RV64
+  		if(word32)
+	  		 final_output=signExtend(final_output[31:0]);
+    `endif
 
 		// Generate flush if prediction was wrong
 		Flush_type flush=None;
