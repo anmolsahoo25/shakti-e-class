@@ -7,3 +7,4 @@ DEBUG=disable
 OPENOCD=disable
 SYNTH=SIM
 VERBOSITY=2
+BOOTROM=enable
