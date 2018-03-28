@@ -40,6 +40,7 @@ package core;
   // package imports
 	import Connectable 				:: *;
   import GetPut:: *;
+  import BUtils::*;
   
   typedef enum {Request, Response} TxnState deriving(Bits, Eq, FShow);
   interface Ifc_core;
@@ -86,6 +87,12 @@ package core;
     rule handle_memory_request(memory_state ==  Request);
       let {address, data, access, size, sign}<- riscv.memory_request.get;
       memory_request<= tuple5(address, data, access, size, sign);
+      if(size==0)
+        data=duplicate(data[7:0]);
+      else if(size==1)
+        data=duplicate(data[15:0]);
+      else if(size==2)
+        data=duplicate(data[31:0]);
 			Bit#(TDiv#(XLEN, 8)) write_strobe=size==0?'b1:size==1?'b11:size==2?'hf:'1;
 			if(size!=3)begin			// 8-bit write;
 				write_strobe=write_strobe<<(address[2:0]);
@@ -114,8 +121,15 @@ package core;
       let {address, data, access, size, sign}=  memory_request;
 			let response <- pop_o (memory_xactor.o_rd_data);	
 			let bus_error = !(response.rresp==AXI4_OKAY);
+      let rdata=response.rdata;
+      if(size==0)
+          rdata=sign==1?signExtend(rdata[7:0]):zeroExtend(rdata[7:0]);
+      else if(size==1)
+          rdata=sign==1?signExtend(rdata[15:0]):zeroExtend(rdata[15:0]);
+      else if(size==2)
+          rdata=sign==1?signExtend(rdata[31:0]):zeroExtend(rdata[31:0]);
       // TODO shift, and perform signextension before sending to core.
-			riscv.memory_response.put(tuple2(response.rdata, bus_error));
+			riscv.memory_response.put(tuple2(rdata, bus_error));
       if(verbosity!=0)
         $display($time, "\tCORE: Memory Read Response ", fshow(response));
       memory_state<= Request;
