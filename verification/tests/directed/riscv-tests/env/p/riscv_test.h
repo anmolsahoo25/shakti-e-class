@@ -54,7 +54,7 @@
 #endif
 
 #define INIT_PMP                                                        \
-  la t0, 1f;                                                            \
+//  la t0, 1f;                                                            \
   csrw mtvec, t0;                                                       \
   li t0, -1;        /* Set up a PMP to permit all accesses */           \
   csrw pmpaddr0, t0;                                                    \
@@ -64,7 +64,7 @@
 1:
 
 #define INIT_SATP                                                      \
-  la t0, 1f;                                                            \
+//  la t0, 1f;                                                            \
   csrw mtvec, t0;                                                       \
   csrwi sptbr, 0;                                                       \
   .align 2;                                                             \
@@ -139,7 +139,7 @@ handle_exception:                                                       \
   1:    ori TESTNUM, TESTNUM, 1337;                                     \
   write_tohost:                                                         \
         sw TESTNUM, tohost, t5;                                         \
-        j write_tohost;                                                 \
+        loop: j loop;                                                 \
 reset_vector:                                                           \
         RISCV_MULTICORE_DISABLE;                                        \
         INIT_SATP;                                                     \
@@ -149,19 +149,6 @@ reset_vector:                                                           \
         la t0, trap_vector;                                             \
         csrw mtvec, t0;                                                 \
         CHECK_XLEN;                                                     \
-        /* if an stvec_handler is defined, delegate exceptions to it */ \
-        la t0, stvec_handler;                                           \
-        beqz t0, 1f;                                                    \
-        csrw stvec, t0;                                                 \
-        li t0, (1 << CAUSE_LOAD_PAGE_FAULT) |                           \
-               (1 << CAUSE_STORE_PAGE_FAULT) |                          \
-               (1 << CAUSE_FETCH_PAGE_FAULT) |                          \
-               (1 << CAUSE_MISALIGNED_FETCH) |                          \
-               (1 << CAUSE_USER_ECALL) |                                \
-               (1 << CAUSE_BREAKPOINT);                                 \
-        csrw medeleg, t0;                                               \
-        csrr t1, medeleg;                                               \
-        bne t0, t1, other_exception;                                    \
 1:      csrwi mstatus, 0;                                               \
         init;                                                           \
         EXTRA_INIT;                                                     \
@@ -184,13 +171,11 @@ reset_vector:                                                           \
 //-----------------------------------------------------------------------
 
 #define RVTEST_PASS                                                     \
-        fence;                                                          \
         li TESTNUM, 1;                                                  \
         ecall
 
 #define TESTNUM gp
 #define RVTEST_FAIL                                                     \
-        fence;                                                          \
 1:      beqz TESTNUM, 1b;                                               \
         sll TESTNUM, TESTNUM, 1;                                        \
         or TESTNUM, TESTNUM, 1;                                         \
