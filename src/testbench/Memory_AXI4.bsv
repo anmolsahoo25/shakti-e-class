@@ -76,7 +76,7 @@ package Memory_AXI4;
 			dmemLSB.b.put(w.wstrb[3:0],index_address,truncate(w.wdata));
 			`ifdef RV64 dmemMSB.b.put(w.wstrb[7:4],index_address,truncateLSB(w.wdata)); `endif
 		  let b = AXI4_Wr_Resp {bresp: AXI4_OKAY, buser: aw.awuser, bid:aw.awid};
-			if(aw.awburst!=0) begin
+			if(aw.awlen!=0) begin
 				wr_state<=HandleBurst;
 				let new_address=burst_address_generator(aw.awlen,aw.awsize,aw.awburst,aw.awaddr);
 				aw.awaddr=new_address;
@@ -84,8 +84,8 @@ package Memory_AXI4;
 			end
 			else
 		   	s_xactor.i_wr_resp.enq (b);
-			`ifdef verbose $display($time,"\t",module_name,":\t Recieved Write Request for Address: 
-                        %h data: %h strb: %b awlen: %d",aw.awaddr,w.wdata,w.wstrb,aw.awlen);  `endif
+			$display($time,"\t",module_name,":\t Recieved Write Request for Address: %h data: %h \
+strb: %b awlen: %d awburst: %b",aw.awaddr,w.wdata,w.wstrb,aw.awlen, aw.awburst);
 		endrule
 	
 		rule rl_wr_burst_response(wr_state==HandleBurst);
@@ -103,10 +103,7 @@ package Memory_AXI4;
 			let new_address=burst_address_generator(rg_write_packet.awlen, rg_write_packet.awsize,
                                                    rg_write_packet.awburst, rg_write_packet.awaddr);
 			rg_write_packet.awaddr<=new_address;
-			`ifdef verbose 
-        $display($time,"\t",module_name,":\t BURST Write Request for Address: %h data: %h strb: %b 
-                          awlen: %d",rg_write_packet.awaddr,w.wdata,w.wstrb,rg_write_packet.awlen);  
-      `endif
+        $display($time,"\t",module_name,":\t BURST Write Request for Address: %h data: %h strb: %b awlen: %d",rg_write_packet.awaddr,w.wdata,w.wstrb,rg_write_packet.awlen);  
 		endrule
 		
 		rule rl_rd_request(rd_state==Idle);
@@ -117,10 +114,8 @@ package Memory_AXI4;
 			dmemLSB.a.put(0,index_address,?);
 			`ifdef RV64 dmemMSB.a.put(0,index_address,?); `endif
 			rd_state<=HandleBurst;
-			`ifdef verbose 
         $display($time,"\t",module_name,"\t Recieved Read Request for Address: %h Index Address: %h"
                                                                           ,ar.araddr,index_address);  
-      `endif
 		endrule
 	
 		rule rl_rd_response(rd_state==HandleBurst);
@@ -188,11 +183,9 @@ package Memory_AXI4;
 			end
 			rg_read_packet.araddr<=address;
 			Bit#(XLEN) new_data=r.rdata;
-			`ifdef verbose 
-        $display($time,"\t",module_name,"\t Responding Read Request with CurrAddr: %h Data: %8h 
+        $display($time,"\t",module_name,"\t Responding Read Request with CurrAddr: %h Data: %8h \
           BurstCounter: %d BurstValue: %d NextAddress: %h", rg_read_packet.araddr, new_data,
             rg_readburst_counter, rg_read_packet.arlen, address);  
-      `endif
 	   endrule
 	
 	   interface axi_slave= s_xactor.axi_side;
