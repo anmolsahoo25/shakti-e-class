@@ -229,13 +229,13 @@ package csr;
 	  //////////////////////////////////////////////////////////////////////////////////////////
     //////////////////////////////// User level registers ///////////////////////////////////
 	  `ifdef RV64
-	  	Reg#(Bit#(XLEN)) csr_uinstret=readOnlyReg(csr_minstret[1]);
-	  	Reg#(Bit#(XLEN)) csr_ucycle=readOnlyReg(csr_mcycle[1]);
+	  	Reg#(Bit#(XLEN)) csr_uinstret=readOnlyReg(csr_minstret[0]);
+	  	Reg#(Bit#(XLEN)) csr_ucycle=readOnlyReg(csr_mcycle[0]);
 	  `else
-	  	Reg#(Bit#(XLEN)) csr_uinstret=readOnlyReg(csr_minstret[1]);
-	  	Reg#(Bit#(XLEN)) csr_ucycle=readOnlyReg(csr_mcycle[1]);
-	  	Reg#(Bit#(XLEN)) csr_uinstreth=readOnlyReg(csr_minstreth[1]);
-	  	Reg#(Bit#(XLEN)) csr_ucycleh=readOnlyReg(csr_mcycleh[1]);
+	  	Reg#(Bit#(XLEN)) csr_uinstret=readOnlyReg(csr_minstret[0]);
+	  	Reg#(Bit#(XLEN)) csr_ucycle=readOnlyReg(csr_mcycle[0]);
+	  	Reg#(Bit#(XLEN)) csr_uinstreth=readOnlyReg(csr_minstreth[0]);
+	  	Reg#(Bit#(XLEN)) csr_ucycleh=readOnlyReg(csr_mcycleh[0]);
 	  `endif
 
 	  Reg#(Bit#(XLEN)) rg_clint_mtime <-mkReg(0);
@@ -294,11 +294,11 @@ package csr;
 
 	  function Reg#(Bit#(XLEN)) read_machine_counters(Bit#(8) address);
 	  	Reg#(Bit#(XLEN)) csr=(case(address)
-	  		`MCYCLE			:csr_mcycle[1];				
-	  		`MINSTRET		:csr_minstret[1];
+	  		`MCYCLE			:csr_mcycle[0];				
+	  		`MINSTRET		:csr_minstret[0];
 	  		`ifndef RV64
-	  			`MCYCLEH		:csr_mcycleh[1];
-	  			`MINSTRETH	:csr_minstreth[1];
+	  			`MCYCLEH		:csr_mcycleh[0];
+	  			`MINSTRETH	:csr_minstreth[0];
 	  		`endif
 	  		default: begin
 	  			readOnlyReg(0);
@@ -333,12 +333,12 @@ package csr;
 
     rule increment_cycle_counter;
 	  	`ifdef RV64
-      	csr_mcycle[0]<=csr_mcycle[0]+1;
+      	csr_mcycle[1]<=csr_mcycle[1]+1;
 	  	`else
-	  		Bit#(64) new_cycle={csr_mcycleh[0],csr_mcycle[0]};
+	  		Bit#(64) new_cycle={csr_mcycleh[1],csr_mcycle[1]};
 	  		new_cycle=new_cycle+1;
-	  		csr_mcycle[0]<=new_cycle[31:0];
-	  		csr_mcycleh[0]<=new_cycle[63:32];
+	  		csr_mcycle[1]<=new_cycle[31:0];
+	  		csr_mcycleh[1]<=new_cycle[63:32];
 	  	`endif
     endrule
 
