@@ -122,14 +122,14 @@ package mem_wb_stage;
             else begin
               if(verbosity!=0)
                 $display($time, "\tSTAGE3: Received Exception from Memory: ", fshow(resp));
-              jump_address<- csr.take_trap(trap, pc, truncate(reslt));
+              jump_address<- csr.take_trap(trap, pc, truncate(effaddr_csrdata));
               fl= Flush;
             end
             rx.u.deq;
           end
           else begin
             // is response is not available then indicate that the rd is not yet available.
-            wr_operand_fwding <= tuple3(rd, False, ?);
+            wr_operand_fwding <= tuple3(rd, False, 0);
           end
         end
         else if(committype == SYSTEM_INSTR)begin

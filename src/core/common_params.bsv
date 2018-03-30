@@ -1,20 +1,20 @@
-`define FNADD   0	
-`define FNSL	1	
-`define FNLR	2	
-`define FNSEQ	2	
-`define FNSC    3	
-`define FNSNE	3	
-`define FNXOR	4	
-`define FNSR	5	
-`define FNOR	6	
-`define FNAND	7	
-`define FNSUB	10	
-`define FNSRA	11	
-`define FNSLT	12	
-`define FNSGE	13	
-`define FNSLTU	14	
-`define FNSGEU	15	
+`define FNADD   0   //'b0000
+`define FNSL	  1	  //'b0001  	
+`define FNSEQ	  2	  //'b0010  	
+`define FNSNE	  3	  //'b0011  	
+`define FNXOR	  4	  //'b0100  	
+`define FNSR	  5	  //'b0101  	
+`define FNOR	  6	  //'b0110	
+`define FNAND	  7	  //'b0101
+`define FNSUB	  10	//'b1010
+`define FNSRA	  11	//'b1011
+`define FNSLT	  12	//'b1100
+`define FNSGE	  13	//'b1101
+`define FNSLTU	14	//'b1110
+`define FNSGEU	15	//'b1111
 
+`define FNLR	2	
+`define FNSC    3	
 `define FNSWAP 1 
 `define FMINU	10
 `define FMIN	11

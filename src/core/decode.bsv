@@ -103,6 +103,10 @@ package decode;
   function PIPE1_DS decoder_func(Bit#(32) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch, Bool err, 
                                                                                CSRtoDecode csrs);
     let {prv, mip, csr_mie, mideleg, mie}=csrs;
+
+    Trap_type exception = tagged None;
+    Trap_type interrupt = chk_interrupt(prv, mip, csr_mie, mideleg, mie);
+
 		Bit#(5) rs1=inst[19:15];
 		Bit#(5) rs2=inst[24:20];
 		Bit#(5) rd =inst[11:7] ;
@@ -136,6 +140,20 @@ package decode;
 		else if(opcode==`SYSTEM_INSTR_op)//what should be done for systems instruction		
 			immediate_value[16:12]=inst[19:15];
 
+    // Following table describes what the ALU will need for some critical operations. Based on this
+    // the next set of logic is implemented. rs1+ rs2 is a XLEN bit adder. rs3+ rs4 is PADDR bit
+    // adder.
+    //
+    //          rs1   rs2   rs3   rs4
+    // Branch   OP1   OP2   PC    Imm
+    // JAL      PC    'd4   PC    Imm   (rs1=0, rs2=0 since neither required)
+    // JALR     PC    'd4   op1   Imm   (rs2=0 since not required)
+    // LOAD                 op1   Imm   (rs2=0 since not required)
+    // STORE                op1   Imm   (both required. op2 is the data)
+    // AUIPC    PC    Imm               (rs1=0, rs2=0 since neither required)
+    // LUI      0 Imm                   (rs1=0, rs2=0 since neither required)
+    /////////////////////////////////////////////////////////////////////////////////
+
 		//instruction following U OR UJ TYPE INSTRUCTION FORMAT	
 		//funct3[2]==1 might not be required as division is not included till now
 		if (opcode==`JAL_op  || opcode==`LUI_op || opcode==`AUIPC_op || 
@@ -143,7 +161,7 @@ package decode;
 			rs1=0;
 		//instruction following I,U OR UJ INSTRUCTION FORMAT	
 		if (opcode==`SYSTEM_INSTR_op || opcode[4:2]=='b000 || opcode==`LUI_op // CSR or (Load) or LUI 
-  			 ||opcode[4:2]=='b001 || opcode==`JAL_op || opcode==`JALR_op)	// JAL or JALR
+  			 ||opcode == `AUIPC_op || opcode==`JAL_op || opcode==`JALR_op)	// AUIPC or JAL or JALR
 			rs2=0;
 		//insturction following S OR SB TYPE INSTRUCTION FORMAT
 		if (opcode==`BRANCH_op || opcode[4:1]=='b0100)	
@@ -151,8 +169,10 @@ package decode;
 
 		if(opcode==`JAL_op || opcode==`AUIPC_op)	
 			rs1type=PC;
-		if(opcode==`JALR_op || opcode==`JAL_op || opcode[4:2] == 'b001 || opcode==`LUI_op 
-        || opcode[4:1]==0)	
+
+		if(opcode==`JALR_op || opcode==`JAL_op)
+      rs2type=Constant4;
+    else if(opcode == `AUIPC_op || opcode==`LUI_op)
 			rs2type=Immediate;
 		
 		//instructions which support word lenght operation in RV64 are to be added in Alu
@@ -165,27 +185,30 @@ package decode;
     `endif
     			
 
-    Instruction_type inst_type=ILLEGAL;
+    Instruction_type inst_type=ALU;
     if(opcode[4:3]=='b11)begin
     	case(opcode[2:0])
-    		'b001, 'b011:inst_type=JAL_R;
+    		'b001:inst_type=JALR; 
+        'b011:inst_type=JAL;
     		'b000:inst_type=BRANCH;
     		'b100:inst_type=SYSTEM_INSTR;
     	endcase
     end
-   else if(opcode[4:3]=='b01)begin 
+    else if(opcode[4:3]=='b01)begin 
       case (opcode[2:0])  
          'b000:inst_type=MEMORY; // STORE
          'b101:inst_type=ALU;      // LUI 
-         'b100,'b110:inst_type=(funct7[0]==1)?(funct3[2]==0)?MUL:DIV:ALU; 
+         'b100,'b110:inst_type=(funct7[0]==1)?MULDIV:ALU; 
       endcase 
-   end 
+    end 
     else if(opcode[4:3]=='b00)begin
     	case(opcode[2:0])
     		'b000,'b001:inst_type=MEMORY;
     		'b101,'b100,'b110:inst_type=ALU;
     	endcase
     end
+    else
+      exception = tagged Exception Illegal_inst;
 		Bit#(4) fn=0;
 		if(opcode==`BRANCH_op)begin
 			if(funct3[2]==0)
@@ -193,9 +216,9 @@ package decode;
 			else
 				fn={1'b1,funct3};
 		end
-		else if(opcode==`JAL_op || opcode==`JALR_op || opcode==`LOAD_op `ifdef spfpu || opcode==`FLOAD_op `endif
-				|| opcode==`STORE_op `ifdef spfpu || opcode==`FSTORE_op `endif || opcode==`AUIPC_op || opcode==`LUI_op)
-			fn=0;
+//		else if(opcode==`JAL_op || opcode==`JALR_op || opcode==`LOAD_op	|| opcode==`STORE_op ||
+//                                                              opcode==`AUIPC_op || opcode==`LUI_op)
+//			fn=0;
 		else if(opcode==`IMM_ARITHW_op || opcode==`IMM_ARITH_op)begin
 			fn=case(funct3)
 				'b010: 'b1100;
@@ -216,16 +239,12 @@ package decode;
 		else if(opcode[4:3]=='b10)
 			fn=opcode[3:0];
 
-    Trap_type exception = tagged None;
-    Trap_type interrupt = chk_interrupt(prv, mip, csr_mie, mideleg, mie);
 		Bool address_is_valid=address_valid(inst[31:20]);
 		Bool access_is_valid=valid_csr_access(inst[31:20],inst[19:15], inst[13:12], prv);
     if(pc[1:0]!=0)
       exception = tagged Exception Inst_addr_misaligned;
     else if(err)
       exception = tagged Exception Inst_access_fault;
-    else if(inst_type==ILLEGAL)
-	    exception = tagged Exception Illegal_inst;
     else if(inst_type == SYSTEM_INSTR)begin
       if(funct3 == 0)
         case(inst[31:20])

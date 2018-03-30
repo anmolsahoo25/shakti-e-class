@@ -58,12 +58,12 @@ package common_types;
 	Funct3 f3_DIVU    = 3'b101;     // 5
 
   // Define all enums here 
-	typedef enum {ALU, MUL, DIV, MEMORY, BRANCH, JAL_R, SYSTEM_INSTR, ILLEGAL} Instruction_type 
+	typedef enum {ALU, MULDIV, MEMORY, BRANCH, JAL, JALR, SYSTEM_INSTR} Instruction_type 
                                   deriving(Bits, Eq, FShow); // the type of the decoded instruction.
 	typedef enum {Load, Store} Access_type deriving (Bits, Eq, FShow);
 	typedef enum {Flush= 1, None= 0} Flush_type deriving (Bits, Eq, FShow);
 	typedef enum {IntegerRF, PC} Operand1_type deriving(Bits, Eq, FShow);
-	typedef enum {IntegerRF, Immediate} Operand2_type deriving(Bits, Eq, FShow);
+	typedef enum {IntegerRF, Immediate, Constant4} Operand2_type deriving(Bits, Eq, FShow);
   typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq, Bits, FShow);
   typedef enum {Machine=3, User=0} Privilege_mode deriving(Eq, Bits, FShow);
 

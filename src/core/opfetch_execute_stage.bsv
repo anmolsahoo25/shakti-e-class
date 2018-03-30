@@ -82,8 +82,6 @@ package opfetch_execute_stage;
     
       if(rs1_type==PC)
         rs1=zeroExtend(pc);
-      else if(rs1_addr==0)
-        rs1=0;
       else if(rs1_addr == rd)
         rs1=rd_value;
       else
@@ -91,15 +89,16 @@ package opfetch_execute_stage;
 
       if(rs2_type==Immediate)
         rs2=imm;
-      else if(rs2_addr==0)
-        rs2=0;
+      else if(rs2_type==Constant4)
+        rs2='d4;
       else if(rs2_addr == rd)
         rs2 = rd_value;
       else
         rs2=integer_rf.sub(rs2_addr);
 
       Bool operands_avail=True;
-      if( (rs1_addr == rd || rs2_addr == rd) && !valid && rd!=0)
+      if(((rs1_addr == rd && rs1_type==IntegerRF) || (rs2_addr == rd && rs2_type == IntegerRF))
+            && !valid && rd!=0)
         operands_avail=False;
       return tuple3(rs1,rs2,operands_avail);
     endfunction
@@ -134,8 +133,8 @@ package opfetch_execute_stage;
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
       let {op1, op2, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, imm);
-      let {committype, op1_reslt, effaddr_csrdata} = fn_alu(fn, op1, op2, imm, pc, insttype,
-                                                                   funct3, mem_access, rd, word32);
+      let {committype, op1_reslt, effaddr_csrdata} = fn_alu(fn, op1, op2, truncate(imm), pc, 
+                                                            insttype, funct3, word32);
       if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
         if(available)begin
@@ -144,7 +143,7 @@ package opfetch_execute_stage;
             rs1, op1, rs2, op2, fshow(committype));
           rx.u.deq;
           if(committype == MEMORY &&& trap matches tagged None)
-            ff_memory_request.enq(tuple5(truncate(op1_reslt), op2, mem_access,
+            ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
           `ifdef simulate
             tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));

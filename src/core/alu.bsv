@@ -51,9 +51,11 @@ package alu;
   endfunction
 
 	(*noinline*)
-	function ALU_OUT fn_alu (Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(XLEN) imm_value, 
-        Bit#(PADDR) pc, Instruction_type inst_type, Funct3 funct3, Access_type mem_access, 
-          Bit#(5) rd, Bool word32);
+	function ALU_OUT fn_alu (Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(PADDR) imm_value, 
+        Bit#(PADDR) pc, Instruction_type inst_type, Funct3 funct3, 
+        Bool word32);
+
+    Bit#(PADDR) op3 = (inst_type==MEMORY || inst_type==JALR)?truncate(op1):pc;
 	  /*========= Perform all the arithmetic ===== */
 	  // ADD* ADDI* SUB* 
     Bit#(XLEN) inv = signExtend(fn[3]);
@@ -61,21 +63,11 @@ package alu;
 	  let op1_xor_op2=op1^inv_op2;
     let op1_add=op1;
     let op2_add=inv_op2;
-    let carry = fn[3];
-    if(inst_type== JAL_R || inst_type==BRANCH)begin
-      carry=0;
-    end
-    if(inst_type== JAL_R || inst_type==BRANCH || inst_type==MEMORY)begin
-      op2_add= imm_value;
-    end
-    if(inst_type==BRANCH)
-      op1_add=zeroExtend(pc);
-	  let adder_output=op1_add+op2_add+zeroExtend(carry);
-    let inter=op1+ inv_op2+ zeroExtend(fn[3]);
+    let adder_output=op1+ inv_op2+ zeroExtend(fn[3]);
 	  // SLT SLTU
 	  Bit#(1) compare_out=fn[0]^(
 						(fn[3]==0)?pack(op1_xor_op2==0):
-						(op1[valueOf(XLEN)-1]==op2[valueOf(XLEN)-1])?inter[valueOf(XLEN)-1]:
+						(op1[valueOf(XLEN)-1]==op2[valueOf(XLEN)-1])?adder_output[valueOf(XLEN)-1]:
 						(fn[1]==1)?op2[valueOf(XLEN)-1]:op1[valueOf(XLEN)-1]);
 	  // SLL SRL SRA
     //word32 is bool, shift_amt is used to describe the amount of shift
@@ -123,7 +115,6 @@ package alu;
     res=mul_core(operand1, operand2, is32Bit);//creates only single instance of the multiplier
 */
     Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
-    //Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
     `ifdef RV64
   		if(word32)
 	  		 final_output=signExtend(final_output[31:0]);
@@ -131,15 +122,12 @@ package alu;
 
 		// Generate flush if prediction was wrong
 		Flush_type flush=None;
-		if((inst_type==BRANCH && final_output[0]==1) || inst_type==JAL_R )begin
+		if((inst_type==BRANCH && final_output[0]==1) || inst_type==JALR || inst_type==JAL )begin
 			flush=Flush;
 		end
 		
     // generate the effective address to jump to 
-		Bit#(PADDR) effective_address=truncate(adder_output);
-		Bit#(PADDR) npc=pc+4;
-		if(inst_type==JAL_R)
-			 final_output=zeroExtend(npc);
+		Bit#(PADDR) effective_address=op3+ truncate(imm_value);
 		`ifdef simulate
 			if(inst_type==BRANCH)
 				final_output=0;
@@ -155,10 +143,10 @@ package alu;
     else if(inst_type == SYSTEM_INSTR)
       committype = SYSTEM_INSTR;
 	
-	  Bit#(XLEN) op1_result = committype == SYSTEM_INSTR?op1: final_output;
-	  Bit#(TAdd#(PADDR, 1)) effaddr_csrdata = (flush == Flush)? zeroExtend({1'b1, effective_address}): 
-                                          zeroExtend({funct3, imm_value[16:0]});
+	  Bit#(TAdd#(PADDR, 1)) effaddr_csrdata = (inst_type==SYSTEM_INSTR)? 
+                                            zeroExtend({funct3, imm_value[16:0]}): 
+                                            {pack(flush), effective_address};
 
-	  return tuple3(committype, op1_result, effaddr_csrdata);
+	  return tuple3(committype, final_output, effaddr_csrdata);
 	endfunction
 endpackage:alu
