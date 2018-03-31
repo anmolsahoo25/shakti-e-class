@@ -167,12 +167,12 @@ package decode;
 		if (opcode==`BRANCH_op || opcode[4:1]=='b0100)	
 			rd=0;
 
-		if(opcode==`JAL_op || opcode==`AUIPC_op)	
+		if(opcode==`JAL_op || opcode==`JALR_op|| opcode==`AUIPC_op)	
 			rs1type=PC;
 
 		if(opcode==`JALR_op || opcode==`JAL_op)
       rs2type=Constant4;
-    else if(opcode[4:2] == 'b001 || opcode==`LUI_op)
+    else if(opcode[4:2] == 'b001 || opcode==`LUI_op )
 			rs2type=Immediate;
 		
 		//instructions which support word lenght operation in RV64 are to be added in Alu
