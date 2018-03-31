@@ -56,6 +56,7 @@ package alu;
         Bool word32);
 
     Bit#(PADDR) op3 = (inst_type==MEMORY || inst_type==JALR)?truncate(op1):pc;
+    op1 = (inst_type==JALR)?zeroExtend(pc):op1;
 	  /*========= Perform all the arithmetic ===== */
 	  // ADD* ADDI* SUB* 
     Bit#(XLEN) inv = signExtend(fn[3]);
