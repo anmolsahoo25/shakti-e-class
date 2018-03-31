@@ -92,28 +92,7 @@ package alu;
 	  let shift_logic=zeroExtend(pack(fn==`FNSEQ || fn==`FNSNE || fn >= `FNSLT)&compare_out) |
 	  					 logic_output|shift_output;
 
-		// mul and div inst
-	/*	
-    Data operand1=?;Data operand2=?;Bool is32Bit=False;
-    Data_S sop1 = unpack(op1), sop2 = unpack(op2);
-    Data_U uop1 = unpack(op1), uop2 = unpack(op2);
-    Data res = ?;
-    //Data_2 res_2 = ?;//Data_2 is 128 bit wide
-    Bit #(1) sn_op1 = op1[valueof(XLEN)-1], sn_op2 = op2[valueof(XLEN)-1];
-    Bool take_complement = !(sn_op1 == sn_op2);
-
-    //see how to reduce number of adder
-		Data mop1 = (sn_op1 == 1) ? (~op1+1) : op1;
-		Data mop2 = (sn_op2 == 1) ? (~op2+1) : op2;  
-
-     
-    if(funct3==f3_MUL)begin operand1=op1;operand2=op2;is32Bit=False; end
-    else if(funct3==f3_MULHSU)begin operand1=mop1;operand2=op2;is32Bit=take_complement; end
-    else if(funct3==f3_MULH)begin operand1=mop1;operand2=mop2;is32Bit=take_complement; end
-    else if(funct3==f3_MULHU)begin operand1=op1;operand2=op2;is32Bit=False; end
-    res=mul_core(operand1, operand2, is32Bit);//creates only single instance of the multiplier
-*/
-    Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
+		Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
     `ifdef RV64
   		if(word32)
 	  		 final_output=signExtend(final_output[31:0]);
