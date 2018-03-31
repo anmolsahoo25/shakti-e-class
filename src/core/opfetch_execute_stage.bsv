@@ -74,30 +74,24 @@ package opfetch_execute_stage;
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
   
     function (Tuple3#(Bit#(XLEN),Bit#(XLEN),Bool)) operand_provider(Bit#(5) rs1_addr, Operand1_type 
-               rs1_type, Bit#(5) rs2_addr, Operand2_type rs2_type, Bit#(PADDR) pc, Bit#(XLEN) imm);
+               rs1_type, Bit#(5) rs2_addr, Operand2_type rs2_type);
      
       let {rd,valid,rd_value}=wr_opfwding;
       Bit#(XLEN) rs1=0;
       Bit#(XLEN) rs2=0;
     
-      if(rs1_type==PC)
-        rs1=zeroExtend(pc);
-      else if(rs1_addr == rd)
+      if(rs1_addr == rd)
         rs1=rd_value;
       else
         rs1=integer_rf.sub(rs1_addr);
 
-      if(rs2_type==Immediate)
-        rs2=imm;
-      else if(rs2_type==Constant4)
-        rs2='d4;
-      else if(rs2_addr == rd)
+      if(rs2_addr == rd)
         rs2 = rd_value;
       else
         rs2=integer_rf.sub(rs2_addr);
 
       Bool operands_avail=True;
-      if(((rs1_addr == rd && rs1_type==IntegerRF) || (rs2_addr == rd && rs2_type == IntegerRF))
+      if(((rs1_addr == rd && rs1_addr!=0) || (rs2_addr == rd && rs2_addr !=0))
             && !valid && rd!=0)
         operands_avail=False;
       return tuple3(rs1,rs2,operands_avail);
@@ -132,15 +126,27 @@ package opfetch_execute_stage;
       end
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
-      let {op1, op2, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, imm);
-      let {committype, op1_reslt, effaddr_csrdata} = fn_alu(fn, op1, op2, truncate(imm), pc, 
+      let {op1, op2, available}=operand_provider(rs1, rs1_type, rs2, rs2_type);
+      // Muxing the right value into the operands
+      Bit#(PADDR) op3=pc;
+      if(insttype==MEMORY || insttype==JALR)
+        op3=truncate(op1);
+
+      if(rs1_type==PC)
+        op1=zeroExtend(pc);
+
+      if(rs2_type==Constant4)
+        op2='d4;
+      else if(rs2_type==Immediate)
+        op2=signExtend(imm);
+      if(verbosity!=0)
+        $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
+            %h,  Type: ", rs1, op1, rs2, op2, op3, fshow(insttype));
+      let {committype, op1_reslt, effaddr_csrdata} = fn_alu(fn, op1, op2, imm, op3, 
                                                             insttype, funct3, word32);
       if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
         if(available)begin
-          if(verbosity!=0)
-            $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h Type: ", 
-            rs1, op1, rs2, op2, fshow(committype));
           rx.u.deq;
           if(committype == MEMORY &&& trap matches tagged None)
             ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
