@@ -62,7 +62,7 @@ package mem_wb_stage;
     Wire#(Maybe#(Tuple2#(Bit#(XLEN), Bool))) wr_memory_response <- mkDWire(tagged Invalid);
 
     // wire that carriues the information for operand forwarding
-    Wire#(OpFwding) wr_operand_fwding <- mkDWire(tuple3(0, False, ?));
+    Wire#(OpFwding) wr_operand_fwding <- mkDWire(tuple3(0, False, 0));
 
     // wire that carries the commit data that needs to be written to the integer register file.
     Wire#(Maybe#(Tuple2#(Bit#(5), Bit#(XLEN)))) wr_commit <- mkDWire(tagged Invalid);
