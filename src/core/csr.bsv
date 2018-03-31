@@ -69,7 +69,7 @@ package csr;
 
   (*synthesize*)
   module mkcsr(Ifc_csr);
-    
+    let verbosity=`VERBOSITY ;
     /////////////////////////////// Machine level register /////////////////////////
     // Current Privilege Level
 	  Reg#(Privilege_mode) rg_prv <- mkConfigReg(Machine); // resets to machine mode
@@ -230,12 +230,12 @@ package csr;
     //////////////////////////////// User level registers ///////////////////////////////////
 	  `ifdef RV64
 	  	Reg#(Bit#(XLEN)) csr_uinstret=readOnlyReg(csr_minstret[0]);
-	  	Reg#(Bit#(XLEN)) csr_ucycle=readOnlyReg(csr_mcycle[0]);
+	  	Reg#(Bit#(XLEN)) csr_ucycle=readOnlyReg(csr_mcycle[1]);
 	  `else
 	  	Reg#(Bit#(XLEN)) csr_uinstret=readOnlyReg(csr_minstret[0]);
-	  	Reg#(Bit#(XLEN)) csr_ucycle=readOnlyReg(csr_mcycle[0]);
+	  	Reg#(Bit#(XLEN)) csr_ucycle=readOnlyReg(csr_mcycle[1]);
 	  	Reg#(Bit#(XLEN)) csr_uinstreth=readOnlyReg(csr_minstreth[0]);
-	  	Reg#(Bit#(XLEN)) csr_ucycleh=readOnlyReg(csr_mcycleh[0]);
+	  	Reg#(Bit#(XLEN)) csr_ucycleh=readOnlyReg(csr_mcycleh[1]);
 	  `endif
 
 	  Reg#(Bit#(XLEN)) rg_clint_mtime <-mkReg(0);
@@ -294,10 +294,10 @@ package csr;
 
 	  function Reg#(Bit#(XLEN)) read_machine_counters(Bit#(8) address);
 	  	Reg#(Bit#(XLEN)) csr=(case(address)
-	  		`MCYCLE			:csr_mcycle[0];				
+	  		`MCYCLE			:csr_mcycle[1];				
 	  		`MINSTRET		:csr_minstret[0];
 	  		`ifndef RV64
-	  			`MCYCLEH		:csr_mcycleh[0];
+	  			`MCYCLEH		:csr_mcycleh[1];
 	  			`MINSTRETH	:csr_minstreth[0];
 	  		`endif
 	  		default: begin
@@ -333,18 +333,20 @@ package csr;
 
     rule increment_cycle_counter;
 	  	`ifdef RV64
-      	csr_mcycle[1]<=csr_mcycle[1]+1;
+      	csr_mcycle[0]<=csr_mcycle[0]+1;
 	  	`else
-	  		Bit#(64) new_cycle={csr_mcycleh[1],csr_mcycle[1]};
+	  		Bit#(64) new_cycle={csr_mcycleh[0],csr_mcycle[0]};
 	  		new_cycle=new_cycle+1;
-	  		csr_mcycle[1]<=new_cycle[31:0];
-	  		csr_mcycleh[1]<=new_cycle[63:32];
+	  		csr_mcycle[0]<=new_cycle[31:0];
+	  		csr_mcycleh[0]<=new_cycle[63:32];
 	  	`endif
     endrule
 
 	  method ActionValue#(Tuple3#(Bool, Bit#(PADDR),Bit#(XLEN))) system_instruction(
             Bit#(12) csr_address, Bit#(5) rs1_addr, Bit#(XLEN) op1, Bit#(3) funct3);
-
+      if(verbosity>1)
+        $display($time, "\tCSR: csr: %h rs1addr: %d, op1: %h, funct3: %b", csr_address, rs1_addr, op1,
+            funct3);
       Bool flush = False;
       Bit#(PADDR) jump_address=0;
 	  	let csr_reg=read_csr(csr_address);
