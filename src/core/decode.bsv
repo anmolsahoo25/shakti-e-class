@@ -219,7 +219,7 @@ package decode;
 //		else if(opcode==`JAL_op || opcode==`JALR_op || opcode==`LOAD_op	|| opcode==`STORE_op ||
 //                                                              opcode==`AUIPC_op || opcode==`LUI_op)
 //			fn=0;
-		else if(opcode==`IMM_ARITHW_op || opcode==`IMM_ARITH_op)begin
+		else if(`ifdef RV64 opcode==`IMM_ARITHW_op || `endif opcode==`IMM_ARITH_op)begin
 			fn=case(funct3)
 				'b010: 'b1100;
 				'b011: 'b1110;
@@ -227,7 +227,7 @@ package decode;
 				default:{1'b0,funct3};
 			endcase;
 		end
-		else if(opcode==`ARITHW_op || opcode==`ARITH_op)begin
+		else if(`ifdef RV64 opcode==`ARITHW_op || `endif opcode==`ARITH_op)begin
 			fn=case(funct3)
 				'b000:if(funct7[5]==1) 'b1010; else 'b0000;
 				'b010:'b1100;

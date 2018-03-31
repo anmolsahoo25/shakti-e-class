@@ -51,8 +51,10 @@ module mkBootRom#(Bit#(PADDR) base_address)(BootRom_IFC);
   Integer verbosity = `VERBOSITY;
 	// we create 2 32-bit BRAMs since the xilinx tool is easily able to map them to BRAM32BE cells
 	// which makes it easy to use data2mem for updating the bit file.
+  `ifdef RV64
 	BRAM_PORT#(Bit#(13), Bit#(32)) dmemMSB <- mkBRAMCore1Load(valueOf(TExp#(13)), False, 
                                                                                 "boot.MSB", False);
+  `endif
 	BRAM_PORT#(Bit#(13), Bit#(32)) dmemLSB <- mkBRAMCore1Load(valueOf(TExp#(13)), False, 
                                                                                 "boot.LSB", False);
 
@@ -89,7 +91,7 @@ module mkBootRom#(Bit#(PADDR) base_address)(BootRom_IFC);
 		rg_read_packet<=ar;
 	  Bit#(13) index_address=(ar.araddr-(base_address))[15:3];
 		dmemLSB.put(False, index_address, ?);
-		dmemMSB.put(False, index_address, ?);
+		`ifdef RV64 dmemMSB.put(False, index_address, ?); `endif
 		rd_state<=HandleBurst;
 		if(verbosity!= 0)
       $display($time, "\tBootROM: Recieved Read Request for Address: %h Index Address: %h",  
@@ -97,7 +99,7 @@ module mkBootRom#(Bit#(PADDR) base_address)(BootRom_IFC);
 	endrule
 
 	rule rl_rd_response(rd_state==HandleBurst);
-    Bit#(XLEN) data0 = {dmemMSB.read(), dmemLSB.read()};
+    Bit#(XLEN) data0 = {`ifdef RV64 dmemMSB.read(), `endif dmemLSB.read()};
     AXI4_Rd_Data#(XLEN, USERSPACE) r = AXI4_Rd_Data {rresp: AXI4_OKAY, rdata: data0 , 
         rlast:rg_readburst_counter==rg_read_packet.arlen,  ruser: 0, rid:rg_read_packet.arid};
 		let transfer_size=rg_read_packet.arsize;
@@ -105,18 +107,22 @@ module mkBootRom#(Bit#(PADDR) base_address)(BootRom_IFC);
 		if(transfer_size==2)begin // 32 bit
 			if(address[2:0]==0)
 				r.rdata=duplicate(data0[31:0]);
-			else
-				r.rdata=duplicate(data0[63:32]);
+      `ifdef RV64
+  			else
+	  			r.rdata=duplicate(data0[63:32]);
+      `endif
 		end
     else if (transfer_size=='d1)begin // half_word
 			if(address[2:0] ==0)
 				r.rdata = duplicate(data0[15:0]);
 			else if(address[2:0] ==2)
 				r.rdata = duplicate(data0[31:16]);
-			else if(address[2:0] ==4)
-				r.rdata = duplicate(data0[47:32]);
-			else if(address[2:0] ==6)
-				r.rdata = duplicate(data0[63:48]);
+      `ifdef RV64 
+  			else if(address[2:0] ==4)
+	  			r.rdata = duplicate(data0[47:32]);
+		  	else if(address[2:0] ==6)
+			  	r.rdata = duplicate(data0[63:48]);
+      `endif
       end
     else if (transfer_size=='d0) begin// one byte
 			if(address[2:0] ==0)
@@ -127,14 +133,16 @@ module mkBootRom#(Bit#(PADDR) base_address)(BootRom_IFC);
         r.rdata = duplicate(data0[23:16]);
       else if(address[2:0] ==3)
         r.rdata = duplicate(data0[31:24]);
-      else if(address[2:0] ==4)
-				r.rdata = duplicate(data0[39:32]);
-      else if(address[2:0] ==5)
-				r.rdata = duplicate(data0[47:40]);
-      else if(address[2:0] ==6)
-				r.rdata = duplicate(data0[55:48]);
-      else if(address[2:0] ==7)
-				r.rdata = duplicate(data0[63:56]);
+      `ifdef RV64
+        else if(address[2:0] ==4)
+			  	r.rdata = duplicate(data0[39:32]);
+        else if(address[2:0] ==5)
+			  	r.rdata = duplicate(data0[47:40]);
+        else if(address[2:0] ==6)
+			  	r.rdata = duplicate(data0[55:48]);
+        else if(address[2:0] ==7)
+			  	r.rdata = duplicate(data0[63:56]);
+      `endif
     end
     s_xactor.i_rd_data.enq(r);
 		address=burst_address_generator(rg_read_packet.arlen, rg_read_packet.arsize, 
@@ -146,11 +154,11 @@ module mkBootRom#(Bit#(PADDR) base_address)(BootRom_IFC);
 		end
 		else begin
 			dmemLSB.put(False, index_address, ?);
-			dmemMSB.put(False, index_address, ?);
+			`ifdef RV64 dmemMSB.put(False, index_address, ?); `endif
 			rg_readburst_counter<=rg_readburst_counter+1;
 		end
 		rg_read_packet.araddr<=address;
-		Bit#(64) new_data=r.rdata;
+		Bit#(XLEN) new_data=r.rdata;
 		if(verbosity!=0) 
       $display($time, "\tBootROM : Responding Read Request with CurrAddr: %h Data: %8h \
           BurstCounter: %d BurstValue: %d NextAddress: %h", rg_read_packet.araddr, new_data, 
