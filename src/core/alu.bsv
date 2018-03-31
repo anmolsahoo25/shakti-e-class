@@ -52,11 +52,9 @@ package alu;
 
 	(*noinline*)
 	function ALU_OUT fn_alu (Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(PADDR) imm_value, 
-        Bit#(PADDR) pc, Instruction_type inst_type, Funct3 funct3, 
+        Bit#(PADDR) op3, Instruction_type inst_type, Funct3 funct3, 
         Bool word32);
 
-    Bit#(PADDR) op3 = (inst_type==MEMORY || inst_type==JALR)?truncate(op1):pc;
-    op1 = (inst_type==JALR)?zeroExtend(pc):op1;
 	  /*========= Perform all the arithmetic ===== */
 	  // ADD* ADDI* SUB* 
     Bit#(XLEN) inv = signExtend(fn[3]);
