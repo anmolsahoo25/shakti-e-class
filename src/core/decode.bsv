@@ -172,7 +172,7 @@ package decode;
 
 		if(opcode==`JALR_op || opcode==`JAL_op)
       rs2type=Constant4;
-    else if(opcode == `AUIPC_op || opcode==`LUI_op)
+    else if(opcode[4:2] == 'b001 || opcode==`LUI_op)
 			rs2type=Immediate;
 		
 		//instructions which support word lenght operation in RV64 are to be added in Alu
