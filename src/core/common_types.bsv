@@ -89,8 +89,9 @@ package common_types;
   typedef Tuple4#(Bit#(PADDR), Access_type, Bit#(2), Bit#(1)) CoreRequest;
 
   typedef Tuple3#(Bit#(5), Bool, Bit#(XLEN)) OpFwding;
-  // rg_prv,  csr_mip, csr_mie, csr_mideleg, rg_mie 
-  typedef Tuple5#(Privilege_mode, Bit#(XLEN), Bit#(XLEN), Bit#(XLEN), Bit#(1)) CSRtoDecode;
+  // rg_prv,  csr_mip, csr_mie, csr_mideleg, csr_misa, csr_counteren, rg_mie
+  typedef Tuple7#(Privilege_mode, Bit#(12), Bit#(12), Bit#(12), Bit#(26), Bit#(3), 
+                   Bit#(1)) CSRtoDecode;
 
   typedef Tuple5#(Privilege_mode, Bit#(XLEN), Bit#(32), Bit#(5), Bit#(XLEN)) DumpType;
 
