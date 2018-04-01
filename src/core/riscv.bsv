@@ -46,11 +46,10 @@ package riscv;
 	  interface Put#(Tuple2#(Bit#(32),Bool)) inst_response;//addr of the given inst
     interface Get#(MemoryRequest) memory_request;
     interface Put#(Tuple2#(Bit#(XLEN),Bool)) memory_response;
-		`ifdef CLINT
-	  	method Action clint_msip(Bit#(1) intrpt);
-			method Action clint_mtip(Bit#(1) intrpt);
-			method Action clint_mtime(Bit#(XLEN) c_mtime);
-		`endif
+	  method Action clint_msip(Bit#(1) intrpt);
+		method Action clint_mtip(Bit#(1) intrpt);
+		method Action clint_mtime(Bit#(XLEN) c_mtime);
+    method Action externalinterrupt(Bit#(1) intrpt);
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
@@ -94,17 +93,18 @@ package riscv;
     interface memory_request = stage2.memory_request;
     interface memory_response = stage3.memory_response;
 
-		`ifdef CLINT
-	  	method Action clint_msip(Bit#(1) intrpt);
-        stage3.clint_msip(intrpt);
-      endmethod
-			method Action clint_mtip(Bit#(1) intrpt);
-        stage3.clint_mtip(intrpt);
-      endmethod
-			method Action clint_mtime(Bit#(XLEN) c_mtime);
-        stage3.clint_mtime(c_mtime);
-      endmethod
-		`endif
+	 	method Action clint_msip(Bit#(1) intrpt);
+      stage3.clint_msip(intrpt);
+    endmethod
+	  method Action clint_mtip(Bit#(1) intrpt);
+      stage3.clint_mtip(intrpt);
+    endmethod
+		method Action clint_mtime(Bit#(XLEN) c_mtime);
+      stage3.clint_mtime(c_mtime);
+    endmethod
+    method Action externalinterrupt(Bit#(1) intrpt);
+      stage3.externalinterrupt(intrpt);
+    endmethod
     `ifdef simulate
       interface dump=stage3.dump;
     `endif
