@@ -47,6 +47,10 @@ package mem_wb_stage;
     interface Get#(OpFwding) operand_fwding;
     method Tuple2#(Bit#(PADDR), Bool) flush;
     method CSRtoDecode csrs_to_decode;
+	  method Action clint_msip(Bit#(1) intrpt);
+		method Action clint_mtip(Bit#(1) intrpt);
+		method Action clint_mtime(Bit#(XLEN) c_mtime);
+    method Action externalinterrupt(Bit#(1) intrpt);
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
@@ -169,6 +173,10 @@ package mem_wb_stage;
       end
     endrule
 
+    rule increment_instruction_counter(wr_commit matches tagged Valid .x);
+      csr.incr_minstret;
+    endrule
+
     interface  memory_response= interface Put
       method Action put (Tuple2#(Bit#(XLEN), Bool) response);
         wr_memory_response <= tagged Valid response;
@@ -192,17 +200,18 @@ package mem_wb_stage;
     method flush=wr_flush;
     method csrs_to_decode = csr.csrs_to_decode;
 
-		`ifdef CLINT
-	  	method Action clint_msip(Bit#(1) intrpt);
-        csr.clint_msip(intrpt);
-      endmethod
-			method Action clint_mtip(Bit#(1) intrpt);
-        csr.clint_mtip(intrpt);
-      endmethod
-			method Action clint_mtime(Bit#(XLEN) c_mtime);
-        csr.clint_mtime(c_mtime);
-      endmethod
-		`endif
+	  method Action clint_msip(Bit#(1) intrpt);
+      csr.clint_msip(intrpt);
+    endmethod
+		method Action clint_mtip(Bit#(1) intrpt);
+      csr.clint_mtip(intrpt);
+    endmethod
+		method Action clint_mtime(Bit#(XLEN) c_mtime);
+      csr.clint_mtime(c_mtime);
+    endmethod
+		method Action externalinterrupt(Bit#(1) intrpt);
+      csr.externalinterrupt(intrpt);
+    endmethod
     `ifdef simulate
       interface dump = interface Get
         method ActionValue#(DumpType) get ;
