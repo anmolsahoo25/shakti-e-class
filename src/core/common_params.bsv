@@ -54,47 +54,47 @@
 `define DIVU_f3		'b101
 
 /////////////////////////// Register Mapping for Machine Mode Regs /////////////////
-`define MSTATUS	'h00 		//'h300 // Machine Status register                                
-`define MISA			'h01 	//'h301 // ISA and extensions                                     
-`define MEDELEG	'h02 		//'h302 // Machine exception delegation                               
-`define MIDELEG	'h03 		//'h303 // Machine interrupt delegation                               
-`define MIE			'h04 		//'h304 // Machine interrupt enable                                   
-`define MTVEC		'h05 		//'h305 // Machine trap-handler base address                          
-`define MCOUNTEREN		'h06 //'h306 // Machine counter setup register                                  
-`define MSCRATCH	'h40 	//'h340 // Scratch rgister for machine trap hanglers                  
-`define MEPC			'h41 	//'h341 // Machine exception program counter                          
-`define MCAUSE		'h42 	//'h342 // Machine trap cause                                         
-`define MTVAL		'h43 		//'h343 // Machine bad address                                        
-`define MIP			'h44 		//'h344 // Machine interrupt pending
-`define MCYCLE		'h00 		//'hB00 // Machine cycle counter                                      
-`define MTIME		'h01 		  //'hB01	// mtime register (Non-standard r/w)
-`define MINSTRET	'h02 		//'hB02 // Machine instructions retired.                              
-`define MTIMECMP	'h20 		//'hB20 //  time compare register (Non-standard r/w)
-`define MCYCLEH	'h80 		  //'hB80 // Upper 32 bits of mcycle                                   
-`define MTIMEH		'h81 		//'hB81	// mtime hi-register (Non-standard r/w)
-`define MINSTRETH'h82 			//'hB82 // Upper 32 bits of minstret.                                 
-`define MTIMECMPH'hA0 			//'hBA0 //  time compare hi-register (Non-standard r/w)
-`define MVENDORID'h11 			//'hF11 // Vendor ID                                                  
-`define MARCHID	'h12 		  //'hF12 // Architecture ID                                           
-`define MIMPID		'h13 		//'hF13 // Implementation ID                                        
-`define MHARTID	'h14 		  //'hF14 // Hardware Thread ID                                      
+`define MSTATUS	'h300 // Machine Status register                                
+`define MISA		'h301 // ISA and extensions                                     
+`define MEDELEG	'h302 // Machine exception delegation                               
+`define MIDELEG	'h303 // Machine interrupt delegation                               
+`define MIE			'h304 // Machine interrupt enable                                   
+`define MTVEC		'h305 // Machine trap-handler base address                          
+`define MCOUNTEREN  'h306 // Machine counter setup register                                  
+`define MSCRATCH	'h340 // Scratch rgister for machine trap hanglers                  
+`define MEPC			'h341 // Machine exception program counter                          
+`define MCAUSE		'h342 // Machine trap cause                                         
+`define MTVAL		  'h343 // Machine bad address                                        
+`define MIP			  'h344 // Machine interrupt pending
+`define MCYCLE		'hB00 // Machine cycle counter                                      
+`define MTIME		  'hB01	// mtime register (Non-standard r/w)
+`define MINSTRET	'hB02 // Machine instructions retired.                              
+`define MTIMECMP	'hB20 //  time compare register (Non-standard r/w)
+`define MCYCLEH	  'hB80 // Upper 32 bits of mcycle                                   
+`define MTIMEH		'hB81	// mtime hi-register (Non-standard r/w)
+`define MINSTRETH 'hB82 // Upper 32 bits of minstret.                                 
+`define MTIMECMPH 'hBA0 //  time compare hi-register (Non-standard r/w)
+`define MVENDORID 'hF11 // Vendor ID                                                  
+`define MARCHID	  'hF12 // Architecture ID                                           
+`define MIMPID		'hF13 // Implementation ID                                        
+`define MHARTID		'hF14 // Hardware Thread ID                                      
 ////// Reister Mapping for User Mode Regs /////////////////
-`define USTATUS	'h00 	//'h000 // User status register
-`define FFLAGS		'h01 //'h001 // FP Accrued exceptions
-`define FRM			'h02 	//'h002 // FP Dynamic rounding mode
-`define FCSR			'h03 //'h003 // FP Control and status register
-`define UIE			'h04 	//'h004 // User interrupt enable register
-`define UTVEC		'h05 	//'h005 // User trap handler base address
-`define USCRATCH	'h40 //'h040 // Scratch register for user trap handlers
-`define UEPC			'h41 //'h041 // User exception program counter
-`define UCAUSE		'h42 //'h042 // User trap cause
-`define UTVAL		'h43 	//'h043 // User bad address or illegal instruction
-`define UIP			'h44 	//'h044 // User interrupt pending
-`define UMEMSE		'h45 //'h045 // Machine Memory Structures enable
-`define UCYCLE		'h00 //'hC00 // cycle counter for RDCYCLE instruction.
-`define UTIME		'h01 	//'hC01 // Tiemr for RDTIME instruction
-`define UINSTRET	'h02 //'hC02 // Instruction retired counter for RDINSTRET
-`define UCYCLEH	'h80 	//'hC80 // Upper 32bits of UCYCLE
-`define UTIMEH		'h81 //'hC81 // Upper 32bits of UTIME
-`define UINSTRETH'h82 	//'hC82 // Upper 32bits of UINSTRET
+`define USTATUS	  'h000 // User status register
+`define FFLAGS		'h001 // FP Accrued exceptions
+`define FRM			  'h002 // FP Dynamic rounding mode
+`define FCSR			'h003 // FP Control and status register
+`define UIE			  'h004 // User interrupt enable register
+`define UTVEC		  'h005 // User trap handler base address
+`define USCRATCH	'h040 // Scratch register for user trap handlers
+`define UEPC			'h041 // User exception program counter
+`define UCAUSE		'h042 // User trap cause
+`define UTVAL		  'h043 // User bad address or illegal instruction
+`define UIP			  'h044 // User interrupt pending
+`define UMEMSE		'h045 // Machine Memory Structures enable
+`define UCYCLE		'hC00 // cycle counter for RDCYCLE instruction.
+`define UTIME		  'hC01 // Tiemr for RDTIME instruction
+`define UINSTRET	'hC02 // Instruction retired counter for RDINSTRET
+`define UCYCLEH	  'hC80 // Upper 32bits of UCYCLE
+`define UTIMEH		'hC81 // Upper 32bits of UTIME
+`define UINSTRETH 'hC82 // Upper 32bits of UINSTRET
 ////////////////////////////////////////////////////////////////////////////////////
