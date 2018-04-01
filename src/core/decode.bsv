@@ -84,9 +84,9 @@ package decode;
 		return ret;
 	endfunction
 	
-	function Trap_type chk_interrupt(Privilege_mode prv, Bit#(XLEN) mip, Bit#(XLEN) csr_mie, 
-                                                        Bit#(XLEN) mideleg,  Bit#(1) mie);
-		Bit#(15) pending_interrupts = (truncate(mip)) & truncate(csr_mie) ;
+	function Trap_type chk_interrupt(Privilege_mode prv, Bit#(12) mip, Bit#(12) csr_mie, 
+                                                        Bit#(12) mideleg,  Bit#(1) mie);
+		Bit#(12) pending_interrupts = (truncate(mip)) & truncate(csr_mie) ;
 		let pending_machine_interrupts = pending_interrupts & ~truncate(mideleg);
 		let machine_interrupts_enabled = (mie == 1) || (prv != Machine);
 		pending_interrupts =	(machine_interrupts_enabled ? pending_machine_interrupts : 0);
@@ -102,7 +102,7 @@ package decode;
   (*noinline*)
   function PIPE1_DS decoder_func(Bit#(32) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch, Bool err, 
                                                                                CSRtoDecode csrs);
-    let {prv, mip, csr_mie, mideleg, mie}=csrs;
+    let {prv, mip, csr_mie, mideleg, misa, counteren, mie}=csrs;
 
     Trap_type exception = tagged None;
     Trap_type interrupt = chk_interrupt(prv, mip, csr_mie, mideleg, mie);
