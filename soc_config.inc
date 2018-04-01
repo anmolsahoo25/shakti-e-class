@@ -8,3 +8,4 @@ OPENOCD=disable
 SYNTH=SIM
 VERBOSITY=2
 BOOTROM=enable
+USERTRAPS=disable

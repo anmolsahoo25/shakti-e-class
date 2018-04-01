@@ -6,7 +6,7 @@ include soc_config.inc
 
 TOP_MODULE:=mkTbSoC
 TOP_FILE:=TbSoC.bsv
-TOP_DIR:=./src/testbench/
+TOP_DIR:=./src/testbench
 WORKING_DIR := $(shell pwd)
 
 ifneq (,$(findstring RV64,$(ISA)))
@@ -43,6 +43,9 @@ ifeq ($(SYNTH),SIM)
 endif
 ifeq ($(BOOTROM), enable)
   define_macros += -D BOOTROM=True
+endif
+ifeq ($(USERTRAPS), enable)
+  define_macros += -D USERTRAPS=True
 endif
 
 define_macros += -D VERBOSITY=$(VERBOSITY)
