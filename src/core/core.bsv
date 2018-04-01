@@ -46,11 +46,10 @@ package core;
   interface Ifc_core;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) fetch_master;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
-		`ifdef CLINT
-			method Action clint_msip(Bit#(1) intrpt);
-			method Action clint_mtip(Bit#(1) intrpt);
-			method Action clint_mtime(Bit#(XLEN) c_mtime);
-		`endif
+		method Action clint_msip(Bit#(1) intrpt);
+		method Action clint_mtip(Bit#(1) intrpt);
+		method Action clint_mtime(Bit#(XLEN) c_mtime);
+    method Action externalinterrupt(Bit#(1) intrpt);
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
@@ -143,17 +142,18 @@ package core;
         $display($time, "\tCORE: Memory Write Response ", fshow(response));
       memory_state<= Request;
     endrule
-		`ifdef CLINT
-	  	method Action clint_msip(Bit#(1) intrpt);
-        riscv.clint_msip(intrpt);
-      endmethod
-			method Action clint_mtip(Bit#(1) intrpt);
-        riscv.clint_mtip(intrpt);
-      endmethod
-			method Action clint_mtime(Bit#(XLEN) c_mtime);
-        riscv.clint_mtime(c_mtime);
-      endmethod
-		`endif
+	  method Action clint_msip(Bit#(1) intrpt);
+      riscv.clint_msip(intrpt);
+    endmethod
+		method Action clint_mtip(Bit#(1) intrpt);
+      riscv.clint_mtip(intrpt);
+    endmethod
+		method Action clint_mtime(Bit#(XLEN) c_mtime);
+      riscv.clint_mtime(c_mtime);
+    endmethod
+    method Action externalinterrupt(Bit#(1) intrpt);
+      riscv.externalinterrupt(intrpt);
+    endmethod
 		interface fetch_master= fetch_xactor.axi_side;
 		interface mem_master= memory_xactor.axi_side;
     `ifdef simulate
