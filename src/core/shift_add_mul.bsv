@@ -36,7 +36,7 @@ import common_types::*;
 		op2<=operand2;
 		start<=False;
 	endmethod
-	method ActionValue#(Tuple2#(Bit#(TSub#(TMul#(2,XLEN),1)),Bool)) rst() if(!start||done);
+	method ActionValue#(Tuple2#(Bit#(TSub#(TMul#(2,XLEN),1)),Bool)) rst();
 		Bit#(TSub#(TMul#(2,XLEN),1)) final_rst=result;
 		done<=True;
 		Tuple2#(Bit#(TSub#(TMul#(2,XLEN),1)),Bool) rst_out=tuple2(final_rst,done);
