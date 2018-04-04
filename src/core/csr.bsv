@@ -24,7 +24,8 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Author: Neel Gala
 Email id: neelgala@gmail.com
-Details:
+Details: This module contains the methods and functions which will perform tasks related to CSRs:
+Trap handling and Updating the CSRs for system- instruction
 
 --------------------------------------------------------------------------------------------------
 */
