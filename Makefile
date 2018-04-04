@@ -44,11 +44,13 @@ endif
 ifeq ($(BOOTROM), enable)
   define_macros += -D BOOTROM=True
 endif
-ifeq ($(USERTRAPS), enable)
-  define_macros += -D USERTRAPS=True
+ifeq ($(COREFABRIC), AXI4Lite)
+  define_macros += -D CORE_AXI4Lite=True
 endif
-
-define_macros += -D VERBOSITY=$(VERBOSITY)
+ifeq ($(COREFABRIC), AXI4)
+  define_macros += -D CORE_AXI4=True
+endif
+define_macros += -D VERBOSITY=$(VERBOSITY) -D USERTRAPS=$(USERTRAPS)
 CORE:=./src/core/
 FABRIC:=./src/fabric/axi4:./src/fabric/axi4lite
 UNCORE:=./src/uncore
