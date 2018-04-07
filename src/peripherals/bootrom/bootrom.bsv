@@ -40,8 +40,8 @@ package bootrom;
 	import axi_addr_generator::*;
 
   interface UserInterface#(numeric type awidth,  numeric type dwidth);
-    method Action read_request (Bit#(awidth) addr,  Bit#(3) size);
-    method Action write_request (Tuple2#(Bit#(awidth), Bit#(dwidth)) req);
+    method Action read_request (Bit#(awidth) addr,  Bit#(2) size);
+    method Action write_request (Tuple3#(Bit#(awidth), Bit#(dwidth),  Bit#(TDiv#(dwidth, 8))) req);
     method ActionValue#(Tuple2#(Bool, Bit#(dwidth))) read_response;
     method ActionValue#(Bool) write_response;
   endinterface
@@ -54,26 +54,26 @@ package bootrom;
     Integer verbosity = `VERBOSITY;
   	// we create 2 32-bit BRAMs since the xilinx tool is easily able to map them to BRAM32BE cells
   	// which makes it easy to use data2mem for updating the bit file.
-    BRAM_PORT#(Bit#(13), Bit#(TSub#(dwidth, 32))) dmemMSB <- mkBRAMCore1Load(valueOf(TExp#(13)), False, 
-                                                                                  "boot.MSB", False);
+    BRAM_PORT#(Bit#(13), Bit#(TSub#(dwidth, 32))) dmemMSB <- mkBRAMCore1Load(valueOf(TExp#(13)), 
+                                                                          False, "boot.MSB", False);
   	BRAM_PORT#(Bit#(13), Bit#(32)) dmemLSB <- mkBRAMCore1Load(valueOf(TExp#(13)), False, 
-                                                                                  "boot.LSB", False);
+                                                                               "boot.LSB", False);
   
     Reg#(Bool) read_request_sent <-mkDReg(False);
     
     // A write request to bootrom has not significance.
-  	method Action write_request (Tuple2#(Bit#(awidth), Bit#(dwidth)) req);
+    method Action write_request (Tuple3#(Bit#(awidth), Bit#(dwidth),  Bit#(TDiv#(dwidth, 8))) req);
       if(verbosity!= 0)
     		$display($time, "\tBootROM: Illegal Write operation on BootROM");
   	endmethod
   
     // The write response will always be an error.
     method ActionValue#(Bool) write_response;
-      return False;
+      return True;
     endmethod
   
     // capture a read_request and latch the address on a BRAM.
-    method Action read_request (Bit#(awidth) addr,  Bit#(3) size);
+    method Action read_request (Bit#(awidth) addr,  Bit#(2) size);
   	  Bit#(13) index_address=(addr-(base_address))[15:3];
   		dmemLSB.put(False, index_address, ?);
       dmemMSB.put(False, index_address, ?);
@@ -85,7 +85,7 @@ package bootrom;
   
     // respond with data from the BRAM.
     method ActionValue#(Tuple2#(Bool, Bit#(dwidth))) read_response if(read_request_sent);
-      return tuple2(False, {dmemMSB.read(),dmemLSB.read()});
+      return tuple2(False, {dmemMSB.read(), dmemLSB.read()});
     endmethod
   endmodule
 
@@ -99,7 +99,8 @@ package bootrom;
     provisos(Add#(dwidth, a, 64), 
              Mul#(8, a__, dwidth), 
              Mul#(16, b__, dwidth), 
-             Mul#(32, c__, dwidth));
+             Mul#(32, c__, dwidth), 
+             Add#(3, d__, TLog#(dwidth)));
     UserInterface#(awidth, dwidth) dut <- mkbootrom(base);
 	  AXI4_Slave_Xactor_IFC #(awidth, dwidth, uwidth)  s_xactor <- mkAXI4_Slave_Xactor;
     Integer verbosity = `VERBOSITY;
@@ -109,7 +110,7 @@ package bootrom;
 	  Reg#(Bit#(8)) rg_readburst_counter<-mkReg(0);
 	  Reg#(AXI4_Rd_Addr	#(awidth, uwidth)) rg_read_packet <-mkReg(?);
 	  Reg#(AXI4_Wr_Resp	#(uwidth)) rg_write_response <-mkReg(?);
-
+    Integer byte_offset = valueOf(TDiv#(dwidth, 32));
     // If the request is single then simple send ERR. If it is a burst write request then change
     // state to Burst and do not send response.
     rule write_request_address_channel(write_state==Idle);
@@ -126,9 +127,10 @@ package bootrom;
     // send a error response on receiving the last data.
     rule write_request_data_channel(write_state==Burst);
       let w  <- pop_o (s_xactor.o_wr_data);
-	  	s_xactor.i_wr_resp.enq (rg_write_response);
-      if(w.wlast)
+      if(w.wlast)begin
+	  	  s_xactor.i_wr_resp.enq (rg_write_response);
         write_state<= Idle;
+      end
     endrule
     // read first request and send it to the dut. If it is a burst request then change state to
     // Burst. capture the request type and keep track of counter.
@@ -158,7 +160,7 @@ package bootrom;
     rule read_response;
       let {err, data0}<-dut.read_response;
   		let transfer_size=rg_read_packet.arsize;
-      let shift_amount = {3'b0, rg_read_packet.araddr[2:0]}<<3;
+      Bit#(TLog#(dwidth)) shift_amount = {3'b0, rg_read_packet.araddr[byte_offset:0]}<<3;
       data0=data0>>shift_amount;
       if(transfer_size=='d2)
         data0=duplicate(data0[31:0]);
@@ -169,7 +171,7 @@ package bootrom;
       AXI4_Rd_Data#(dwidth, uwidth) r = AXI4_Rd_Data {rresp: AXI4_OKAY, rdata: data0 , 
         rlast:rg_readburst_counter==rg_read_packet.arlen, ruser: 0, rid:rg_read_packet.arid};
   		if(verbosity!=0) 
-        $display($time, "\tBootROM : Responding Read Request with Data: %h ",data0);
+        $display($time, "\tBootROM : Responding Read Request with Data: %h ", data0);
     endrule
     interface slave = s_xactor.axi_side;
   endmodule
@@ -187,8 +189,9 @@ package bootrom;
     UserInterface#(awidth, dwidth) dut <- mkbootrom(base);
 	  AXI4_Lite_Slave_Xactor_IFC #(awidth, dwidth, uwidth)  s_xactor <- mkAXI4_Lite_Slave_Xactor;
     Integer verbosity = `VERBOSITY;
-    Reg#(Bit#(3)) rg_size <-mkReg(3);
-    Reg#(Bit#(3)) rg_offset <-mkReg(0);
+    Integer byte_offset = valueOf(TAdd#(1, TDiv#(dwidth, 32)));
+    Reg#(Bit#(2)) rg_size <-mkReg(3);
+    Reg#(Bit#(TAdd#(1, TDiv#(dwidth, 32)))) rg_offset <-mkReg(0);
     // If the request is single then simple send ERR. If it is a burst write request then change
     // state to Burst and do not send response.
     rule write_request_address_channel;
@@ -203,7 +206,7 @@ package bootrom;
 		  let ar<- pop_o(s_xactor.o_rd_addr);
       dut.read_request(ar.araddr, ar.arsize);
       rg_size<= ar.arsize;
-      rg_offset<= ar.araddr[2:0];
+      rg_offset<= ar.araddr[byte_offset:0];
     endrule
     // get data from the bootrom. shift,  truncate, duplicate based on the size and offset.
     rule read_response;
@@ -225,8 +228,8 @@ package bootrom;
     interface slave = s_xactor.axi_side;
   endmodule
 
-  module mkTb(Empty);
-    Ifc_bootrom_AXI4#(32, 32, 0) boot <-mkbootrom_AXI4('h1000);
-    Ifc_bootrom_AXI4Lite#(32, 32, 0) bootlite <-mkbootrom_AXI4Lite('h1000);
-  endmodule
+//  module mkTb(Empty);
+//    Ifc_bootrom_AXI4#(32, 32, 0) boot <-mkbootrom_AXI4('h1000);
+//    Ifc_bootrom_AXI4Lite#(32, 32, 0) bootlite <-mkbootrom_AXI4Lite('h1000);
+//  endmodule
 endpackage
