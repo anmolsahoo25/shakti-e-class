@@ -71,6 +71,13 @@ instance ConcatReg#(function r f(Reg#(Bit#(n3)) r3), n1, n2) provisos (ConcatReg
       endinterface);
   endfunction
 endinstance
+  
+function Reg#(t) readOnlyReg(t r);
+  return (interface Reg;
+    method t _read = r;
+    method Action _write(t x) = noAction;
+    endinterface);
+endfunction
 
 // Wrapper function for users. This can take a variable number of arguments.
 // You will need to use asReg() for the third argument and beyond.
