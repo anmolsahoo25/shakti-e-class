@@ -41,7 +41,7 @@ package SoC;
   // peripheral imports
   import Memory_AXI4::*;
   `ifdef BOOTROM
-    import BootRom:: *;
+    import bootrom:: *;
   `endif
   // package imports
   import Connectable:: *;
@@ -78,7 +78,7 @@ package SoC;
                                                                 "code.mem.LSB",
                                                                 "MainMEM");
 		`ifdef BOOTROM
-			BootRom_IFC bootrom <-mkBootRom(`BootRomBase);
+			Ifc_bootrom_AXI4#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_AXI4(`BootRomBase);
 		`endif
 
    	mkConnection(core.mem_master,	fabric.v_from_masters[`Mem_master_num]);
@@ -86,7 +86,7 @@ package SoC;
 
 		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.axi_slave);
 		`ifdef BOOTROM
-			mkConnection (fabric.v_to_slaves [`BootRom_slave_num],bootrom.axi_slave);
+			mkConnection (fabric.v_to_slaves [`BootRom_slave_num],bootrom.slave);
 		`endif
 
     `ifdef simulate
