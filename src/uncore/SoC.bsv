@@ -39,7 +39,7 @@ package SoC;
   `include "SoC.defines"
 
   // peripheral imports
-  import Memory_AXI4::*;
+  import memory::*;
   `ifdef BOOTROM
     import bootrom:: *;
   `endif
@@ -74,9 +74,8 @@ package SoC;
     Ifc_core core <- mkcore();
     AXI4_Fabric_IFC #(`Num_Masters, `Num_Slaves, PADDR, XLEN, USERSPACE) 
                                                     fabric <- mkAXI4_Fabric(fn_slave_map);
-		Memory_IFC#(`MemoryBase,`Addr_space) main_memory <- mkMemory(`ifdef RV64 "code.mem.MSB", `endif
-                                                                "code.mem.LSB",
-                                                                "MainMEM");
+		Ifc_memory_AXI4#(PADDR, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4(`MemoryBase, 
+                                                "code.mem.MSB", "code.mem.LSB");
 		`ifdef BOOTROM
 			Ifc_bootrom_AXI4#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_AXI4(`BootRomBase);
 		`endif
@@ -84,7 +83,7 @@ package SoC;
    	mkConnection(core.mem_master,	fabric.v_from_masters[`Mem_master_num]);
    	mkConnection(core.fetch_master, fabric.v_from_masters[`Fetch_master_num]);
 
-		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.axi_slave);
+		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.slave);
 		`ifdef BOOTROM
 			mkConnection (fabric.v_to_slaves [`BootRom_slave_num],bootrom.slave);
 		`endif
