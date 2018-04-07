@@ -88,7 +88,7 @@ interface AXI4_Master_IFC #(numeric type wd_addr,
    (* always_ready, result="awaddr" *)  method Bit #(wd_addr) m_awaddr;                                 // out
    (* always_ready, result="awuser" *)  method Bit #(wd_user) m_awuser;                                 // out
    (* always_ready, result="awlen" *)   method Bit #(8)  m_awlen;	    			                            // out
-   (* always_ready, result="awsize" *)  method Bit #(3)  m_awsize;			                                // out
+   (* always_ready, result="awsize" *)  method Bit#(2)  m_awsize;			                                // out
    (* always_ready, result="awburst" *) method Bit #(2)  m_awburst;			                                // out
    (* always_ready, result="awid" *) method Bit #(4)			m_awid;			                                // out
    (* always_ready, always_enabled *)   method Action m_awready ((* port="awready" *) Bool awready);    // in
@@ -115,7 +115,7 @@ interface AXI4_Master_IFC #(numeric type wd_addr,
    (* always_ready, result="araddr" *)  method Bit #(wd_addr)  m_araddr;                                // out
    (* always_ready, result="aruser" *)  method Bit #(wd_user)  m_aruser;                                // out
    (* always_ready, result="arlen" *)   method Bit #(8)  m_arlen;	    			                            // out
-   (* always_ready, result="arsize" *)  method Bit #(3)  m_arsize;			                                // out
+   (* always_ready, result="arsize" *)  method Bit #(2)  m_arsize;			                                // out
    (* always_ready, result="arburst" *) method Bit #(2)  m_arburst;			                                // out
    (* always_ready, result="arid" *)	 method Bit #(4)	m_arid;			                                // out
    (* always_ready, always_enabled  *)  method Action m_arready ((* port="arready" *) Bool arready);    // in
@@ -144,7 +144,7 @@ interface AXI4_Slave_IFC #(numeric type wd_addr,
    (* always_ready, always_enabled *)
    method Action m_awvalid ((* port="awvalid" *) Bool           awvalid,    // in
 			    (* port="awaddr" *)  Bit #(wd_addr) awaddr,     // in
-			    (* port="awsize" *)   Bit #(3) awsize,						// in
+			    (* port="awsize" *)   Bit #(2) awsize,						// in
 			    (* port="awuser" *)  Bit #(wd_user) awuser,    // in
 			    (* port="awlen" *)   Bit #(8) awlen,						// in
 			    (* port="awburst" *)  Bit #(2) awburst,						// in
@@ -173,7 +173,7 @@ interface AXI4_Slave_IFC #(numeric type wd_addr,
    (* always_ready, always_enabled *)
    method Action m_arvalid ((* port="arvalid" *) Bool           arvalid,    // in
 			   (* port="araddr" *)  Bit #(wd_addr) araddr,     // in
-				(* port="arsize" *)	 Bit #(3)  arsize,        // in
+				(* port="arsize" *)	 Bit #(2)  arsize,        // in
 			   (* port="aruser" *)  Bit #(wd_user) aruser,    // in
 				(* port="arlen" *) 	 Bit #(8)  arlen,	 				// in
 				(* port="arburst" *) Bit #(2)  arburst,       // in
@@ -242,7 +242,7 @@ AXI4_Slave_IFC #(wd_addr, wd_data, wd_user)
 				  // Wr Addr channel
 			   method Action m_awvalid (Bool           awvalid,
 						   Bit #(wd_addr) awaddr,
-							Bit #(3) awsize,
+							Bit#(2) awsize,
 						   Bit #(wd_user) awuser,
 							Bit #(8) awlen,
 							Bit #(2) awburst,
@@ -290,7 +290,7 @@ AXI4_Slave_IFC #(wd_addr, wd_data, wd_user)
 				  // Rd Addr channel
 			   method Action m_arvalid (Bool           arvalid,
 						    Bit #(wd_addr)	araddr,
-							 Bit#(3)				arsize,
+							 Bit#(2)				arsize,
 						    Bit #(wd_user)	aruser,
 							 Bit#(8) 			arlen,
 							 Bit#(2)				arburst,
@@ -345,7 +345,7 @@ typedef struct {
    Bit #(wd_addr)		awaddr;
    Bit #(wd_user)		awuser;
 	Bit#(8) 				awlen;
-	Bit#(3) 				awsize;
+	Bit#(2) 				awsize;
 	Bit#(2)				awburst;
 	Bit#(4)				awid;
    } AXI4_Wr_Addr #(numeric type wd_addr, numeric type wd_user)
@@ -375,7 +375,7 @@ deriving (Bits, FShow);
 typedef struct {
    Bit #(wd_addr)  araddr;
    Bit #(wd_user)  aruser;
-	Bit#(3)			 arsize;
+	Bit#(2)			 arsize;
 	Bit#(8) 				 arlen;
 	Bit#(2) 				 arburst;
 	Bit#(4)				arid;
@@ -447,7 +447,7 @@ module mkAXI4_Master_Xactor (AXI4_Master_Xactor_IFC #(wd_addr, wd_data, wd_user)
 			   method Bit #(wd_addr) m_awaddr  = f_wr_addr.first.awaddr;
 			   method Bit #(wd_user) m_awuser  = f_wr_addr.first.awuser;
 				method Bit #(8)				m_awlen   = f_wr_addr.first.awlen;
-				method Bit #(3)				m_awsize	= f_wr_addr.first.awsize;
+				method Bit#(2)				m_awsize	= f_wr_addr.first.awsize;
 				method Bit #(2)				m_awburst = f_wr_addr.first.awburst;
 				method Bit #(4)				m_awid  = f_wr_addr.first.awid;
 			   method Action m_awready (Bool awready);
@@ -478,7 +478,7 @@ module mkAXI4_Master_Xactor (AXI4_Master_Xactor_IFC #(wd_addr, wd_data, wd_user)
 			   method Bool           m_arvalid	= f_rd_addr.notEmpty;
 			   method Bit #(wd_addr) m_araddr	= f_rd_addr.first.araddr;
 			   method Bit #(wd_user) m_aruser	= f_rd_addr.first.aruser;
-				method Bit #(3)		 m_arsize	= f_rd_addr.first.arsize;
+				method Bit #(2)		 m_arsize	= f_rd_addr.first.arsize;
 				method Bit #(8)		 m_arlen		= f_rd_addr.first.arlen;
 				method Bit #(2)		 m_arburst	= f_rd_addr.first.arburst;
 				method Bit #(4)		 m_arid		= f_rd_addr.first.arid;
@@ -568,7 +568,7 @@ module mkAXI4_Slave_Xactor (AXI4_Slave_Xactor_IFC #(wd_addr, wd_data, wd_user));
 			   // Wr Addr channel
 			   method Action m_awvalid (Bool           awvalid,
 						   Bit #(wd_addr) awaddr,
-							Bit#(3) awsize,
+							Bit#(2) awsize,
 						   Bit #(wd_user) awuser,
 							Bit#(8) awlen,
 							Bit#(2) awburst,
@@ -613,7 +613,7 @@ module mkAXI4_Slave_Xactor (AXI4_Slave_Xactor_IFC #(wd_addr, wd_data, wd_user));
 			   // Rd Addr channel
 			   method Action m_arvalid (Bool           arvalid,
 						    Bit #(wd_addr)	araddr,
-							 Bit#(3)				arsize,
+							 Bit#(2)				arsize,
 						    Bit #(wd_user)	aruser,
 							 Bit#(8) 			arlen,
 							 Bit#(2)				arburst,
