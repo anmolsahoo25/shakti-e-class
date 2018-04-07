@@ -10,7 +10,7 @@ package axi_addr_generator;
 	// INCR: The address is simply incremented arlen number of times from the starting address.
 	// WRAP: This mode supports only 4 valid lengths: 2, 4 8 and 16 bursts. the increments happen in 
   // a wrap arouind fashion.
-	function Bit#(awidth) burst_address_generator(Bit#(8) arlen, Bit#(3) arsize,
+	function Bit#(awidth) burst_address_generator(Bit#(8) arlen, Bit#(2) arsize,
   Bit#(2) arburst, Bit#(awidth) address);
 
 		// this variable will decide the index above which part of the address should
@@ -27,7 +27,7 @@ package axi_addr_generator;
     // this is address will directly be used for INCR mode
 		Bit#(awidth) new_address=address+(('b1)<<arsize);
 		Bit#(awidth) mask;
-		mask=('1)<<(arsize+wrap_size);	// create a mask for bits which will remain constant in WRAP.
+		mask=('1)<<(zeroExtend(arsize)+wrap_size);	// create a mask for bits which will remain constant in WRAP.
 		Bit#(awidth) temp1=address& mask;	  // capture the constant part of the addr in WRAP.
 		Bit#(awidth) temp2=new_address& (~mask);//capture the incremental part of the addr in WRAP.
 
