@@ -285,8 +285,8 @@ package core;
   endmodule: mkcore_AXI4Lite
 
   interface Ifc_core_TLU;
-		interface Ifc_fabric_side_master_link_lite#(PADDR, 8, 4) fetch_master;
-//		interface Ifc_fabric_side_master_link_lite mem_master;
+		interface Ifc_fabric_side_master_link_lite#(PADDR, 8, 2) fetch_master;
+		interface Ifc_fabric_side_master_link_lite#(PADDR, 8, 2) mem_master;
 		method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
@@ -297,7 +297,8 @@ package core;
   endinterface: Ifc_core_TLU
   (*synthesize*)
   module mkcore_TLU(Ifc_core_TLU);
-    Ifc_Master_link_lite#(PADDR, 8, 4)  fetch_xactor <- mkMasterXactorLite(True, True);
+    Ifc_Master_link_lite#(PADDR, 8, 2)  fetch_xactor <- mkMasterXactorLite(True, True);
+    Ifc_Master_link_lite#(PADDR, 8, 2)  dmem_xactor <- mkMasterXactorLite(True, True);
     Ifc_riscv riscv <- mkriscv();
     Reg#(TxnState) fetch_state<- mkReg(Request);
     Reg#(TxnState) memory_state<- mkReg(Request);
@@ -307,9 +308,9 @@ package core;
 
     rule handle_fetch_request(fetch_state == Request) ;
       let inst_addr<- riscv.inst_request.get;
-      A_channel_lite#(PADDR, 8, 4) lite_request = A_channel_lite { a_opcode : Get_data, a_size :2, 
+      A_channel_lite#(PADDR, 8, 2) lite_request = A_channel_lite { a_opcode : Get_data, a_size :2, 
                                        a_source : 0, a_address : inst_addr, a_mask : ?, a_data : ?};
-	  	 fetch_xactor.core_side.master_request.put(lite_request);	
+	  	fetch_xactor.core_side.master_request.put(lite_request);	
       fetch_state<= Response;
       if(verbosity!=0)
         $display($time, "\tCORE: Fetch Request ", fshow(lite_request));
@@ -321,7 +322,63 @@ package core;
       if(verbosity!=0)
         $display($time, "\tCORE: Fetch Response ", fshow(response));
     endrule
+    rule handle_memory_request(memory_state ==  Request);
+      let {address, data, access, size, sign}<- riscv.memory_request.get;
+      memory_request<= tuple4(address, access, size, sign);
+      if(size==0)
+        data=duplicate(data[7:0]);
+      else if(size==1)
+        data=duplicate(data[15:0]);
+      else if(size==2)
+        data=duplicate(data[31:0]);
+			Bit#(TDiv#(XLEN, 8)) write_strobe=size==0?'b1:size==1?'b11:size==2?'hf:'1;
+			if(size!=3)begin			// 8-bit write;
+				write_strobe=write_strobe<<(address[2:0]);
+			end
+      A_channel_lite#(PADDR, 8, 2) lite_request = A_channel_lite { a_opcode : Get_data, 
+          a_size: size,  a_source : 1, a_address : address, a_mask : write_strobe, a_data: data};
+      if(access == Store)
+        lite_request.a_opcode=PutFullData;
+   	  dmem_xactor.core_side.master_request.put(lite_request);	
+      memory_state<= Response;
+    endrule
+    rule handle_memoryRead_response(memory_state == Response);
+      let {address, access, size, sign}=  memory_request;
+			let response <- dmem_xactor.core_side.master_response.get;
+      let rdata=response.d_data;
+      if(size==0)
+          rdata=sign==1?signExtend(rdata[7:0]):zeroExtend(rdata[7:0]);
+      else if(size==1)
+          rdata=sign==1?signExtend(rdata[15:0]):zeroExtend(rdata[15:0]);
+      else if(size==2)
+          rdata=sign==1?signExtend(rdata[31:0]):zeroExtend(rdata[31:0]);
+      // TODO shift, and perform signextension before sending to core.
+			let bus_error = (response.d_error);
+      if(tpl_2(memory_request)==Store)
+			  riscv.memory_response.put(tuple2(0, bus_error));
+      else
+  			riscv.memory_response.put(tuple2(rdata, bus_error));
+      if(verbosity!=0)
+        $display($time, "\tCORE: Memory Read Response ", fshow(response));
+      memory_state<= Request;
+    endrule
    interface fetch_master = fetch_xactor.fabric_side;
+   interface mem_master = dmem_xactor.fabric_side;
+	  method Action clint_msip(Bit#(1) intrpt);
+      riscv.clint_msip(intrpt);
+    endmethod
+		method Action clint_mtip(Bit#(1) intrpt);
+      riscv.clint_mtip(intrpt);
+    endmethod
+		method Action clint_mtime(Bit#(XLEN) c_mtime);
+      riscv.clint_mtime(c_mtime);
+    endmethod
+    method Action externalinterrupt(Bit#(1) intrpt);
+      riscv.externalinterrupt(intrpt);
+    endmethod
+    `ifdef simulate
+      interface dump=riscv.dump;
+    `endif
   endmodule
 
   (*synthesize*)
