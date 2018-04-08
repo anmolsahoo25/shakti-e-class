@@ -172,6 +172,7 @@ package bootrom;
         rlast:rg_readburst_counter==rg_read_packet.arlen, ruser: 0, rid:rg_read_packet.arid};
   		if(verbosity!=0) 
         $display($time, "\tBootROM : Responding Read Request with Data: %h ", data0);
+      s_xactor.i_rd_data.enq(r);
     endrule
     interface slave = s_xactor.axi_side;
   endmodule
@@ -189,7 +190,7 @@ package bootrom;
     UserInterface#(awidth, dwidth) dut <- mkbootrom(base);
 	  AXI4_Lite_Slave_Xactor_IFC #(awidth, dwidth, uwidth)  s_xactor <- mkAXI4_Lite_Slave_Xactor;
     Integer verbosity = `VERBOSITY;
-    Integer byte_offset = valueOf(TAdd#(1, TDiv#(dwidth, 32)));
+    Integer byte_offset = valueOf(TDiv#(dwidth, 32));
     Reg#(Bit#(2)) rg_size <-mkReg(3);
     Reg#(Bit#(TAdd#(1, TDiv#(dwidth, 32)))) rg_offset <-mkReg(0);
     // If the request is single then simple send ERR. If it is a burst write request then change
@@ -223,7 +224,8 @@ package bootrom;
       AXI4_Lite_Rd_Data#(dwidth, uwidth) r = AXI4_Lite_Rd_Data {rresp: AXI4_LITE_OKAY, rdata: data0 , 
         ruser: 0};
   		if(verbosity!=0) 
-        $display($time, "\tBootROM : Responding Read Request with Data: %h ",data0);
+        $display($time, "\tBootROM : Responding Read Request with Data: %h ", data0);
+      s_xactor.i_rd_data.enq(r);
     endrule
     interface slave = s_xactor.axi_side;
   endmodule
