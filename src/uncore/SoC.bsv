@@ -35,6 +35,8 @@ package SoC;
 	import AXI4_Fabric:: *;
 	import AXI4_Lite_Types:: *;
 	import AXI4_Lite_Fabric:: *;
+  import Tilelink_lite_Types::*;
+  import Tilelink_lite::*;
   import core:: * ;
   import common_types:: * ;
   `include "common_params.bsv"
@@ -102,13 +104,39 @@ package SoC;
     Ifc_core_AXI4Lite core <- mkcore_AXI4Lite();
     AXI4_Lite_Fabric_IFC #(`Num_Masters, `Num_Slaves, PADDR, XLEN, USERSPACE) 
                                                     fabric <- mkAXI4_Lite_Fabric(fn_slave_map);
-		Ifc_memory_AXI4Lite#(PADDR, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4Lite(`MemoryBase, 
-                                                "code.mem.MSB", "code.mem.LSB");
+		Ifc_memory_AXI4Lite#(PADDR, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4Lite(
+                                                      `MemoryBase, "code.mem.MSB", "code.mem.LSB");
 		`ifdef BOOTROM
 			Ifc_bootrom_AXI4Lite#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_AXI4Lite(`BootRomBase);
 		`endif
 
    	mkConnection(core.mem_master,	fabric.v_from_masters[`Mem_master_num]);
+   	mkConnection(core.fetch_master, fabric.v_from_masters[`Fetch_master_num]);
+
+		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.slave);
+		`ifdef BOOTROM
+			mkConnection (fabric.v_to_slaves [`BootRom_slave_num],bootrom.slave);
+		`endif
+
+    `ifdef simulate
+      interface dump= core.dump;
+    `endif
+  endmodule: mkSoC
+`endif
+`ifdef CORE_TLU
+  (*synthesize*)
+  module mkSoC(Ifc_SoC);
+    Ifc_core_TLU core <- mkcore_TLU();
+    Tilelink_Fabric_IFC_lite#(`Num_Masters, `Num_Slaves, 1, PADDR, 8, 4) fabric <- 
+                                                                      mkTilelinkLite(fn_slave_map);
+		
+//    Ifc_memory_AXI4Lite#(PADDR, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4Lite(`MemoryBase, 
+//                                                "code.mem.MSB", "code.mem.LSB");
+		`ifdef BOOTROM
+			Ifc_bootrom_TLU#(PADDR, 8, 4) bootrom <-mkbootrom_TLU(`BootRomBase);
+		`endif
+
+//   	mkConnection(core.mem_master,	fabric.v_from_masters[`Mem_master_num]);
    	mkConnection(core.fetch_master, fabric.v_from_masters[`Fetch_master_num]);
 
 		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.slave);
