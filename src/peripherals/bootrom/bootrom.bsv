@@ -297,7 +297,7 @@ package bootrom;
     endrule
     interface slave = s_xactor.fabric_side;
   endmodule
-  (*synthesize*)
+//  (*synthesize*)
 //  module mkTb(Empty);
 //    Ifc_bootrom_AXI4#(32, 32, 0) boot <-mkbootrom_AXI4('h1000);
 //    Ifc_bootrom_AXI4Lite#(32, 32, 0) bootlite <-mkbootrom_AXI4Lite('h1000);
