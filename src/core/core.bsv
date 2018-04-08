@@ -31,9 +31,10 @@ Details:
 package core;
 
   //=================== Interface and module for a core- master on the AXI4 fabric ============= //
-`ifdef CORE_AXI4
   // project related imports
 	import Semi_FIFOF:: *;
+  import AXI4_Lite_Types::*;
+  import AXI4_Lite_Fabric::*;
 	import AXI4_Types:: *;
 	import AXI4_Fabric:: *;
   import riscv:: * ;
@@ -46,7 +47,7 @@ package core;
   import BUtils::*;
   
   typedef enum {Request, Response} TxnState deriving(Bits, Eq, FShow);
-  interface Ifc_core;
+  interface Ifc_core_AXI4;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) fetch_master;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
 		method Action clint_msip(Bit#(1) intrpt);
@@ -56,10 +57,10 @@ package core;
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
-  endinterface: Ifc_core
+  endinterface: Ifc_core_AXI4
 
   (*synthesize*)
-  module mkcore(Ifc_core);
+  module mkcore_AXI4(Ifc_core_AXI4);
     Ifc_riscv riscv <- mkriscv();
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
@@ -162,25 +163,9 @@ package core;
     `ifdef simulate
       interface dump=riscv.dump;
     `endif
-  endmodule: mkcore
-`endif
+  endmodule: mkcore_AXI4
   //=================== Interface and module for a core- master on the AXI4 fabric ============= //
-`ifdef CORE_AXI4Lite
-  // project related imports
-	import Semi_FIFOF:: *;
-	import AXI4_Lite_Types:: *;
-	import AXI4_Lite_Fabric:: *;
-  import riscv:: * ;
-  import common_types:: * ;
-  `include "common_params.bsv"
-
-  // package imports
-	import Connectable 				:: *;
-  import GetPut:: *;
-  import BUtils::*;
-  
-  typedef enum {Request, Response} TxnState deriving(Bits, Eq, FShow);
-  interface Ifc_core;
+  interface Ifc_core_AXI4Lite;
 		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) fetch_master;
 		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
 		method Action clint_msip(Bit#(1) intrpt);
@@ -190,10 +175,10 @@ package core;
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
-  endinterface: Ifc_core
+  endinterface: Ifc_core_AXI4Lite
 
   (*synthesize*)
-  module mkcore(Ifc_core);
+  module mkcore_AXI4Lite(Ifc_core_AXI4Lite);
     Ifc_riscv riscv <- mkriscv();
 		AXI4_Lite_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) fetch_xactor<- mkAXI4_Lite_Master_Xactor;
 		AXI4_Lite_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) memory_xactor<- mkAXI4_Lite_Master_Xactor;
@@ -296,6 +281,5 @@ package core;
     `ifdef simulate
       interface dump=riscv.dump;
     `endif
-  endmodule: mkcore
-`endif
+  endmodule: mkcore_AXI4Lite
 endpackage
