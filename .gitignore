@@ -14,3 +14,5 @@ verification/dts/shakti\.dtb
 verification/workdir/
 
 *.dump
+
+fpga/
