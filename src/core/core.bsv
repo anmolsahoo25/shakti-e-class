@@ -37,6 +37,7 @@ package core;
   import AXI4_Lite_Fabric::*;
 	import AXI4_Types:: *;
 	import AXI4_Fabric:: *;
+  import Tilelink_lite_Types::*;
   import riscv:: * ;
   import common_types:: * ;
   `include "common_params.bsv"
@@ -284,8 +285,8 @@ package core;
   endmodule: mkcore_AXI4Lite
 
   interface Ifc_core_TLU;
-		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) fetch_master;
-		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
+		interface Ifc_fabric_side_master_link_lite#(PADDR, 8, 4) fetch_master;
+//		interface Ifc_fabric_side_master_link_lite mem_master;
 		method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
@@ -294,6 +295,37 @@ package core;
       interface Get#(DumpType) dump;
     `endif
   endinterface: Ifc_core_TLU
+  (*synthesize*)
   module mkcore_TLU(Ifc_core_TLU);
+    Ifc_Master_link_lite#(PADDR, 8, 4)  fetch_xactor <- mkMasterXactorLite(True, True);
+    Ifc_riscv riscv <- mkriscv();
+    Reg#(TxnState) fetch_state<- mkReg(Request);
+    Reg#(TxnState) memory_state<- mkReg(Request);
+    Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
+
+    Integer verbosity = `VERBOSITY;
+
+    rule handle_fetch_request(fetch_state == Request) ;
+      let inst_addr<- riscv.inst_request.get;
+      A_channel_lite#(PADDR, 8, 4) lite_request = A_channel_lite { a_opcode : Get_data, a_size :2, 
+                                       a_source : 0, a_address : inst_addr, a_mask : ?, a_data : ?};
+	  	 fetch_xactor.core_side.master_request.put(lite_request);	
+      fetch_state<= Response;
+      if(verbosity!=0)
+        $display($time, "\tCORE: Fetch Request ", fshow(lite_request));
+    endrule
+    rule handle_fetch_response(fetch_state == Response);
+	    let response <- fetch_xactor.core_side.master_response.get;	
+      riscv.inst_response.put(tuple2(truncate(response.d_data), response.d_error));
+      fetch_state<= Request;
+      if(verbosity!=0)
+        $display($time, "\tCORE: Fetch Response ", fshow(response));
+    endrule
+   interface fetch_master = fetch_xactor.fabric_side;
+  endmodule
+
+  (*synthesize*)
+  module mkTbCore(Empty);
+    Ifc_core_TLU coretlu <- mkcore_TLU;
   endmodule
 endpackage
