@@ -282,4 +282,18 @@ package core;
       interface dump=riscv.dump;
     `endif
   endmodule: mkcore_AXI4Lite
+
+  interface Ifc_core_TLU;
+		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) fetch_master;
+		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
+		method Action clint_msip(Bit#(1) intrpt);
+		method Action clint_mtip(Bit#(1) intrpt);
+		method Action clint_mtime(Bit#(XLEN) c_mtime);
+    method Action externalinterrupt(Bit#(1) intrpt);
+    `ifdef simulate
+      interface Get#(DumpType) dump;
+    `endif
+  endinterface: Ifc_core_TLU
+  module mkcore_TLU(Ifc_core_TLU);
+  endmodule
 endpackage

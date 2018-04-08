@@ -38,10 +38,9 @@ Integer v_lane_width = valueOf(`LANE_WIDTH);
 
 typedef enum {	
   Get_data, 
-	GetWrap, 
 	PutPartialData, 
 	PutFullData
-} Opcode_lite deriving(Bits, Eq, FShow);			
+} A_Opcode_lite deriving(Bits, Eq, FShow);			
 			
 typedef enum {	
   AccessAck, 
@@ -59,7 +58,7 @@ typedef Bit#(TMul#(8,`LANE_WIDTH)) Data;
 // section(c) data section(d) where the read masters only use control section and write masters 
 // use both. For the slave side where it receives the request has the channel A intact.
 typedef struct { 
-		Opcode_lite    a_opcode;  // The opcode specifies if write or read requests
+		A_Opcode_lite    a_opcode;  // The opcode specifies if write or read requests
 		Data_size			 a_size;    // The transfer size in 2^a_size bytes. if this is >3 then its a burst
 		M_source 		   a_source;  // Master ID
 		Address_width	 a_address; // Address for the request
@@ -71,13 +70,13 @@ typedef struct {
 } A_channel_data deriving(Bits, Eq, FShow);
 
 typedef struct { 
-		Opcode_lite a_opcode;
+		A_Opcode_lite a_opcode;
 		Data_size		a_size;
 		M_source a_source;
 		Address_width	a_address;
 		Mask  a_mask;
 		Data	a_data;	
-} A_channel_lite deriving(Bits, Eq, FShow);
+} A_channel_lite#(numeric type a,  numeric type w,  numeric type z) deriving(Bits, Eq, FShow);
 
 // The channel D is responsible for the slave responses. It has the master ids and slave ids 
 // carried through the channel
