@@ -45,7 +45,7 @@ typedef enum {
 	AccessAckData=1
 } D_Opcode_lite deriving(Bits, Eq, FShow);			
 
-typedef Bit#(4) Data_size; //In bytes
+typedef Bit#(2) Data_size; //In bytes
 typedef Bit#(2) M_source;
 typedef Bit#(5) S_sink;
 
