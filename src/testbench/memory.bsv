@@ -36,7 +36,9 @@ package memory;
 	import AXI4_Fabric  :: *;
 	import AXI4_Lite_Types   :: *;
 	import AXI4_Lite_Fabric  :: *;
+  import Tilelink_lite_Types::*;
 	import BUtils::*;
+  import GetPut::*;
 	import axi_addr_generator::*;
 
   interface UserInterface#(numeric type awidth,  numeric type dwidth, numeric type mem_size);
@@ -251,9 +253,77 @@ package memory;
     endrule
     interface slave = s_xactor.axi_side;
   endmodule
+  
+  interface Ifc_memory_TLU#(numeric type a, numeric type w, numeric type z, numeric type mem_size);
+    interface Ifc_fabric_side_slave_link_lite#(a, w, z) read_slave; 
+    interface Ifc_fabric_side_slave_link_lite#(a, w, z) write_slave; 
+  endinterface
+
+  module mkmemory_TLU#(Bit#(a) base, parameter String mem_init_file1, parameter String
+                                                mem_init_file2)(Ifc_memory_TLU#(a, w, z, mem_size))
+    provisos(Mul#(w, 8, dwidth), 
+             Add#(dwidth, e, 64), 
+             Mul#(8, a__,  dwidth), 
+             Mul#(16, b__, dwidth), 
+             Mul#(32, c__, dwidth), 
+             Div#(dwidth, 8, w),
+             Add#(32, e__, dwidth), // required by BSV 
+             Add#(4, f__, TDiv#(dwidth, 8)),  // required by BSV
+             Add#(d__, 2, z)); // to ensure that we are only operating upto 64 bits
+    
+    UserInterface#(a, dwidth, mem_size) dut <- mkmemory(base, mem_init_file1, mem_init_file2);
+    Ifc_Slave_link_lite#(a, w, z)  write_xactor <- mkSlaveXactorLite(True, True);
+    Ifc_Slave_link_lite#(a, w, z)  read_xactor <- mkSlaveXactorLite(True, True);
+
+    Integer verbosity = `VERBOSITY;
+    Integer byte_offset = valueOf(TDiv#(dwidth, 32));
+    Reg#(Bit#(z)) rg_size <-mkReg(3);
+    Reg#(Bit#(2)) rg_source <- mkReg(0);
+    Reg#(Bit#(TAdd#(1, TDiv#(dwidth, 32)))) rg_offset <-mkReg(0);
+    // If the request is single then simple send ERR. If it is a burst write request then change
+    // state to Burst and do not send response.
+    rule write_request_address_channel;
+      let req<- write_xactor.core_side.xactor_request.get;
+      dut.write_request(tuple3(req.a_address, req.a_data, req.a_mask));
+      let lv_resp = D_channel_lite{d_opcode: AccessAck, d_size: ?, d_source: req.a_source,
+                                                      d_sink: ?, d_data: ?, d_error: False};
+	  	write_xactor.core_side.xactor_response.put(lv_resp);
+    endrule
+    // read first request and send it to the dut. If it is a burst request then change state to
+    // Burst. capture the request type and keep track of counter.
+    rule read_request_first;
+      let req <- read_xactor.core_side.xactor_request.get;
+      dut.read_request(req.a_address, truncate(req.a_size));
+      rg_size<= req.a_size;
+      rg_offset<= req.a_address[byte_offset:0];
+      rg_source<= req.a_source;
+    endrule
+    // get data from the memory. shift,  truncate, duplicate based on the size and offset.
+    rule read_response;
+      let {err, data0}<-dut.read_response;
+  		let transfer_size=rg_size;
+      let shift_amount = {3'b0, rg_offset}<<3;
+      data0=data0>>shift_amount;
+      if(transfer_size=='d2)
+        data0=duplicate(data0[31:0]);
+      else if(transfer_size=='d1)
+        data0=duplicate(data0[15:0]);
+      else if(transfer_size=='d0)
+        data0=duplicate(data0[7:0]);
+
+      D_channel_lite#(w, z) lv_resp=D_channel_lite { d_opcode : AccessAckData, d_size : ?, 
+            d_source : rg_source, d_sink : ?, d_data : data0, d_error : False};
+  		if(verbosity!=0) 
+        $display($time, "\tBootROM : Responding Read Request with Data: %h ", data0);
+	  	read_xactor.core_side.xactor_response.put(lv_resp);
+    endrule
+    interface read_slave = read_xactor.fabric_side;
+    interface write_slave = write_xactor.fabric_side;
+  endmodule
 
 //  module mkTb(Empty);
 //    Ifc_memory_AXI4#(32, 32, 0, 17) boot <-mkmemory_AXI4('h1000, "code.mem.MSB", "code.mem.LSB");
 //    Ifc_memory_AXI4Lite#(32, 32, 0, 17) bootlite <-mkmemory_AXI4Lite('h1000, "code.mem.MSB", "code.mem.LSB");
+//    Ifc_memory_TLU#(32, 8, 4, 17) memory_tlu <-mkmemory_TLU('h1000, "code.mem.MSB", "code.mem.LSB");
 //  endmodule
 endpackage
