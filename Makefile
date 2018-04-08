@@ -111,7 +111,10 @@ generate_verilog: check-restore check-env
 	@echo "old_define_macros = $(define_macros)" > old_vars
 	bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR) $(define_macros) -D verilog=True $(BSVCOMPILEOPTS) -verilog-filter ${BLUESPECDIR}/bin/basicinout -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE) 2>&1 | tee bsv_compile.log
 	@cp ${BLUESPECDIR}/Verilog.Vivado/RegFile.v ./verilog/
+	@cp ${BLUESPECDIR}/Verilog.Vivado/BRAM1Load.v ./verilog/
+	@cp ${BLUESPECDIR}/Verilog.Vivado/BRAM2BELoad.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFO2.v ./verilog/
+	@cp ${BLUESPECDIR}/Verilog/FIFO20.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFOL1.v ./verilog/
 	@echo Compilation finished
 
