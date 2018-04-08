@@ -55,7 +55,7 @@ package memory;
              Add#(4, a__, TDiv#(dwidth, 8)),  // wstrb is between 4 and 8
              Mul#(TDiv#(TSub#(dwidth, 32), 4), 4, TSub#(dwidth, 32)));
     Integer verbosity = `VERBOSITY;
-    Integer byte_offset = valueOf(TAdd#(1, TDiv#(dwidth, 32)));
+    Integer byte_offset = valueOf(TDiv#(dwidth, 32));
   	// we create 2 32-bit BRAMs since the xilinx tool is easily able to map them to BRAM32BE cells
   	// which makes it easy to use data2mem for updating the bit file.
 		BRAM_DUAL_PORT_BE#(Bit#(TSub#(mem_size,2)),Bit#(TSub#(dwidth, 32)),4) dmemMSB <- 
@@ -189,6 +189,7 @@ package memory;
         rlast:rg_readburst_counter==rg_read_packet.arlen, ruser: 0, rid:rg_read_packet.arid};
   		if(verbosity!=0) 
         $display($time, "\tBootROM : Responding Read Request with Data: %h ",data0);
+      s_xactor.i_rd_data.enq(r);
     endrule
     interface slave = s_xactor.axi_side;
   endmodule
@@ -210,7 +211,7 @@ package memory;
     UserInterface#(awidth, dwidth, mem_size) dut <- mkmemory(base, mem_init_file1, mem_init_file2);
 	  AXI4_Lite_Slave_Xactor_IFC #(awidth, dwidth, uwidth)  s_xactor <- mkAXI4_Lite_Slave_Xactor;
     Integer verbosity = `VERBOSITY;
-    Integer byte_offset = valueOf(TAdd#(1, TDiv#(dwidth, 32)));
+    Integer byte_offset = valueOf(TDiv#(dwidth, 32));
     Reg#(Bit#(2)) rg_size <-mkReg(3);
     Reg#(Bit#(TAdd#(1, TDiv#(dwidth, 32)))) rg_offset <-mkReg(0);
     // If the request is single then simple send ERR. If it is a burst write request then change
@@ -219,6 +220,7 @@ package memory;
       let aw <- pop_o (s_xactor.o_wr_addr);
       let w  <- pop_o (s_xactor.o_wr_data);
 	    let b = AXI4_Lite_Wr_Resp {bresp: AXI4_LITE_SLVERR, buser: aw.awuser};
+      dut.write_request(tuple3(aw.awaddr, w.wdata, w.wstrb));
 	  	s_xactor.i_wr_resp.enq (b);
     endrule
     // read first request and send it to the dut. If it is a burst request then change state to
@@ -245,6 +247,7 @@ package memory;
         ruser: 0};
   		if(verbosity!=0) 
         $display($time, "\tBootROM : Responding Read Request with Data: %h ",data0);
+      s_xactor.i_rd_data.enq(r);
     endrule
     interface slave = s_xactor.axi_side;
   endmodule
