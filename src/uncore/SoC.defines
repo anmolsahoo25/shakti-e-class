@@ -1,12 +1,20 @@
-`define Num_Masters 2 
-`define Num_Slaves 2
+`ifdef CORE_TLU
+  `define Num_Masters 2 
+  `define Num_Slaves 3
+  `define Memory_slave_num 0
+  `define Memory_wr_slave_num 1
+  `define BootRom_slave_num 2
+`else
+  `define Num_Masters 2 
+  `define Num_Slaves 2
+  `define Memory_slave_num 0
+  `define BootRom_slave_num 1
+`endif
 // master numbers on fabric
 `define Mem_master_num 0
 `define Fetch_master_num 1
 
 // slave numbers of fabric
-`define Memory_slave_num 0
-`define BootRom_slave_num 1
 
 `define Addr_space 17
 

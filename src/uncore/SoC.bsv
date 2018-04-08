@@ -50,22 +50,45 @@ package SoC;
   // package imports
   import Connectable:: *;
   import GetPut:: *;
-  
-  function Tuple2 #(Bool, Bit#(TLog#(`Num_Slaves))) fn_slave_map (Bit#(PADDR) addr);
-    Bool slave_exist = True;
-    Bit#(TLog#(`Num_Slaves)) slave_num = 0;
-    if(addr >= `MemoryBase && addr<= `MemoryEnd)
-      slave_num = `Memory_slave_num;
-    else
-    `ifdef BOOTROM
-      if(addr>= `BootRomBase && addr<= `BootRomEnd)
-        slave_num =  `BootRom_slave_num;
+  import Vector::*;
+ 
+ `ifdef CORE_TLU
+    function Tuple2 #(Bool, Bit#(TLog#(`Num_Slaves))) fn_slave_map (A_Opcode_lite cmd, 
+                                                                                 Bit#(PADDR) addr);
+      Bool slave_exist = True;
+      Bit#(TLog#(`Num_Slaves)) slave_num = 0;
+      if(addr >= `MemoryBase && addr<= `MemoryEnd)
+        if(cmd==Get_data)
+          slave_num = `Memory_slave_num;
+        else
+          slave_num = `Memory_wr_slave_num;
       else
-    `endif
-      slave_exist = False;
-      
-    return tuple2(slave_exist, slave_num);
-  endfunction:fn_slave_map
+      `ifdef BOOTROM
+        if(addr>= `BootRomBase && addr<= `BootRomEnd)
+          slave_num =  `BootRom_slave_num;
+        else
+      `endif
+        slave_exist = False;
+        
+      return tuple2(slave_exist, slave_num);
+    endfunction:fn_slave_map
+ `else
+    function Tuple2 #(Bool, Bit#(TLog#(`Num_Slaves))) fn_slave_map (Bit#(PADDR) addr);
+      Bool slave_exist = True;
+      Bit#(TLog#(`Num_Slaves)) slave_num = 0;
+      if(addr >= `MemoryBase && addr<= `MemoryEnd)
+        slave_num = `Memory_slave_num;
+      else
+      `ifdef BOOTROM
+        if(addr>= `BootRomBase && addr<= `BootRomEnd)
+          slave_num =  `BootRom_slave_num;
+        else
+      `endif
+        slave_exist = False;
+        
+      return tuple2(slave_exist, slave_num);
+    endfunction:fn_slave_map
+  `endif
 
   interface Ifc_SoC;
     `ifdef simulate
@@ -127,19 +150,26 @@ package SoC;
   (*synthesize*)
   module mkSoC(Ifc_SoC);
     Ifc_core_TLU core <- mkcore_TLU();
-    Tilelink_Fabric_IFC_lite#(`Num_Masters, `Num_Slaves, 1, PADDR, 8, 4) fabric <- 
-                                                                      mkTilelinkLite(fn_slave_map);
-		
-//    Ifc_memory_AXI4Lite#(PADDR, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4Lite(`MemoryBase, 
-//                                                "code.mem.MSB", "code.mem.LSB");
+    // TODO do this somewhere better
+    Vector#(`Num_Slaves, Bit#(`Num_Masters)) master_route; //encoding: IMEM, DMEM  
+	  master_route[valueOf(`Memory_slave_num)]                    = truncate(2'b11);
+	  master_route[valueOf(`Memory_wr_slave_num)]                 = truncate(2'b01);
+	  `ifdef BOOTROM master_route[valueOf(`BootRom_slave_num)]     = truncate(2'b11); `endif
+
+    Tilelink_Fabric_IFC_lite#(`Num_Masters, `Num_Slaves, 1, PADDR, 8, 2) fabric <- 
+                                                                      mkTilelinkLite(fn_slave_map,
+                                                                      master_route);
+	  Ifc_memory_TLU#(PADDR, 8, 2, `Addr_space) main_memory <- mkmemory_TLU(`MemoryBase,
+                                                                    "code.mem.MSB", "code.mem.LSB");	
 		`ifdef BOOTROM
-			Ifc_bootrom_TLU#(PADDR, 8, 4) bootrom <-mkbootrom_TLU(`BootRomBase);
+			Ifc_bootrom_TLU#(PADDR, 8, 2) bootrom <-mkbootrom_TLU(`BootRomBase);
 		`endif
 
-//   	mkConnection(core.mem_master,	fabric.v_from_masters[`Mem_master_num]);
+   	mkConnection(core.mem_master,	fabric.v_from_masters[`Mem_master_num]);
    	mkConnection(core.fetch_master, fabric.v_from_masters[`Fetch_master_num]);
 
-		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.slave);
+		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.read_slave);
+		mkConnection(fabric.v_to_slaves[`Memory_wr_slave_num],main_memory.write_slave);
 		`ifdef BOOTROM
 			mkConnection (fabric.v_to_slaves [`BootRom_slave_num],bootrom.slave);
 		`endif
