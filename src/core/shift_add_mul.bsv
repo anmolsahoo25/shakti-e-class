@@ -5,7 +5,7 @@ package shift_add_mul_fsm;
 
 	interface Ifc_mul;
 		method Action get_values(Bit#(XLEN) operand1,Bit#(XLEN) operand2,Funct3 funct3);
-		method ActionValue#(Bit#(XLEN_2)) rst(Bool word32);
+		method Bit#(XLEN_2) rst(Bool word32);
 	endinterface
 (*synthesize*)
 	module mkMul(Ifc_mul);
@@ -41,23 +41,90 @@ package shift_add_mul_fsm;
 		    if(funct3==f3_MUL)begin op1<=operand1;op2<=operand2;is32Bit<=False; end
        		else if(funct3==f3_MULHSU)begin op1<=mop1;op2<=operand2;is32Bit<=take_complement; end
        		else if(funct3==f3_MULH)begin op1<=mop1;op2<=mop2;is32Bit<=take_complement; end
-       		else if(funct3==f3_MULHU)begin is32Bit<=False; end
+       		else if(funct3==f3_MULHU)begin op1<=operand1;op2<=operand2;is32Bit<=False; end
 			rg_counter<=1;
 		endmethod
-		method ActionValue#(Bit#(XLEN_2)) rst(Bool word32) if(rg_counter==64);
+		method Bit#(XLEN_2) rst(Bool is32) if(rg_counter==64);
 			Bit#(XLEN_2) final_rst=result;
-			if(!word32) return final_rst;
-			else return zeroExtend(final_rst[31:0])	;
+			return (is32)?~final_rst+1:final_rst;
 		endmethod
 	endmodule
+
+	//test bench
 	module mktest(Empty);
 		Ifc_mul dut<- mkMul;
-		Reg#(Bit#(XLEN)) a<-mkReg(2);
-		Reg#(Bit#(XLEN)) b<-mkReg(3);
-		rule put_values;
+		Reg#(Bit#(XLEN)) a<-mkRegU;
+		Reg#(Bit#(XLEN)) b<-mkRegU;
+		Reg#(Bit#(2)) count<-mkReg(0);
+		//firing order
+		Reg#(Bool) fire1<-mkReg(True);
+  		Reg#(Bool) fire2<-mkReg(True);
+  		Reg#(Bool) fire3<-mkReg(True);
+  		Reg#(Bool) fire4<-mkReg(True);
+
+		(*execution_order="one,two,three,four"*)
+		(*fire_when_enabled*)
+		rule one(fire1);
+			fire1<=False;
+			a<='h0000000000001234;
+			b<='h0000000000001234;
+
+			Bit #(1) sn_op1 = a[valueof(XLEN)-1], sn_op2 = b[valueof(XLEN)-1];
+      		Bool take_complement = !(sn_op1 == sn_op2);
+      		a<=(unpack(sn_op1))?(~a+1):a;
+      		b<=(unpack(sn_op2))?(~b+1):b;
+
+			Bit#(XLEN) gold_res1=a*b;
 			dut.get_values(a,b,f3_MUL);
-			let result=dut.rst();
-		//	$display(result);
+			let res1=dut.rst(False);
+			if(res1!=signExtend(gold_res1)) begin $display("error in test one");$finish(0); end
+		endrule
+		rule two(fire2);
+			fire2<=False;
+			a<='hffffffffffff1234;
+			b<='h0000000000001234;
+
+			Bit #(1) sn_op1 = a[valueof(XLEN)-1], sn_op2 = b[valueof(XLEN)-1];
+      		Bool take_complement = !(sn_op1 == sn_op2);
+      		a<=(unpack(sn_op1))?(~a+1):a;
+      		b<=(unpack(sn_op2))?(~b+1):b;
+
+			Bit#(XLEN) gold_res2=a*b;
+			gold_res2=(take_complement)?~gold_res2+1:gold_res2;
+			dut.get_values(a,b,f3_MULHSU);
+			let res2=dut.rst(take_complement);
+			if(res2!=signExtend(gold_res2))begin $display("error in test two"); $finish(0); end
+		endrule
+		rule three(fire3);
+			fire3<=False;
+			a<='hffffffffffff1234;
+			b<='hffffffffffff1234;
+
+			Bit #(1) sn_op1 = a[valueof(XLEN)-1], sn_op2 = b[valueof(XLEN)-1];
+      		Bool take_complement = !(sn_op1 == sn_op2);
+      		a<=(unpack(sn_op1))?(~a+1):a;
+      		b<=(unpack(sn_op2))?(~b+1):b;
+
+			Bit#(XLEN) gold_res3=a*b;
+			gold_res3=(take_complement)?~gold_res3+1:gold_res3;
+			dut.get_values(a,b,f3_MULH);
+			let res3=dut.rst(take_complement);
+			if(res3!=signExtend(gold_res3))begin $display("error in test three"); $finish(0); end
+		endrule
+		rule four(fire4);
+			fire4<=False;
+			a<='h8000000000001234;
+			b<='h8000000000001234;
+
+			Bit #(1) sn_op1 = a[valueof(XLEN)-1], sn_op2 = b[valueof(XLEN)-1];
+      		Bool take_complement = !(sn_op1 == sn_op2);
+      		a<=(unpack(sn_op1))?(~a+1):a;
+      		b<=(unpack(sn_op2))?(~b+1):b;
+
+			Bit#(XLEN) gold_res4=a*b;
+			dut.get_values(a,b,f3_MULHU);
+			let res4=dut.rst(False);
+			if(res4!=signExtend(gold_res4))begin $display("error in test four"); $finish(0); end
 			$finish(0);
 		endrule
 	endmodule
