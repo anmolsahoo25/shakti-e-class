@@ -285,8 +285,8 @@ package core;
   endmodule: mkcore_AXI4Lite
 
   interface Ifc_core_TLU;
-		interface Ifc_fabric_side_master_link_lite#(PADDR, 8, 2) fetch_master;
-		interface Ifc_fabric_side_master_link_lite#(PADDR, 8, 2) mem_master;
+		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(32, 8), 2) fetch_master;
+		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(32, 8), 2) mem_master;
 		method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
@@ -297,8 +297,8 @@ package core;
   endinterface: Ifc_core_TLU
   (*synthesize*)
   module mkcore_TLU(Ifc_core_TLU);
-    Ifc_Master_link_lite#(PADDR, 8, 2)  fetch_xactor <- mkMasterXactorLite(True, True);
-    Ifc_Master_link_lite#(PADDR, 8, 2)  dmem_xactor <- mkMasterXactorLite(True, True);
+    Ifc_Master_link_lite#(PADDR, TDiv#(XLEN, 8), 2)  fetch_xactor <- mkMasterXactorLite(True, True);
+    Ifc_Master_link_lite#(PADDR, TDiv#(XLEN, 8), 2)  dmem_xactor <- mkMasterXactorLite(True, True);
     Ifc_riscv riscv <- mkriscv();
     Reg#(TxnState) fetch_state<- mkReg(Request);
     Reg#(Bit#(1)) memory_request <- mkReg(0);
@@ -307,7 +307,7 @@ package core;
 
     rule handle_fetch_request(fetch_state == Request) ;
       let inst_addr<- riscv.inst_request.get;
-      A_channel_lite#(PADDR, 8, 2) lite_request = A_channel_lite { a_opcode : Get_data, a_size :2, 
+      A_channel_lite#(PADDR, TDiv#(XLEN, 8), 2) lite_request = A_channel_lite { a_opcode : Get_data, a_size :2, 
                                        a_source : 0, a_address : inst_addr, a_mask : ?, a_data : ?};
 	  	fetch_xactor.core_side.master_request.put(lite_request);	
       fetch_state<= Response;
@@ -334,7 +334,7 @@ package core;
 			if(size!=3)begin			// 8-bit write;
 				write_strobe=write_strobe<<(address[2:0]);
 			end
-      A_channel_lite#(PADDR, 8, 2) lite_request= A_channel_lite{a_opcode: unpack({1'b0,pack(access)}), 
+      A_channel_lite#(PADDR, TDiv#(XLEN, 8), 2) lite_request= A_channel_lite{a_opcode: unpack({1'b0,pack(access)}), 
           a_size: size,  a_source : 1, a_address : address, a_mask : write_strobe, a_data: data};
    	  dmem_xactor.core_side.master_request.put(lite_request);	
     endrule

@@ -156,13 +156,13 @@ package SoC;
 	  master_route[valueOf(`Memory_wr_slave_num)]                 = truncate(2'b01);
 	  `ifdef BOOTROM master_route[valueOf(`BootRom_slave_num)]     = truncate(2'b11); `endif
 
-    Tilelink_Fabric_IFC_lite#(`Num_Masters, `Num_Slaves, 1, PADDR, 8, 2) fabric <- 
+    Tilelink_Fabric_IFC_lite#(`Num_Masters, `Num_Slaves, 1, PADDR, TDiv#(XLEN, 8), 2) fabric <- 
                                                                       mkTilelinkLite(fn_slave_map,
                                                                       master_route);
-	  Ifc_memory_TLU#(PADDR, 8, 2, `Addr_space) main_memory <- mkmemory_TLU(`MemoryBase,
+	  Ifc_memory_TLU#(PADDR, TDiv#(XLEN, 8), 2, `Addr_space) main_memory <- mkmemory_TLU(`MemoryBase,
                                                                     "code.mem.MSB", "code.mem.LSB");	
 		`ifdef BOOTROM
-			Ifc_bootrom_TLU#(PADDR, 8, 2) bootrom <-mkbootrom_TLU(`BootRomBase);
+			Ifc_bootrom_TLU#(PADDR, TDiv#(XLEN, 8), 2) bootrom <-mkbootrom_TLU(`BootRomBase);
 		`endif
 
    	mkConnection(core.mem_master,	fabric.v_from_masters[`Mem_master_num]);
