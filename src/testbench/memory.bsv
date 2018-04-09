@@ -311,7 +311,7 @@ package memory;
       else if(transfer_size=='d0)
         data0=duplicate(data0[7:0]);
 
-      D_channel_lite#(w, z) lv_resp=D_channel_lite { d_opcode : AccessAckData, d_size : ?, 
+      D_channel_lite#(w, z) lv_resp=D_channel_lite { d_opcode : AccessAckData, d_size : rg_size, 
             d_source : rg_source, d_sink : ?, d_data : data0, d_error : False};
   		if(verbosity!=0) 
         $display($time, "\tBootROM : Responding Read Request with Data: %h ", data0);
