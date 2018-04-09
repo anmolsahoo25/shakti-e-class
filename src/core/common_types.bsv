@@ -54,7 +54,7 @@ package common_types;
   // Define all enums here 
 	typedef enum {ALU, MULDIV, MEMORY, BRANCH, JAL, JALR, SYSTEM_INSTR} Instruction_type 
                                   deriving(Bits, Eq, FShow); // the type of the decoded instruction.
-	typedef enum {Load, Store} Access_type deriving (Bits, Eq, FShow);
+	typedef enum {Load=0, Store=1} Access_type deriving (Bits, Eq, FShow);
 	typedef enum {Flush= 1, None= 0} Flush_type deriving (Bits, Eq, FShow);
 	typedef enum {IntegerRF, PC} Operand1_type deriving(Bits, Eq, FShow);
 	typedef enum {IntegerRF, Immediate, Constant4} Operand2_type deriving(Bits, Eq, FShow);
