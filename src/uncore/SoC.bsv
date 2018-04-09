@@ -52,7 +52,7 @@ package SoC;
   import GetPut:: *;
   import Vector::*;
  
- `ifdef CORE_TLU|CORE_TLU2
+ `ifdef CORE_TLU
     function Tuple2 #(Bool, Bit#(TLog#(`Num_Slaves))) fn_slave_map (A_Opcode_lite cmd, 
                                                                                  Bit#(PADDR) addr);
       Bool slave_exist = True;
@@ -166,41 +166,6 @@ package SoC;
 		`endif
 
    	mkConnection(core.mem_master,	fabric.v_from_masters[`Mem_master_num]);
-   	mkConnection(core.fetch_master, fabric.v_from_masters[`Fetch_master_num]);
-
-		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.read_slave);
-		mkConnection(fabric.v_to_slaves[`Memory_wr_slave_num],main_memory.write_slave);
-		`ifdef BOOTROM
-			mkConnection (fabric.v_to_slaves [`BootRom_slave_num],bootrom.slave);
-		`endif
-
-    `ifdef simulate
-      interface dump= core.dump;
-    `endif
-  endmodule: mkSoC
-`endif
-
-`ifdef CORE_TLU2
-  (*synthesize*)
-  module mkSoC(Ifc_SoC);
-    Ifc_core_TLU2 core <- mkcore_TLU2;
-    // TODO do this somewhere better
-    Vector#(`Num_Slaves, Bit#(`Num_Masters)) master_route; //encoding: IMEM, DMEMR,  DMEMW  
-	  master_route[valueOf(`Memory_slave_num)]                    = truncate(3'b111);
-	  master_route[valueOf(`Memory_wr_slave_num)]                 = truncate(3'b001);
-	  `ifdef BOOTROM master_route[valueOf(`BootRom_slave_num)]    = truncate(3'b110); `endif
-
-    Tilelink_Fabric_IFC_lite#(`Num_Masters, `Num_Slaves, 1, PADDR, 8, 2) fabric <- 
-                                                                      mkTilelinkLite(fn_slave_map,
-                                                                      master_route);
-	  Ifc_memory_TLU#(PADDR, 8, 2, `Addr_space) main_memory <- mkmemory_TLU(`MemoryBase,
-                                                                    "code.mem.MSB", "code.mem.LSB");	
-		`ifdef BOOTROM
-			Ifc_bootrom_TLU#(PADDR, 8, 2) bootrom <-mkbootrom_TLU(`BootRomBase);
-		`endif
-
-   	mkConnection(core.mem_write_master,	fabric.v_from_masters[`Mem_wr_master_num]);
-   	mkConnection(core.mem_read_master,	fabric.v_from_masters[`Mem_rd_master_num]);
    	mkConnection(core.fetch_master, fabric.v_from_masters[`Fetch_master_num]);
 
 		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.read_slave);
