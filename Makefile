@@ -47,13 +47,7 @@ endif
 ifeq ($(COREFABRIC), AXI4Lite)
   define_macros += -D CORE_AXI4Lite=True
 endif
-ifeq ($(COREFABRIC), AXI4)
-  define_macros += -D CORE_AXI4=True
-endif
-ifeq ($(COREFABRIC), TLU)
-  define_macros += -D CORE_TLU=True
-endif
-define_macros += -D VERBOSITY=$(VERBOSITY) -D USERTRAPS=$(USERTRAPS)
+define_macros += -D VERBOSITY=$(VERBOSITY) -D USERTRAPS=$(USERTRAPS) -D CORE_$(COREFABRIC)=True
 CORE:=./src/core/
 FABRIC:=./src/fabric/axi4:./src/fabric/axi4lite:./src/fabric/tilelink_lite
 UNCORE:=./src/uncore

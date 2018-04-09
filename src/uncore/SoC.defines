@@ -4,15 +4,28 @@
   `define Memory_slave_num 0
   `define Memory_wr_slave_num 1
   `define BootRom_slave_num 2
+`elsif CORE_TLU2
+  `define Num_Masters 3 
+  `define Num_Slaves 3
+  `define Memory_slave_num 0
+  `define Memory_wr_slave_num 1
+  `define BootRom_slave_num 2
 `else
   `define Num_Masters 2 
   `define Num_Slaves 2
   `define Memory_slave_num 0
-  `define BootRom_slave_num 1
+  `define Memory_wr_slave_num 1
+  `define BootRom_slave_num 2
 `endif
 // master numbers on fabric
-`define Mem_master_num 0
-`define Fetch_master_num 1
+`ifdef CORE_TLU2
+  `define Mem_wr_master_num 0
+  `define Mem_rd_master_num 1
+  `define Fetch_master_num 2
+`else
+  `define Mem_master_num 0
+  `define Fetch_master_num 1
+`endif
 
 // slave numbers of fabric
 
