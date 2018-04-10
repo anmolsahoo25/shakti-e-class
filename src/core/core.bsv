@@ -285,8 +285,8 @@ package core;
   endmodule: mkcore_AXI4Lite
 
   interface Ifc_core_TLU;
-		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(32, 8), 2) fetch_master;
-		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(32, 8), 2) mem_master;
+		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(XLEN, 8), 2) fetch_master;
+		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(XLEN, 8), 2) mem_master;
 		method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
