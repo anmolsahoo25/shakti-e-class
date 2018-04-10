@@ -8,8 +8,7 @@
   `define Num_Masters 2 
   `define Num_Slaves 2
   `define Memory_slave_num 0
-  `define Memory_wr_slave_num 1
-  `define BootRom_slave_num 2
+  `define BootRom_slave_num 1
 `endif
 // master numbers on fabric
 `define Mem_master_num 0
