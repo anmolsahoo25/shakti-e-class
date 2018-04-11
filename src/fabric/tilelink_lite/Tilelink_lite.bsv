@@ -96,6 +96,8 @@ module mkTilelinkLite#(function Tuple2 #(Bool, Bit#(TLog#(num_slaves)))
 		return route_legal;
 	endfunction
 
+  Integer verbosity = `VERBOSITY;
+
 	// These rules connect the masters and the slaves. If the sender is valid and the receiver is 
   // ready the the packet is exchanged. In addition the route must valid. 
 
@@ -109,9 +111,8 @@ module mkTilelinkLite#(function Tuple2 #(Bool, Bit#(TLog#(num_slaves)))
 		  		let req = xactors_masters[m].fabric_side_request.fabric_a_channel; 
 		  			xactors_masters[m].fabric_side_request.fabric_a_channel_ready(True);
 		  			xactors_slaves[s].fabric_side_request.fabric_a_channel(req);
-		  			`ifdef verbose 
-              $display($time, "\tTILELINK : Beat exchanged from master %d to slave %d", m, s); 
-            `endif
+		  			if(verbosity > 1) 
+              $display($time, "\tTILELINK : Beat exchanged master[%0d] -> slave[%0d]", m, s); 
 		  	endrule
 		  end
 		  //else if() //TODO send the slave error
@@ -129,9 +130,8 @@ module mkTilelinkLite#(function Tuple2 #(Bool, Bit#(TLog#(num_slaves)))
 				if(	xactors_masters[m].fabric_side_response.fabric_d_channel_ready) begin
 					xactors_slaves[s].fabric_side_response.fabric_d_channel_ready(True);
 					xactors_masters[m].fabric_side_response.fabric_d_channel(resp);
-					`ifdef verbose 
-            $display($time, "\tTILELINK : Beat exchanged from slave %d to master %d", s, m); 
-          `endif
+					if(verbosity > 1) 
+            $display($time, "\tTILELINK : Beat exchanged maser[%0d] <- slave[%0d]", m, s); 
 				end
 				//else if() //TODO send the slave error
 			endrule
