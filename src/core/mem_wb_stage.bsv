@@ -42,7 +42,7 @@ package mem_wb_stage;
 
   interface Ifc_mem_wb_stage;
     interface RXe#(PIPE2_DS) from_execute;
-    interface Put#(Tuple2#(Bit#(XLEN), Bool)) memory_response;
+    interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) memory_response;
     interface Get#(Tuple2#(Bit#(5), Bit#(XLEN))) commit_rd;
     interface Get#(OpFwding) operand_fwding;
     method Tuple2#(Bit#(PADDR), Bool) flush;
@@ -63,7 +63,7 @@ package mem_wb_stage;
     Ifc_csr csr <- mkcsr();
 
     // wire that captures the response coming from the external memory or cache.
-    Wire#(Maybe#(Tuple2#(Bit#(XLEN), Bool))) wr_memory_response <- mkDWire(tagged Invalid);
+    Wire#(Maybe#(Tuple3#(Bit#(XLEN), Bool,  Access_type))) wr_memory_response <- mkDWire(tagged Invalid);
 
     // wire that carriues the information for operand forwarding
     Wire#(OpFwding) wr_operand_fwding <- mkDWire(tuple3(0, False, 0));
@@ -115,7 +115,7 @@ package mem_wb_stage;
         end
         else if(committype == MEMORY) begin
           if (wr_memory_response matches tagged Valid .resp)begin
-            let {data, err}=resp;
+            let {data, err, access_type}=resp;
             if(!err)begin // no bus error
               wr_operand_fwding <= tuple3(rd, True, data);
               wr_commit <= tagged Valid (tuple2(rd, data));
@@ -126,6 +126,10 @@ package mem_wb_stage;
             else begin
               if(verbosity!=0)
                 $display($time, "\tSTAGE3: Received Exception from Memory: ", fshow(resp));
+              if(access_type == Load)
+                trap = tagged Exception Load_access_fault;
+              else
+                trap = tagged Exception Store_access_fault;
               jump_address<- csr.take_trap(trap, pc, truncate(effaddr_csrdata));
               fl= Flush;
             end
@@ -178,7 +182,7 @@ package mem_wb_stage;
     endrule
 
     interface  memory_response= interface Put
-      method Action put (Tuple2#(Bit#(XLEN), Bool) response);
+      method Action put (Tuple3#(Bit#(XLEN), Bool,  Access_type) response);
         wr_memory_response <= tagged Valid response;
       endmethod
     endinterface;
