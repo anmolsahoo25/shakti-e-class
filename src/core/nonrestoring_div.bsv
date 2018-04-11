@@ -16,14 +16,19 @@ package nonrestoring_div;
 		Reg#(Bit#(TMul#(XLEN,2))) x<-mkRegU;
 		Reg#(Bit#(7)) rg_counter<-mkReg(0);
 		rule shift_add(rg_counter!=0&&rg_counter<=64);
+		//concatinating and shifting so that the MSB of q goes into the 
+		//LSB of a
 			x<={a,q}<<1;
 			q_new<=x[valueOf(TSub#(XLEN,1)):0];
+		//if a is negative then add m to it or if a is positive
+		// subtract m from a (or add 2's complement of m)
 			a_new<=(a[valueOf(XLEN)-1]==1)?
 			(x[valueOf(TSub#(TMul#(XLEN,2),1)):valueOf(XLEN)]+m):
 			x[valueOf(TSub#(TMul#(XLEN,2),1)):valueOf(XLEN)]+(~m+1);
 			//updating the value of a
 			a<=a_new;
-			//updating q and changing the last bit of q_new
+		//updating q and changing the last bit of q_new with respect to the 
+		//sign of a; if a is positive then q[0]=1 else q[0]=0
 			q<=(a_new[valueOf(XLEN)-1]==1)?{q_new[valueOf(XLEN)-1:1],1'b0}:
 				{q_new[valueOf(XLEN)-1:1],1'b1} ;
 				
