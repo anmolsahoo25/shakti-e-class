@@ -46,7 +46,6 @@ interface AXI4_Lite_Fabric_IFC #(numeric type num_masters,
 				 numeric type wd_data,
 				 numeric type wd_user);
    method Action reset;
-   method Action set_verbosity (Bit #(4) verbosity);
 
    // From masters
    interface Vector #(num_masters, AXI4_Lite_Slave_IFC #(wd_addr, wd_data, wd_user))  v_from_masters;
@@ -71,7 +70,7 @@ module mkAXI4_Lite_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 	     Log #(TAdd #(num_slaves,  1), log_ns_plus_1),
 	     Add #(_dummy, TLog #(num_slaves), log_ns_plus_1));
 
-   Reg #(Bit #(4)) cfg_verbosity  <- mkConfigReg (0);
+   Integer verbosity = valueOf(`VERBOSITY);
 
    // Transactors facing masters
    Vector #(num_masters, AXI4_Lite_Slave_Xactor_IFC  #(wd_addr, wd_data, wd_user))
@@ -138,10 +137,10 @@ module mkAXI4_Lite_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 	    v_f_wr_mis        [sj].enq (fromInteger (mi));
 	    v_f_wr_sjs        [mi].enq (fromInteger (sj));
 
-	    if (cfg_verbosity > 1) begin
-	       $display ("%0d: AXI4_Lite_Fabric: wr master [%0d] -> slave [%0d]", cur_cycle, mi, sj);
-	       $display ("        ", fshow (a));
-	       $display ("        ", fshow (d));
+	    if (verbosity > 1) begin
+	       $display ($time,"\tAXI4_Lite_Fabric: wr master [%0d] -> slave [%0d]",  mi, sj);
+	       $display ($time,"\t", fshow (a));
+	       $display ($time,"\t", fshow (d));
 	    end
 	 endrule
 
@@ -154,9 +153,9 @@ module mkAXI4_Lite_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 	    v_f_wr_sjs        [mi].enq (fromInteger (valueOf (num_slaves)));
 	    v_f_wr_err_user   [mi].enq (a.awuser);
 
-	    if (cfg_verbosity > 1) begin
-	       $display ("%0d: AXI4_Lite_Fabric: wr master [%0d] -> illegal addr", cur_cycle, mi);
-	       $display ("        ", fshow (a));
+	    if (verbosity > 1) begin
+	       $display ($time,"\tAXI4_Lite_Fabric: wr master [%0d] -> illegal addr",  mi);
+	       $display ($time,"\t", fshow (a));
 	    end
 	 endrule
 
@@ -175,9 +174,9 @@ module mkAXI4_Lite_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 	    v_f_rd_mis [sj].enq (fromInteger (mi));
 	    v_f_rd_sjs [mi].enq (fromInteger (sj));
 
-	    if (cfg_verbosity > 1) begin
-	       $display ("%0d: AXI4_Lite_Fabric: rd master [%0d] -> slave [%0d]", cur_cycle, mi, sj);
-	       $display ("        ", fshow (a));
+	    if (verbosity > 1) begin
+	       $display ($time,"\tAXI4_Lite_Fabric: rd master [%0d] -> slave [%0d]",  mi, sj);
+	       $display ($time,"\t", fshow (a));
 	    end
 	 endrule
 
@@ -189,9 +188,9 @@ module mkAXI4_Lite_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 	    v_f_rd_sjs      [mi].enq (fromInteger (valueOf (num_slaves)));
 	    v_f_rd_err_user [mi].enq (a.aruser);
 
-	    if (cfg_verbosity > 1) begin
-	       $display ("%0d: AXI4_Lite_Fabric: rd master [%0d] -> illegal addr", cur_cycle, mi);
-	       $display ("        ", fshow (a));
+	    if (verbosity > 1) begin
+	       $display ($time,"\tAXI4_Lite_Fabric: rd master [%0d] -> illegal addr",  mi);
+	       $display ($time,"\t", fshow (a));
 	    end
 	 endrule
 
@@ -209,9 +208,9 @@ module mkAXI4_Lite_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 
 	    xactors_from_masters [mi].i_wr_resp.enq (b);
 
-	    if (cfg_verbosity > 1) begin
-	       $display ("%0d: AXI4_Lite_Fabric: wr master [%0d] <- slave [%0d]", cur_cycle, mi, sj);
-	       $display ("        ", fshow (b));
+	    if (verbosity > 1) begin
+	       $display ($time,"\tAXI4_Lite_Fabric: wr master [%0d] <- slave [%0d]",  mi, sj);
+	       $display ($time,"\t", fshow (b));
 	    end
 	 endrule
 
@@ -230,9 +229,9 @@ module mkAXI4_Lite_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 
 	 xactors_from_masters [mi].i_wr_resp.enq (b);
 
-	 if (cfg_verbosity > 1) begin
-	    $display ("%0d: AXI4_Lite_Fabric: wr master [%0d] <- error", cur_cycle, mi);
-	    $display ("        ", fshow (b));
+	 if (verbosity > 1) begin
+	    $display ($time,"\tAXI4_Lite_Fabric: wr master [%0d] <- error",  mi);
+	    $display ($time,"\t", fshow (b));
 	 end
       endrule
 
@@ -250,9 +249,9 @@ module mkAXI4_Lite_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 
 	    xactors_from_masters [mi].i_rd_data.enq (r);
 
-	    if (cfg_verbosity > 1) begin
-	       $display ("%0d: AXI4_Lite_Fabric: rd master [%0d] <- slave [%0d]", cur_cycle, mi, sj);
-	       $display ("        ", fshow (r));
+	    if (verbosity > 1) begin
+	       $display ($time,"\tAXI4_Lite_Fabric: rd master [%0d] <- slave [%0d]",  mi, sj);
+	       $display ($time,"\t", fshow (r));
 	    end
 	 endrule
 
@@ -272,9 +271,9 @@ module mkAXI4_Lite_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 
 	 xactors_from_masters [mi].i_rd_data.enq (r);
 
-	 if (cfg_verbosity > 1) begin
-	    $display ("%0d: AXI4_Lite_Fabric: rd master [%0d] <- error", cur_cycle, mi);
-	    $display ("        ", fshow (r));
+	 if (verbosity > 1) begin
+	    $display ($time,"\tAXI4_Lite_Fabric: rd master [%0d] <- error",  mi);
+	    $display ($time,"\t", fshow (r));
 	 end
       endrule
 
@@ -300,10 +299,6 @@ module mkAXI4_Lite_Fabric #(function Tuple2 #(Bool, Bit #(TLog #(num_slaves)))
 	 v_f_wr_mis [sj].clear;
 	 v_f_rd_mis [sj].clear;
       end
-   endmethod
-
-   method Action set_verbosity (Bit #(4) verbosity);
-      cfg_verbosity <= verbosity;
    endmethod
 
    interface v_from_masters = genWith (f1);
