@@ -221,7 +221,7 @@ package memory;
     rule write_request_address_channel;
       let aw <- pop_o (s_xactor.o_wr_addr);
       let w  <- pop_o (s_xactor.o_wr_data);
-	    let b = AXI4_Lite_Wr_Resp {bresp: AXI4_LITE_SLVERR, buser: aw.awuser};
+	    let b = AXI4_Lite_Wr_Resp {bresp: AXI4_LITE_OKAY, buser: aw.awuser};
       dut.write_request(tuple3(aw.awaddr, w.wdata, w.wstrb));
 	  	s_xactor.i_wr_resp.enq (b);
     endrule
