@@ -133,7 +133,7 @@ package core;
       else if(size==2)
           rdata=sign==1?signExtend(rdata[31:0]):zeroExtend(rdata[31:0]);
       // TODO shift, and perform signextension before sending to core.
-			riscv.memory_response.put(tuple2(rdata, bus_error));
+			riscv.memory_response.put(tuple3(rdata, bus_error, access));
       if(verbosity!=0)
         $display($time, "\tCORE: Memory Read Response ", fshow(response));
       memory_state<= Request;
@@ -142,7 +142,7 @@ package core;
       let {address, access, size, sign}=  memory_request;
 			let response<-pop_o(memory_xactor.o_wr_resp);
 			let bus_error = !(response.bresp==AXI4_OKAY);
-			riscv.memory_response.put(tuple2(0, bus_error));
+			riscv.memory_response.put(tuple3(0, bus_error, access));
       if(verbosity!=0)
         $display($time, "\tCORE: Memory Write Response ", fshow(response));
       memory_state<= Request;
@@ -251,7 +251,7 @@ package core;
       else if(size==2)
           rdata=sign==1?signExtend(rdata[31:0]):zeroExtend(rdata[31:0]);
       // TODO shift, and perform signextension before sending to core.
-			riscv.memory_response.put(tuple2(rdata, bus_error));
+			riscv.memory_response.put(tuple3(rdata, bus_error, access));
       if(verbosity!=0)
         $display($time, "\tCORE: Memory Read Response ", fshow(response));
       memory_state<= Request;
@@ -260,7 +260,7 @@ package core;
       let {address, access, size, sign}=  memory_request;
 			let response<-pop_o(memory_xactor.o_wr_resp);
 			let bus_error = !(response.bresp==AXI4_LITE_OKAY);
-			riscv.memory_response.put(tuple2(0, bus_error));
+			riscv.memory_response.put(tuple3(0, bus_error,  access));
       if(verbosity!=0)
         $display($time, "\tCORE: Memory Write Response ", fshow(response));
       memory_state<= Request;
@@ -350,9 +350,9 @@ package core;
           rdata=sign==1?signExtend(rdata[31:0]):zeroExtend(rdata[31:0]);
 			let bus_error = (response.d_error);
       if(response.d_opcode==AccessAck) // store operation
-			  riscv.memory_response.put(tuple2(0, bus_error));
+			  riscv.memory_response.put(tuple3(0, bus_error, Load ));
       else
-  			riscv.memory_response.put(tuple2(rdata, bus_error));
+  			riscv.memory_response.put(tuple3(rdata, bus_error,  Store));
       if(verbosity!=0)
         $display($time, "\tCORE: Memory Read Response ", fshow(response));
     endrule

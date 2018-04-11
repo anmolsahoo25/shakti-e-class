@@ -45,7 +45,7 @@ package riscv;
   	interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
 	  interface Put#(Tuple2#(Bit#(32),Bool)) inst_response;//addr of the given inst
     interface Get#(MemoryRequest) memory_request;
-    interface Put#(Tuple2#(Bit#(XLEN),Bool)) memory_response;
+    interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) memory_response;
 	  method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
