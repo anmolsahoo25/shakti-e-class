@@ -41,6 +41,7 @@ package core;
   import riscv:: * ;
   import common_types:: * ;
   `include "common_params.bsv"
+  `include "SoC.defines"
 
   // package imports
 	import Connectable 				:: *;
@@ -74,7 +75,7 @@ package core;
     rule handle_fetch_request(fetch_state == Request) ;
       let inst_addr<- riscv.inst_request.get;
 			AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: inst_addr, aruser: ?, arlen: 0, 
-          arsize: 2, arburst: 'b01, arid:'d1}; // arburst: 00-FIXED 01-INCR 10-WRAP
+          arsize: 2, arburst: 'b01, arid:`Fetch_master_num}; // arburst: 00-FIXED 01-INCR 10-WRAP
 			fetch_xactor.i_rd_addr.enq(read_request);	
       fetch_state<= Response;
       if(verbosity!=0)
@@ -103,15 +104,15 @@ package core;
 			end
       if(access == Load) begin
         AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: address, aruser: 0, arlen: 0, 
-            arsize: zeroExtend(size), arburst:'b01, arid:'d0}; //arburst: 00-FIXED 01-INCR 10-WRAP
+            arsize: zeroExtend(size), arburst:'b01, arid:`Mem_master_num}; //arburst: 00-FIXED 01-INCR 10-WRAP
    	   		memory_xactor.i_rd_addr.enq(read_request);	
         if(verbosity!=0)
           $display($time, "\tCORE: Memory Read Request ", fshow(read_request));
       end
       else begin
 			   AXI4_Wr_Addr#(PADDR, 0) aw = AXI4_Wr_Addr {awaddr: truncate(address), awuser:0, awlen: 0, 
-            awsize: zeroExtend(size), awburst: 'b01, awid:'d0}; //arburst: 00-FIXED 01-INCR 10-WRAP
-  			let w  = AXI4_Wr_Data {wdata: data, wstrb: write_strobe, wlast:True, wid:'d0};
+            awsize: zeroExtend(size), awburst: 'b01, awid:`Mem_master_num}; //arburst: 00-FIXED 01-INCR 10-WRAP
+  			let w  = AXI4_Wr_Data {wdata: data, wstrb: write_strobe, wlast:True, wid:`Mem_master_num};
         if(verbosity!=0)begin
           $display($time, "\tCORE: Memory write Request ", fshow(aw));
           $display($time, "\tCORE: Memory write Request ", fshow(w));
@@ -308,7 +309,7 @@ package core;
     rule handle_fetch_request(fetch_state == Request) ;
       let inst_addr<- riscv.inst_request.get;
       A_channel_lite#(PADDR, TDiv#(XLEN, 8), 2) lite_request = A_channel_lite { a_opcode : Get_data, a_size :2, 
-                                       a_source : 0, a_address : inst_addr, a_mask : ?, a_data : ?};
+                                       a_source: `Fetch_master_num, a_address : inst_addr, a_mask : ?, a_data : ?};
 	  	fetch_xactor.core_side.master_request.put(lite_request);	
       fetch_state<= Response;
       if(verbosity!=0)
@@ -335,7 +336,7 @@ package core;
 				write_strobe=write_strobe<<(address[2:0]);
 			end
       A_channel_lite#(PADDR, TDiv#(XLEN, 8), 2) lite_request= A_channel_lite{a_opcode: unpack({1'b0,pack(access)}), 
-          a_size: size,  a_source : 1, a_address : address, a_mask : write_strobe, a_data: data};
+          a_size: size,  a_source: `Mem_master_num, a_address : address, a_mask : write_strobe, a_data: data};
    	  dmem_xactor.core_side.master_request.put(lite_request);	
     endrule
     rule handle_memoryRead_response;
