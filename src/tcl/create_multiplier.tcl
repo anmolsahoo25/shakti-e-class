@@ -1,25 +1,27 @@
-if { $argc != 3 } {
+set curdir [ file dirname [ file normalize [ info script ] ] ]
+source $curdir/env.tcl
+
+if { $argc != 2 } {
     puts "The script requires 3 arguments"
-    puts "-tclargs <part> <input width> <pipestages>"
+    puts "-tclargs <input width> <pipestages>"
     puts "Please try again."
     exit
 } else {
       puts "Part [lindex $argv 0]  Operand Width: [lindex $argv 1] PipeStages  [lindex $argv 2]"
 }
 
-set part [lindex $argv 0]
-set width [lindex $argv 1]
-set stages [lindex $argv 2]
+set width [lindex $argv 0]
+set stages [lindex $argv 1]
 
-if { [current_project -quiet] eq "" } {
-    puts " No project opened. Please create a project and source the tcl file"
-    exit
-}
-
-#create_project -force manage_ip ./manage_ip -part $part 
+open_project $ip_project_dir/$ip_project.xpr
 set_property "simulator_language" "Mixed" [current_project]
 set_property "target_language" "Verilog" [current_project]
-create_ip -name mult_gen -vendor xilinx.com -library ip -version 12.0 -module_name multiplier
+if { [get_ips -quiet multiplier] eq "" } {
+    create_ip -name mult_gen -vendor xilinx.com -library ip -version 12.0 -module_name multiplier 
+} else {
+    reset_run multiplier_synth_1
+}
+
 set_property -dict [list CONFIG.PortAType {Unsigned} \
 CONFIG.PortAWidth $width \
 CONFIG.PortBType {Unsigned} \
