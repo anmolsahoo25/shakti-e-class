@@ -53,6 +53,15 @@
 `define DIV_f3		'b100
 `define DIVU_f3		'b101
 
+////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////cache related parameters//////////////////////////
+`define ICACHE_WAYS 4			// way_bits =2
+`define ICACHE_BLOCK_SIZE 8	// word_bits = 3
+`define ICACHE_SETS 512			// set_bits	=7
+`define ICACHE_WORD_SIZE 4		// byte_bits=2
+`define ICACHE_TAG_BITS 20		// tag_bits = 52
+
+////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// Register Mapping for Machine Mode Regs /////////////////
 `define MSTATUS	'h300 // Machine Status register                                
 `define MISA		'h301 // ISA and extensions                                     
