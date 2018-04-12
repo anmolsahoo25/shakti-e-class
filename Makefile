@@ -4,6 +4,7 @@
 include ./old_vars
 include soc_config.inc
 
+export SHAKTI_HOME=$$PWD
 TOP_MODULE:=mkTbSoC
 TOP_FILE:=TbSoC.bsv
 TOP_DIR:=./src/testbench
@@ -60,7 +61,7 @@ default: compile_bluesim link_bluesim generate_boot_files
 
 check-env:
 	@if test -z "$$BLUESPECDIR"; then echo "BLUESPECDIR variable not set"; exit 1; fi;
-	@if test -z "$$SHAKTI_E_HOME"; then echo "SHAKTI_E_HOME variable not set"; exit 1; fi;
+	@if test -z "$$SHAKTI_HOME"; then echo "SHAKTI_HOME variable not set"; exit 1; fi;
 
 check-py:
 	@if ! [ -a /usr/bin/python3 ] ; then echo "Python3 is required in /usr/bin to run AAPG" ; exit 1; fi;
@@ -148,6 +149,19 @@ link_msim:
 	echo 'vsim -quiet -novopt -lib work -do "run -all; quit" -c main' > $(BSVOUTDIR)/out
 	@chmod +x $(BSVOUTDIR)/out
 	@echo Linking finished
+
+.PHONY: regress 
+regress: compile_bluesim link_bluesim generate_boot_files 
+	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeRegress.pl $(opts)
+
+.PHONY: test
+test: compile_bluesim link_bluesim generate_boot_files 
+	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeTest.pl $(opts)
+
+.PHONY: torture
+torture: compile_bluesim link_bluesim generate_boot_files 
+	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeTorture.pl $(opts)
+
 
 .PHONY: link_verilator
 link_verilator: 
