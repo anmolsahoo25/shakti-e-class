@@ -150,6 +150,11 @@ link_msim:
 	@chmod +x $(BSVOUTDIR)/out
 	@echo Linking finished
 
+.PHONY: fpga_setup
+fpga_setup: 
+	@vivado -mode tcl -notrace -source src/tcl/create_project.tcl -tclargs $(FPGA)
+	@vivado -mode tcl -notrace -source src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES)
+
 .PHONY: regress 
 regress: compile_bluesim link_bluesim generate_boot_files 
 	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeRegress.pl $(opts)
