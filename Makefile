@@ -49,7 +49,7 @@ ifeq ($(COREFABRIC), AXI4Lite)
   define_macros += -D CORE_AXI4Lite=True
 endif
 define_macros += -D VERBOSITY=$(VERBOSITY) -D USERTRAPS=$(USERTRAPS) -D CORE_$(COREFABRIC)=True\
--D MULSTAGES=$(MULSTAGES)
+-D MULSTAGES=$(MULSTAGES) -D DIVSTAGES=$(DIVSTAGES)
 CORE:=./src/core/
 FABRIC:=./src/fabric/axi4:./src/fabric/axi4lite:./src/fabric/tilelink_lite
 UNCORE:=./src/uncore
@@ -123,6 +123,8 @@ generate_verilog: check-restore check-env
 	@cp ${BLUESPECDIR}/Verilog/FIFOL1.v ./verilog/
 	@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/multiplier_sim_netlist.v\
   ./verilog/multiplier.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
+	@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/divider_sim_netlist.v\
+  ./verilog/divider.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
 	@echo Compilation finished
 
 .PHONY: link_vcs
@@ -172,7 +174,7 @@ link_msim:
 link_verilator: 
 	@echo "Linking $(TOP_MODULE) using verilator"
 	@mkdir -p bin
-	@verilator $(VERILATOR_FLAGS)  -I./src/bfm -I$(VERILOGDIR) -y ./src/bfm -y $(VERILOGDIR) -DTOP=$(TOP_MODULE) ./verilog/main.v -o out
+	@verilator $(VERILATOR_FLAGS) -I$(VERILOGDIR) -y $(VERILOGDIR) -DBSV_TIMESCAL=1na/1ps -DTOP=$(TOP_MODULE) ${BLUESPECDIR}/Verilog/main.v -o out
 	@mv out bin/
 
 .PHONY: link_iverilog
@@ -188,6 +190,8 @@ vivado_build:
 not create project"; exit 1)
 	@vivado -mode tcl -notrace -source src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES) ||\
 (echo "Could not create Multiplier IP"; exit 1)
+	@vivado -mode tcl -notrace -source src/tcl/create_divider.tcl -tclargs $(XLEN) $(DIVSTAGES) ||\
+(echo "Could not create Divider IP"; exit 1)
 
 .PHONY: regress 
 regress: compile_bluesim link_bluesim generate_boot_files 
