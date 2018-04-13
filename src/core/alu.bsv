@@ -38,17 +38,9 @@ This module contains single cycle MUL instruction execution.
 
 package alu;
 
-  // Project imports 
+  `ifdef MULDIV import muldiv::*; `endif
   import common_types::*;
   `include "common_params.bsv"
-  
-  //basic mul function
-  (*noinline*)
-  function Bit#(XLEN) mul_core(Bit#(XLEN) v1, Bit#(XLEN) v2, Bool complement);
-  		let out =v1*v2;
-  		out=(complement==True)?(~(out)+1):out;
-  		return out;
-  endfunction
 
 	(*noinline*)
 	function ALU_OUT fn_alu (Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(PADDR) imm_value, 
@@ -127,4 +119,29 @@ package alu;
 
 	  return tuple3(committype, final_output, effaddr_csrdata);
 	endfunction
+
+`ifdef MULDIV
+  interface Ifc_alu;
+    method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs( Bit#(4) fn, Bit#(XLEN) op1, 
+        Bit#(XLEN) op2, Bit#(PADDR) imm_value, Bit#(PADDR) op3, Instruction_type inst_type, 
+        Funct3 funct3, Bool word32);
+		method ALU_OUT delayed_output;
+  endinterface:Ifc_alu
+
+  (*synthesize*)
+  module mkalu(Ifc_alu);
+    Ifc_muldiv muldiv <- mkmuldiv;
+    method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs( Bit#(4) fn, Bit#(XLEN) op1, 
+      Bit#(XLEN) op2, Bit#(PADDR) imm_value, Bit#(PADDR) op3, Instruction_type inst_type, 
+      Funct3 funct3, Bool word32);
+      let reslt = fn_alu(fn, op1, op2, imm_value, op3, inst_type, funct3, word32);
+      let product <- muldiv.get_inputs(op1, op2, funct3, word32);
+      if(inst_type==MULDIV)
+        return product;
+      else
+        return tuple2(True, reslt);
+    endmethod
+		method ALU_OUT delayed_output=muldiv.delayed_output;
+  endmodule
+`endif
 endpackage:alu
