@@ -76,7 +76,7 @@ package csrfile;
 	  `ifdef atomic	temp_misa[0]=1; `endif
 	  `ifdef dpfpu	temp_misa[3]=1; `endif
 	  `ifdef spfpu	temp_misa[5]=1; `endif
-	  `ifdef muldiv	temp_misa[12]=1; `endif
+	  `ifdef MULDIV	temp_misa[12]=1; `endif
 	  Reg#(Bit#(26)) rg_misa	<- mkReg(temp_misa);
      
     //MTVEC trap vector fields

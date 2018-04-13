@@ -19,7 +19,7 @@ ifneq (,$(findstring RV32,$(ISA)))
   XLEN=32
 endif
 ifneq (,$(findstring M,$(ISA)))
-  define_macros += -D muldiv=True
+  define_macros += -D MULDIV=True
 endif
 ifneq (,$(findstring A,$(ISA)))
   define_macros += -D atomic=True
@@ -48,7 +48,8 @@ endif
 ifeq ($(COREFABRIC), AXI4Lite)
   define_macros += -D CORE_AXI4Lite=True
 endif
-define_macros += -D VERBOSITY=$(VERBOSITY) -D USERTRAPS=$(USERTRAPS) -D CORE_$(COREFABRIC)=True
+define_macros += -D VERBOSITY=$(VERBOSITY) -D USERTRAPS=$(USERTRAPS) -D CORE_$(COREFABRIC)=True\
+-D MULSTAGES=$(MULSTAGES)
 CORE:=./src/core/
 FABRIC:=./src/fabric/axi4:./src/fabric/axi4lite:./src/fabric/tilelink_lite
 UNCORE:=./src/uncore
@@ -113,8 +114,7 @@ generate_verilog: check-restore check-env
 	@echo "old_define_macros = $(define_macros)" > old_vars
 	@bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR)\
   $(define_macros) -D verilog=True $(BSVCOMPILEOPTS) -verilog-filter ${BLUESPECDIR}/bin/basicinout\
-  -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE) 2>&1 | tee bsv_compile.log || (echo\
-  "BSC COMPILE ERROR"; exit 1)
+  -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE)  || (echo "BSC COMPILE ERROR"; exit 1) 
 	@cp ${BLUESPECDIR}/Verilog.Vivado/RegFile.v ./verilog/  
 	@cp ${BLUESPECDIR}/Verilog.Vivado/BRAM1Load.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog.Vivado/BRAM2BELoad.v ./verilog/
@@ -130,7 +130,7 @@ link_vcs:
 	@mkdir -p bin
 	@rm -rf bin/*
 	@vcs -full64 -l vcs_compile.log -sverilog +vpi +v2k -lca +define+TOP=$(TOP_MODULE) \
-	+define+BSV_TIMESCALE=1ns/1ps +cli+4 +libext+.v +notimingcheck \
+	+define+BSV_TIMESCALE=1ns/1ps +cli+4 +libext+.v +notimingcheck +vcs+dumpvars+test.vcd \
   ${XILINX_VIVADO}/data/verilog/src/glbl.v \
 	-y $(VERILOGDIR)/ -y ${BLUESPECDIR}/Verilog/ \
 	-y ${XILINX_VIVADO}/data/verilog/src/unisims +libext+.v \
