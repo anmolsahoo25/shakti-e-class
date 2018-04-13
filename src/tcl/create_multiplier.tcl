@@ -2,12 +2,12 @@ set curdir [ file dirname [ file normalize [ info script ] ] ]
 source $curdir/env.tcl
 
 if { $argc != 2 } {
-    puts "The script requires 3 arguments"
-    puts "-tclargs <input width> <pipestages>"
+    puts "The script requires 2 arguments"
+    puts "-tclargs <input_width> <pipestages>"
     puts "Please try again."
     exit
 } else {
-      puts "Part [lindex $argv 0]  Operand Width: [lindex $argv 1] PipeStages  [lindex $argv 2]"
+      puts "Operand Width: [lindex $argv 0] PipeStages  [lindex $argv 1]"
 }
 
 set width [lindex $argv 0]
