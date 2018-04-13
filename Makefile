@@ -54,14 +54,15 @@ FABRIC:=./src/fabric/axi4:./src/fabric/axi4lite:./src/fabric/tilelink_lite
 UNCORE:=./src/uncore
 TESTBENCH:=./src/testbench/
 PERIPHERALS:=./src/peripherals/bootrom:./src/peripherals/pwm
+WRAPPERS:=./src/wrappers/
 LIB:=./src/lib/
 VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS -static --x-assign fast --x-initial fast --noassert --cc --bbox-sys -Wno-STMTDLY -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY -Wno-INFINITELOOP
-BSVINCDIR:=.:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB):$(FABRIC):$(UNCORE):$(TESTBENCH):$(PERIPHERALS)
+BSVINCDIR:=.:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB):$(FABRIC):$(UNCORE):$(TESTBENCH):$(PERIPHERALS):$(WRAPPERS)
 default: compile_bluesim link_bluesim generate_boot_files
 
 check-env:
 	@if test -z "$$BLUESPECDIR"; then echo "BLUESPECDIR variable not set"; exit 1; fi;
-	@if test -z "$$SHAKTI_HOME"; then echo "SHAKTI_HOME variable not set"; exit 1; fi;
+	@if test -z "$$SHAKTI_E_HOME"; then echo "SHAKTI_E_HOME variable not set"; exit 1; fi;
 
 check-py:
 	@if ! [ -a /usr/bin/python3 ] ; then echo "Python3 is required in /usr/bin to run AAPG" ; exit 1; fi;
@@ -84,14 +85,17 @@ compile_bluesim: check-restore check-env
 	@echo "Compiling $(TOP_MODULE) in Bluesim..."
 	@mkdir -p $(BSVBUILDDIR) 
 	@echo "old_define_macros = $(define_macros)" > old_vars
-	bsc -u -sim -simdir $(BSVBUILDDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR) $(define_macros) $(BSVCOMPILEOPTS) -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE) 2>&1 | tee bsv_compile.log
+	bsc -u -sim -simdir $(BSVBUILDDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR) $(define_macros)\
+  $(BSVCOMPILEOPTS) -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE) 2>&1 | tee\
+  bsv_compile.log || (echo "ERROR: BSC COMPILE ERROR"; exit 1)
 	@echo "Compilation finished"
 
 .PHONY: link_bluesim
 link_bluesim:check-env
 	@echo "Linking $(TOP_MODULE) in Bluesim..."
 	@mkdir -p $(BSVOUTDIR)
-	bsc -e $(TOP_MODULE) -sim -o $(BSVOUTDIR)/out -simdir $(BSVBUILDDIR) -p $(BSVINCDIR) -bdir $(BSVBUILDDIR) $(BSVLINKOPTS) 2>&1 | tee bsv_link.log
+	bsc -e $(TOP_MODULE) -sim -o $(BSVOUTDIR)/out -simdir $(BSVBUILDDIR) -p $(BSVINCDIR) -bdir\
+  $(BSVBUILDDIR) $(BSVLINKOPTS) 2>&1 | tee bsv_link.log || (echo "ERROR: BSC LINK ERROR"; exit 1)
 	@echo Linking finished
 
 .PHONY: simulate
@@ -103,23 +107,36 @@ simulate:
 
 .PHONY: generate_verilog 
 generate_verilog: check-restore check-env 
-	@echo Compiling mkTbSoc in Verilog for simulations ...
+	@echo Compiling $(TOP_MODULE) in verilog ...
 	@mkdir -p $(BSVBUILDDIR); 
 	@mkdir -p $(VERILOGDIR); 
 	@echo "old_define_macros = $(define_macros)" > old_vars
-	bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR) $(define_macros) -D verilog=True $(BSVCOMPILEOPTS) -verilog-filter ${BLUESPECDIR}/bin/basicinout -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE) 2>&1 | tee bsv_compile.log
-	@cp ${BLUESPECDIR}/Verilog.Vivado/RegFile.v ./verilog/
+	@bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR)\
+  $(define_macros) -D verilog=True $(BSVCOMPILEOPTS) -verilog-filter ${BLUESPECDIR}/bin/basicinout\
+  -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE) 2>&1 | tee bsv_compile.log || (echo\
+  "BSC COMPILE ERROR"; exit 1)
+	@cp ${BLUESPECDIR}/Verilog.Vivado/RegFile.v ./verilog/  
 	@cp ${BLUESPECDIR}/Verilog.Vivado/BRAM1Load.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog.Vivado/BRAM2BELoad.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFO2.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFO20.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFOL1.v ./verilog/
+	@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/multiplier_sim_netlist.v\
+  ./verilog/multiplier.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
 	@echo Compilation finished
 
 .PHONY: link_vcs
 link_vcs: 
 	@mkdir -p bin
-	@vcs -full64 -l vcs_compile.log -sverilog +vpi +nbaopt +delay_mode_zero +v2k +define+TOP=$(TOP_MODULE) +cli+4 +libext+.v +notimingcheck -y ./$(VERILOGDIR)/ -y ${BLUESPECDIR}/Verilog/ -y ./src/bfm -timescale=1ns/1ps ${BLUESPECDIR}/Verilog/main.v -o out
+	@rm -rf bin/*
+	@vcs -full64 -l vcs_compile.log -sverilog +vpi +v2k -lca +define+TOP=$(TOP_MODULE) \
+	+define+BSV_TIMESCALE=1ns/1ps +cli+4 +libext+.v +notimingcheck \
+  ${XILINX_VIVADO}/data/verilog/src/glbl.v \
+	-y $(VERILOGDIR)/ -y ${BLUESPECDIR}/Verilog/ \
+	-y ${XILINX_VIVADO}/data/verilog/src/unisims +libext+.v \
+	-y ${XILINX_VIVADO}/data/verilog/src/unimacro +libext+.v \
+	-y ${XILINX_VIVADO}/data/verilog/src/retarget +libext+.v \
+	${BLUESPECDIR}/Verilog/main.v -o out
 	@mv csrc out* bin
 
 .PHONY: link_ncverilog
@@ -150,23 +167,6 @@ link_msim:
 	@chmod +x $(BSVOUTDIR)/out
 	@echo Linking finished
 
-.PHONY: fpga_setup
-fpga_setup: 
-	@vivado -mode tcl -notrace -source src/tcl/create_project.tcl -tclargs $(FPGA)
-	@vivado -mode tcl -notrace -source src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES)
-
-.PHONY: regress 
-regress: compile_bluesim link_bluesim generate_boot_files 
-	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeRegress.pl $(opts)
-
-.PHONY: test
-test: compile_bluesim link_bluesim generate_boot_files 
-	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeTest.pl $(opts)
-
-.PHONY: torture
-torture: compile_bluesim link_bluesim generate_boot_files 
-	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeTorture.pl $(opts)
-
 
 .PHONY: link_verilator
 link_verilator: 
@@ -182,6 +182,26 @@ link_iverilog:
 	@iverilog -v -o bin/out -Wall -y ./src/bfm -y $(VERILOGDIR) -y ${BLUESPECDIR}/Verilog/ -DTOP=$(TOP_MODULE) ${BLUESPECDIR}/Verilog/main.v .$(VERILOGDIR)/$(TOP_MODULE).v
 	@echo Linking finished
 
+.PHONY: vivado_build
+vivado_build: 
+	@vivado -mode tcl -notrace -source src/tcl/create_project.tcl -tclargs $(FPGA) || (echo "Could \
+not create project"; exit 1)
+	@vivado -mode tcl -notrace -source src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES) ||\
+(echo "Could not create Multiplier IP"; exit 1)
+
+.PHONY: regress 
+regress: compile_bluesim link_bluesim generate_boot_files 
+	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeRegress.pl $(opts)
+
+.PHONY: test
+test: compile_bluesim link_bluesim generate_boot_files 
+	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeTest.pl $(opts)
+
+.PHONY: torture
+torture: compile_bluesim link_bluesim generate_boot_files 
+	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeTorture.pl $(opts)
+
+
 .PHONY: generate_boot_files
 generate_boot_files:
 	@mkdir -p bin
@@ -192,9 +212,11 @@ generate_boot_files:
 .PHONY: clean
 clean:
 	rm -rf $(BSVBUILDDIR) *.log $(BSVOUTDIR)
+	rm -f *.jou rm *.log
 
 clean_verilog: clean 
 	rm -rf verilog/
+	rm -rf fpga/
 
 
 restore: clean_verilog
