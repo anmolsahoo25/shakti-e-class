@@ -70,8 +70,12 @@ package opfetch_execute_stage;
     Reg#(Bit#(5)) rg_index<-mkReg(0);
     Reg#(Bit#(1)) rg_epoch[2] <- mkCReg(2,0);
     Wire#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
-    //Wire#(Maybe#(Tuple2#(Bit#(PADDR),Bool))) wr_memory_request <- mkDWire(tagged Invalid);
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
+
+    `ifdef MULDIV
+      Ifc_alu alu <-mkalu;
+      Reg#(Bool) rg_stall <- mkReg(False);
+    `endif
   
     function (Tuple3#(Bit#(XLEN),Bit#(XLEN),Bool)) operand_provider(Bit#(5) rs1_addr, Operand1_type 
                rs1_type, Bit#(5) rs2_addr, Operand2_type rs2_type);
@@ -112,7 +116,7 @@ package opfetch_execute_stage;
     RX#(PIPE1_DS) rx<-mkRX;
     TX#(PIPE2_DS) tx<-mkTX;
   
-    rule fetch_execute_pass(!initialize);
+    rule fetch_execute_pass(!initialize && !rg_stall);
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
                                         pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
@@ -142,20 +146,32 @@ package opfetch_execute_stage;
       if(verbosity!=0)
         $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
             %h,  Type: ", rs1, op1, rs2, op2, op3, fshow(insttype));
-      let {committype, op1_reslt, effaddr_csrdata} = fn_alu(fn, op1, op2, imm, op3, 
+      `ifdef MULDIV
+        let {done, committype, op1_reslt, effaddr_csrdata} <- alu.get_inputs(fn, op1, op2, imm, op3, 
                                                             insttype, funct3, word32);
+      `else
+        let {committype, op1_reslt, effaddr_csrdata} = fn_alu(fn, op1, op2, imm, op3, 
+                                                            insttype, funct3, word32);
+      `endif
       if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
         if(available)begin
-          rx.u.deq;
-          if(committype == MEMORY &&& trap matches tagged None)
-            ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
-                                                                        funct3[1:0], ~funct3[2]));
-          `ifdef simulate
-            tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
-          `else
-            tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
-          `endif
+            if(committype == MEMORY &&& trap matches tagged None)
+              ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
+                                                                          funct3[1:0], ~funct3[2]));
+        `ifdef MULDIV if(done) begin `endif 
+            rx.u.deq;
+            `ifdef simulate
+              tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
+            `else
+              tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
+            `endif
+        `ifdef MULDIV
+          end
+          else begin
+            rg_stall<= True;
+          end
+        `endif
         end
       end
       else begin
@@ -164,7 +180,21 @@ package opfetch_execute_stage;
         rx.u.deq;
       end
     endrule
-  
+ 
+    `ifdef MULDIV
+      rule capture_stalled_output(rg_stall);
+      let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
+                                        pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
+        let {committype, op1_reslt, effaddr_csrdata} = alu.delayed_output;
+        `ifdef simulate
+          tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
+        `else
+          tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
+        `endif
+        rg_stall<= False;
+        rx.u.deq;
+      endrule
+    `endif
     // interface definition
     interface from_fetch_decode_unit=rx.e;
     
