@@ -2,8 +2,8 @@ set curdir [ file dirname [ file normalize [ info script ] ] ]
 source $curdir/env.tcl
 
 if { $argc != 1 } {
-    puts "Please pass the FPGA part number is Argument"
-    exit
+    puts "Please pass the FPGA part number as Argument"
+    exit 2
 }
 # create folders
 file mkdir $fpga_dir
