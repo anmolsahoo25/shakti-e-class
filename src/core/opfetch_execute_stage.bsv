@@ -143,34 +143,45 @@ package opfetch_execute_stage;
         op2='d4;
       else if(rs2_type==Immediate)
         op2=signExtend(imm);
+
       if(verbosity!=0)
         $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
             %h,  Type: ", rs1, op1, rs2, op2, op3, fshow(insttype));
-      `ifdef MULDIV
-        let {done, committype, op1_reslt, effaddr_csrdata} <- alu.get_inputs(fn, op1, op2, imm, op3, 
-                                                            insttype, funct3, word32);
-      `else
+
+      `ifndef MULDIV
         let {committype, op1_reslt, effaddr_csrdata} = fn_alu(fn, op1, op2, imm, op3, 
                                                             insttype, funct3, word32);
       `endif
       if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
         if(available)begin
-            if(committype == MEMORY &&& trap matches tagged None)
-              ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
-                                                                          funct3[1:0], ~funct3[2]));
-        `ifdef MULDIV if(done) begin `endif 
+          `ifdef MULDIV
+            let {done, committype, op1_reslt, effaddr_csrdata} <- alu.get_inputs(fn, op1, op2, imm,
+                                                                    op3, insttype, funct3, word32);
+          `endif
+          if(committype == MEMORY &&& trap matches tagged None)
+            ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
+                                                                        funct3[1:0], ~funct3[2]));
+
+        `ifdef MULDIV 
+          if(done) begin 
             rx.u.deq;
             `ifdef simulate
               tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
             `else
               tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
             `endif
-        `ifdef MULDIV
           end
           else begin
             rg_stall<= True;
           end
+        `else
+          rx.u.deq;
+          `ifdef simulate
+            tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
+          `else
+            tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
+          `endif
         `endif
         end
       end
