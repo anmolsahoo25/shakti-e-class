@@ -28,6 +28,7 @@ Email id: neelgala@gmail.com
 */
 package muldiv;
   import multiplier::*;
+  import divider::*;
   import common_types::*;
   `include "common_params.bsv"
 
@@ -40,10 +41,13 @@ package muldiv;
   (*synthesize*)
 	module mkmuldiv(Ifc_muldiv);
     Ifc_multiplier#(XLEN) mult <- mkmultiplier;
-    Reg#(Bit#(TLog#(TAdd#(`MULSTAGES, 1)))) rg_count <-mkReg(0);
+    Ifc_divider divider <- mkdivider;
+    Reg#(Bit#(TLog#(TAdd#(TMax#(`MULSTAGES, `DIVSTAGES), 1)))) rg_count <-mkReg(0);
+    Reg#(Bool) mul_div <-mkReg(False); // False = Mul, True = Div.
 
     rule increment_counter(rg_count!=0);
-      if(rg_count== fromInteger(`MULSTAGES))
+      if((rg_count== fromInteger(`MULSTAGES) && !mul_div) || 
+          (rg_count== fromInteger(`DIVSTAGES) && mul_div))
         rg_count<= 0;
       else
         rg_count<= rg_count+ 1;
@@ -51,14 +55,21 @@ package muldiv;
 
 		method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(Bit#(XLEN) operand1, Bit#(XLEN) operand2,
         Bit#(3) funct3,  Bool word32) if(rg_count==0);
-      mult.iA(operand1);
-      mult.iB(operand2);
+      if(funct3[2]==0)begin // multiplication operation
+        mult.iA(operand1);
+        mult.iB(operand2);
+      end
+      else begin
+        divider.is_axis_divisor_tdata(operand1);
+        divider.is_axis_dividend_tdata(operand2);
+      end
       if(`MULSTAGES!=0)
         rg_count<= rg_count+ 1;
       return tuple2(`MULSTAGES==0, tuple3(REGULAR, truncate(mult.oP), ?));
     endmethod
-		method ALU_OUT delayed_output if(rg_count== fromInteger(`MULSTAGES));
-      return tuple3(REGULAR, truncate(mult.oP), ?);
+		method ALU_OUT delayed_output if((rg_count== fromInteger(`MULSTAGES) && !mul_div) || 
+                                          (rg_count== fromInteger(`DIVSTAGES) && mul_div));
+      return tuple3(REGULAR, mul_div?truncate(divider.om_axis_dout_tdata):truncate(mult.oP), ?);
     endmethod
 	endmodule:mkmuldiv
 
