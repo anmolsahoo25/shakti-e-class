@@ -15,4 +15,8 @@ verification/workdir/
 
 *.dump
 
+*.jou
+
+*.log
+
 fpga/

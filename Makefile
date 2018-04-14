@@ -121,10 +121,12 @@ generate_verilog: check-restore check-env
 	@cp ${BLUESPECDIR}/Verilog/FIFO2.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFO20.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFOL1.v ./verilog/
-	@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/multiplier_sim_netlist.v\
-  ./verilog/multiplier.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
-	@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/divider/divider_sim_netlist.v\
-  ./verilog/divider.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
+ifeq ($(SYNTH), SIM)
+		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/multiplier_sim_netlist.v\
+  	./verilog/multiplier.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
+		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/divider/divider_sim_netlist.v\
+  	./verilog/divider.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
+endif
 	@echo Compilation finished
 
 .PHONY: link_vcs
@@ -184,14 +186,20 @@ link_iverilog:
 	@iverilog -v -o bin/out -Wall -y ./src/bfm -y $(VERILOGDIR) -y ${BLUESPECDIR}/Verilog/ -DTOP=$(TOP_MODULE) ${BLUESPECDIR}/Verilog/main.v .$(VERILOGDIR)/$(TOP_MODULE).v
 	@echo Linking finished
 
-.PHONY: vivado_build
-vivado_build: 
-	@vivado -mode tcl -notrace -source src/tcl/create_project.tcl -tclargs $(FPGA) || (echo "Could \
-not create project"; exit 1)
+.PHONY: ip_build
+ip_build: 
+	@vivado -mode tcl -notrace -source src/tcl/create_ip_project.tcl -tclargs $(FPGA) || (echo "Could \
+not create IP project"; exit 1)
 	@vivado -mode tcl -notrace -source src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES) ||\
 (echo "Could not create Multiplier IP"; exit 1)
 	@vivado -mode tcl -notrace -source src/tcl/create_divider.tcl -tclargs $(XLEN) $(DIVSTAGES) ||\
 (echo "Could not create Divider IP"; exit 1)
+
+.PHONY: vivado_build
+vivado_build: 
+	@vivado -mode tcl -source src/tcl/create_project.tcl -tclargs $(TOP_MODULE) $(FPGA) || (echo "Could \
+not create core project"; exit 1)
+	@vivado -mode tcl -source src/tcl/run.tcl || (echo "ERROR: While running synthesis")
 
 .PHONY: regress 
 regress: compile_bluesim link_bluesim generate_boot_files 

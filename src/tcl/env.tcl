@@ -16,3 +16,4 @@ set core_project e-class
 puts "home_dir: $home_dir"
 puts "fpga_dir: $fpga_dir"
 puts "ip_project_dir: $ip_project_dir"
+puts "core_project_dir: $core_project_dir"
