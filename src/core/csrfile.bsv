@@ -70,6 +70,15 @@ package csrfile;
 
 	  //MISA fields
   	Bit#(2)  mxl	= `ifdef RV64 2 `else 1 `endif ;
+<<<<<<< HEAD
+    Bit#(26) temp_misa='h141101;
+	 // temp_misa[8]=1;
+	 // temp_misa[20]=1;
+	 // `ifdef atomic	temp_misa[0]=1; `endif
+	 // `ifdef dpfpu	temp_misa[3]=1; `endif
+	 // `ifdef spfpu	temp_misa[5]=1; `endif
+	 // `ifdef muldiv	temp_misa[12]=1; `endif
+=======
     Bit#(26) temp_misa='d0;
 	  temp_misa[8]=1;
 	  temp_misa[20]=1;
@@ -77,6 +86,7 @@ package csrfile;
 	  `ifdef dpfpu	temp_misa[3]=1; `endif
 	  `ifdef spfpu	temp_misa[5]=1; `endif
 	  `ifdef MULDIV	temp_misa[12]=1; `endif
+>>>>>>> 27c96b9ea522b25657082ae918fb9615e54002bd
 	  Reg#(Bit#(26)) rg_misa	<- mkReg(temp_misa);
      
     //MTVEC trap vector fields
@@ -254,8 +264,8 @@ package csrfile;
           if (addr == `MCYCLEH) data= mcycleh;
           if (addr == `MINSTRETH) data= minstreth;
         `endif
-        if (addr == `MEPC) data= signExtend(rg_mepc);
-        if (addr == `MTVAL) data= signExtend(rg_mtval);
+        if (addr == `MEPC) data= zeroExtend(rg_mepc);
+        if (addr == `MTVAL) data= signExtend(rg_mtval);//?
         if (addr == `MSCRATCH) data= rg_mscratch;
         if (addr == `MCAUSE) data= {rg_minterrupt, 'd0, rg_mcause};
         if (addr == `MCOUNTEREN) data= zeroExtend(rg_mcounteren);
