@@ -179,7 +179,10 @@ package memory;
     rule read_response;
       let {err, data0}<-dut.read_response;
   		let transfer_size=rg_read_packet.arsize;
-      let shift_amount = {3'b0, rg_read_packet.araddr[2:0]}<<3;
+      `ifdef RV64
+        let shift_amount = {3'b0, rg_read_packet.araddr[2:0]}<<3;
+      `else
+        let shift_amount = {3'b0, rg_read_packet.araddr[1:0]}<<3;
       data0=data0>>shift_amount;
       if(transfer_size=='d2)
         data0=duplicate(data0[31:0]);
