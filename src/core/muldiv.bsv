@@ -41,7 +41,7 @@ package muldiv;
   (*synthesize*)
 	module mkmuldiv(Ifc_muldiv);
     Ifc_multiplier#(XLEN) mult <- mkmultiplier;
-    Ifc_divider divider <- mkdivider;
+    Ifc_divider#(XLEN) divider <- mkdivider;
     Reg#(Bit#(TLog#(TAdd#(TMax#(`MULSTAGES, `DIVSTAGES), 1)))) rg_count <-mkReg(0);
     Reg#(Bool) mul_div <-mkReg(False); // False = Mul, True = Div.
 

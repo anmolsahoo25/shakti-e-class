@@ -4,16 +4,16 @@
 // Bluespec version: 2017.03.beta1 2017-03-16 35049
 
 package divider;
-  interface Ifc_divider;
+  interface Ifc_divider#(numeric type width);
   	(*always_enabled*)
-  	method Action is_axis_divisor_tdata (Bit#(64) s_axis_divisor_tdata);
+  	method Action is_axis_divisor_tdata (Bit#(width) s_axis_divisor_tdata);
   	(*always_enabled*)
-  	method Action is_axis_dividend_tdata (Bit#(64) s_axis_dividend_tdata);
-  	method Bit#(128) om_axis_dout_tdata ();
+  	method Action is_axis_dividend_tdata (Bit#(width) s_axis_dividend_tdata);
+  	method Bit#(TMul#(2, width)) om_axis_dout_tdata ();
   endinterface
   
   import "BVI" divider =
-  module mkdivider  (Ifc_divider);
+  module mkdivider  (Ifc_divider#(width));
   
   	default_clock clk_aclk;
   	default_reset rst;
