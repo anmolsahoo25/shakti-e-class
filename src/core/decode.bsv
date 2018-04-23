@@ -196,14 +196,14 @@ package decode;
     end
     else if(opcode[4:3]=='b01)begin 
       case (opcode[2:0])  
-         'b000:inst_type=MEMORY; // STORE
+         'b000: `ifdef RV32 if(funct3<3) `endif inst_type=MEMORY; // STORE
          'b101:inst_type=ALU;      // LUI 
          'b100,'b110:inst_type=(funct7[0]==1)?MULDIV:ALU; 
       endcase 
     end 
     else if(opcode[4:3]=='b00)begin
     	case(opcode[2:0])
-    		'b000,'b001:inst_type=MEMORY;
+    		'b000: `ifdef RV32 if(funct3<3) `endif inst_type=MEMORY;
     		'b101,'b100,'b110:inst_type=ALU;
     	endcase
     end
