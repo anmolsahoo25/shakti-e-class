@@ -13,7 +13,7 @@ append32:
 	@printf '02028593\n00000297\n0182b283\nf1402573\n00000000\n00028067\n00000000\n80000000\n' | cat - boot.hex > temp && mv temp boot.hex
 
 .PHONY: append16
-append64:
+append16:
 	@printf '0202859300000297\n0182b283f1402573\n0000000000028067\n0000000080000000\n' | cat - boot.hex > temp && mv temp boot.hex
 
 .PHONY: create_hex
@@ -25,4 +25,4 @@ create_hex:
 
 .PHONY: clean
 clean:
-	@rm -f shakti.dtb boot.hex config.spike
+	@rm -f shakti.dtb boot.hex config.spike shakti.dts spike.dump
