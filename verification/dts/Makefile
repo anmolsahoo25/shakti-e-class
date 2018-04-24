@@ -10,7 +10,7 @@ default: create_hex append$(width)
 
 .PHONY: append8
 append8:
-	@printf '00000297\n02028593\nf1402573\n0182b283\n00028067\n00000000\n80000000\n00000000\n' | cat - boot.hex > temp && mv temp boot.hex
+	@printf '00000297\n02028593\nf1402573\n0182a283\n00028067\n00000000\n80000000\n00000000\n' | cat - boot.hex > temp && mv temp boot.hex
 
 .PHONY: append16
 append16:
