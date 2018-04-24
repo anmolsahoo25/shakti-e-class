@@ -183,6 +183,7 @@ package memory;
         let shift_amount = {3'b0, rg_read_packet.araddr[2:0]}<<3;
       `else
         let shift_amount = {3'b0, rg_read_packet.araddr[1:0]}<<3;
+      `endif
       data0=data0>>shift_amount;
       if(transfer_size=='d2)
         data0=duplicate(data0[31:0]);
