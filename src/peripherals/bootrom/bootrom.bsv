@@ -54,11 +54,12 @@ package bootrom;
     provisos(Add#(dwidth, a, 64)); // provisos ensures we support only 64-bit data width.
   
     Integer verbosity = `VERBOSITY;
+    Integer byte_offset = valueOf(TDiv#(dwidth, 32));
   	// we create 2 32-bit BRAMs since the xilinx tool is easily able to map them to BRAM32BE cells
   	// which makes it easy to use data2mem for updating the bit file.
     BRAM_PORT#(Bit#(13), Bit#(TSub#(dwidth, 32))) dmemMSB <- mkBRAMCore1Load(valueOf(TExp#(13)), 
-                                                                          False, "boot.MSB", False);
-  	BRAM_PORT#(Bit#(13), Bit#(32)) dmemLSB <- mkBRAMCore1Load(valueOf(TExp#(13)), False, 
+                                                                        False, "boot.MSB", False);
+    BRAM_PORT#(Bit#(13), Bit#(32)) dmemLSB <- mkBRAMCore1Load(valueOf(TExp#(13)), False, 
                                                                                "boot.LSB", False);
   
     Reg#(Bool) read_request_sent <-mkDReg(False);
@@ -76,13 +77,13 @@ package bootrom;
   
     // capture a read_request and latch the address on a BRAM.
     method Action read_request (Bit#(awidth) addr,  Bit#(2) size);
-  	  Bit#(13) index_address=(addr-(base_address))[15:3];
+  	  Bit#(13) index_address=(addr-(base_address))[byte_offset+ 13:byte_offset+1];
   		dmemLSB.put(False, index_address, ?);
       dmemMSB.put(False, index_address, ?);
       read_request_sent<= True;
   		if(verbosity!= 0)
-        $display($time, "\tBootROM: Recieved Read Request for Address: %h Index Address: %h",  
-                                                                            addr, index_address);
+        $display($time, "\tBootROM: Recieved Read Request for Address: %h Index Address: %h b: %d",  
+                                                                     addr, index_address, byte_offset);
   	endmethod
   
     // respond with data from the BRAM.
