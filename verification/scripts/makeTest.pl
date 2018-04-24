@@ -195,7 +195,7 @@ elsif ($testType =~ /^p$/) {
     my $periInc = "$shaktiHome/verification/tests/directed/peripherals";
     systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c $periInc/common/crt.S -o crt.o");
     systemCmd("riscv$XLEN-unknown-elf-gcc -march=rvi$XLEN\imac  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf  -c $periInc/common/syscalls.c -o syscalls.o");
-    systemCmd("riscv$XLEN-unknown-elf-gcc -w -mcmodel=medany -static -std=gnu99 -fno-builtin-printf -I $periInc/i2c/ -I $periInc/qspi/ -I $periInc/dma/ -I $periInc/plic/ -I $periInc/common/ -c $periInc/smoketests/smoke.c -o smoke.o -march=rv$XLENi\imac -lm -lgcc");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -w -mcmodel=medany -static -std=gnu99 -fno-builtin-printf -I $periInc/i2c/ -I $periInc/qspi/ -I $periInc/dma/ -I $periInc/plic/ -I $periInc/common/ -c $periInc/smoketests/smoke.c -o smoke.o -march=rv$XLEN\imac -lm -lgcc");
     systemCmd("riscv$XLEN-unknown-elf-gcc -T $periInc/common/link.ld smoke.o syscalls.o crt.o -o smoke.elf -static -nostartfiles -lm -lgcc");
   }
   else {
@@ -207,9 +207,17 @@ elsif ($testType =~ /^p$/) {
 systemFileCmd("riscv$XLEN-unknown-elf-objdump --disassemble-all --disassemble-zeroes --section=.text --section=.text.startup --section=.text.init --section=.data $testName.elf", "$testName.disass");
 
 # Generating hex
-systemFileCmd("elf2hex  8 524288 $testName.elf 2147483648","code.mem");
+
+if ($XLEN==64)
+{
+systemFileCmd("elf2hex  8  524288 $testName.elf 2147483648","code.mem");
 systemFileCmd("cut -c1-8 code.mem", "code.mem.MSB");
-systemFileCmd("cut -c9-16 code.mem", "code.mem.LSB");
+systemFileCmd("cut -c9-16 code.mem", "code.mem.LSB");}
+else
+{
+systemFileCmd("elf2hex  4  524288 $testName.elf 2147483648","code.mem");
+systemFileCmd("cut -c1-8 code.mem", "code.mem.MSB");
+systemFileCmd("cp code.mem code.mem.LSB")}
 
 if ($testSuite !~ /peripherals/) {
   if ($trace) {
