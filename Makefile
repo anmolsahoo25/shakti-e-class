@@ -79,7 +79,11 @@ BSVOUTDIR:=./bin
 ########## BSIM COMLILE, LINK AND SIMULATE TARGETS #################################
 .PHONY: check-restore
 check-restore:
-	@if [ "$(define_macros)" != "$(old_define_macros)" ];	then	make clean ;	fi;
+	@if [ "$(define_macros)" != "$(old_define_macros)" ];	then	make clean update_xlen ;	fi;
+
+.PHONY: update_xlen
+update_xlen:
+	@echo "XLEN=$(XLEN)" > verification/dts/Makefile.inc
 
 .PHONY:  compile_bluesim
 compile_bluesim: check-restore check-env
@@ -217,7 +221,7 @@ torture: compile_bluesim link_bluesim generate_boot_files
 .PHONY: generate_boot_files
 generate_boot_files:
 	@mkdir -p bin
-	@cd verification/dts/; make create_hex;
+	@cd verification/dts/; make;
 	@cut -c1-8 verification/dts/boot.hex > bin/boot.MSB
 	@cut -c9-16 verification/dts/boot.hex > bin/boot.LSB
 
