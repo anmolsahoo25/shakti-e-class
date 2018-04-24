@@ -116,7 +116,7 @@ package opfetch_execute_stage;
     RX#(PIPE1_DS) rx<-mkRX;
     TX#(PIPE2_DS) tx<-mkTX;
   
-    rule fetch_execute_pass(!initialize && !rg_stall);
+    rule fetch_execute_pass(!initialize `ifdef MULDIV && !rg_stall `endif );
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
                                         pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
