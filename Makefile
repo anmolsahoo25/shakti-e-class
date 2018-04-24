@@ -229,6 +229,7 @@ generate_boot_files:
 clean:
 	rm -rf $(BSVBUILDDIR) *.log $(BSVOUTDIR)
 	rm -f *.jou rm *.log
+	rm -rf verification/workdir/*
 
 clean_verilog: clean 
 	rm -rf verilog/
