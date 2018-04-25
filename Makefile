@@ -78,8 +78,8 @@ BSVOUTDIR:=./bin
 
 ########## BSIM COMLILE, LINK AND SIMULATE TARGETS #################################
 .PHONY: check-restore
-check-restore:
-	@if [ "$(define_macros)" != "$(old_define_macros)" ];	then	make clean update_xlen ;	fi;
+check-restore: update_xlen
+	@if [ "$(define_macros)" != "$(old_define_macros)" ];	then	make clean ;	fi;
 
 .PHONY: update_xlen
 update_xlen:
@@ -223,7 +223,10 @@ generate_boot_files:
 	@mkdir -p bin
 	@cd verification/dts/; make;
 	@cut -c1-8 verification/dts/boot.hex > bin/boot.MSB
-	@cut -c9-16 verification/dts/boot.hex > bin/boot.LSB
+	@if [ "$(XLEN)" = "64" ]; then\
+	  cut -c9-16 verification/dts/boot.hex > bin/boot.LSB;\
+    else cp bin/boot.MSB bin/boot.LSB;\
+  fi
 
 .PHONY: clean
 clean:
