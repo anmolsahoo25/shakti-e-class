@@ -275,7 +275,7 @@ elsif (!(-e "spike.dump")) {
    $result = "$testName.S | $test_suite | FAILED";
 }
 else {
-  my @diff = `diff rtl.dump spike.dump`;
+  my @diff = `diff -iqw rtl.dump spike.dump`;
   #print @diff;
   if (@diff) {
     `touch FAILED`;
@@ -286,7 +286,7 @@ else {
     $result = "$testName.S  | $test_suite | PASSED";
   }
 }
-systemFileCmd("sdiff -W rtl.dump spike.dump", "diff");
+systemFileCmd("sdiff -iW rtl.dump spike.dump", "diff");
 doDebugPrint("---------------------------------------------\n");
 doPrint("testDir: $testDir\n");
 doPrint("$result\n");
