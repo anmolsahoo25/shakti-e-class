@@ -207,8 +207,8 @@ not create core project"; exit 1)
 
 .PHONY: regress 
 regress:
-	@test -s /bin/out || { echo "Executable not available"; exit 1; }
-	@test -s /bin/boot.LSB || { echo "Boot files missing"; exit 1; }
+	@test -s $(SHAKTI_HOME)/bin/out || { echo "Executable not available"; exit 1; }
+	@test -s $(SHAKTI_HOME)/bin/boot.LSB || { echo "Boot files missing"; exit 1; }
 	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeRegress.pl $(opts)
 
 .PHONY: test
