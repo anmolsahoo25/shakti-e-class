@@ -206,15 +206,21 @@ not create core project"; exit 1)
 	@vivado -mode tcl -source src/tcl/run.tcl || (echo "ERROR: While running synthesis")
 
 .PHONY: regress 
-regress: compile_bluesim link_bluesim generate_boot_files 
+regress:
+	@test -s /bin/out || { echo "Executable not available"; exit 1; }
+	@test -s /bin/boot.LSB || { echo "Boot files missing"; exit 1; }
 	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeRegress.pl $(opts)
 
 .PHONY: test
-test: compile_bluesim link_bluesim generate_boot_files 
+test: 
+	@test -s /bin/out || { echo "Executable not available"; exit 1; }
+	@test -s /bin/boot.LSB || { echo "Boot files missing"; exit 1; }
 	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeTest.pl $(opts)
 
 .PHONY: torture
-torture: compile_bluesim link_bluesim generate_boot_files 
+torture: 
+	@test -s /bin/out || { echo "Executable not available"; exit 1; }
+	@test -s /bin/boot.LSB || { echo "Boot files missing"; exit 1; }
 	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeTorture.pl $(opts)
 
 
