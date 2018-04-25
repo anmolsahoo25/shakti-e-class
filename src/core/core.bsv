@@ -99,8 +99,10 @@ package core;
       else if(size==2)
         data=duplicate(data[31:0]);
 			Bit#(TDiv#(XLEN, 8)) write_strobe=size==0?'b1:size==1?'b11:size==2?'hf:'1;
+      $display($time, "WRSRTB: %b", write_strobe);
+      Bit#(TAdd#(1, TDiv#(XLEN, 32))) byte_offset = truncate(address);
 			if(size!=3)begin			// 8-bit write;
-				write_strobe=write_strobe<<(address[2:0]);
+				write_strobe=write_strobe<<byte_offset;
 			end
       if(access == Load) begin
         AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: address, aruser: 0, arlen: 0, 
@@ -217,8 +219,9 @@ package core;
       else if(size==2)
         data=duplicate(data[31:0]);
 			Bit#(TDiv#(XLEN, 8)) write_strobe=size==0?'b1:size==1?'b11:size==2?'hf:'1;
+      Bit#(TAdd#(1, TDiv#(XLEN, 32))) byte_offset = truncate(address);
 			if(size!=3)begin			// 8-bit write;
-				write_strobe=write_strobe<<(address[2:0]);
+				write_strobe=write_strobe<<byte_offset;
 			end
       if(access == Load) begin
         AXI4_Lite_Rd_Addr#(PADDR, 0) read_request = AXI4_Lite_Rd_Addr {araddr: address, aruser:?, 
@@ -332,8 +335,9 @@ package core;
       else if(size==2)
         data=duplicate(data[31:0]);
 			Bit#(TDiv#(XLEN, 8)) write_strobe=size==0?'b1:size==1?'b11:size==2?'hf:'1;
+      Bit#(TAdd#(1, TDiv#(XLEN, 32))) byte_offset = truncate(address);
 			if(size!=3)begin			// 8-bit write;
-				write_strobe=write_strobe<<(address[2:0]);
+				write_strobe=write_strobe<<byte_offset;
 			end
       A_channel_lite#(PADDR, TDiv#(XLEN, 8), 2) lite_request= A_channel_lite{a_opcode: unpack({1'b0,pack(access)}), 
           a_size: size,  a_source: `Mem_master_num, a_address : address, a_mask : write_strobe, a_data: data};
