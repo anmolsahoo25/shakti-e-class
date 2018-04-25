@@ -4,7 +4,7 @@
 include ./old_vars
 include soc_config.inc
 
-export SHAKTI_E_HOME=$$PWD
+export SHAKTI_E_HOME=$(PWD)
 TOP_MODULE:=mkTbSoC
 TOP_FILE:=TbSoC.bsv
 TOP_DIR:=./src/testbench
@@ -192,18 +192,18 @@ link_iverilog:
 
 .PHONY: ip_build
 ip_build: 
-	@vivado -mode tcl -notrace -source src/tcl/create_ip_project.tcl -tclargs $(FPGA) || (echo "Could \
+	vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_ip_project.tcl -tclargs $(FPGA) || (echo "Could \
 not create IP project"; exit 1)
-	@vivado -mode tcl -notrace -source src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES) ||\
+	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES) ||\
 (echo "Could not create Multiplier IP"; exit 1)
-	@vivado -mode tcl -notrace -source src/tcl/create_divider.tcl -tclargs $(XLEN) $(DIVSTAGES) ||\
+	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_divider.tcl -tclargs $(XLEN) $(DIVSTAGES) ||\
 (echo "Could not create Divider IP"; exit 1)
 
 .PHONY: vivado_build
 vivado_build: 
-	@vivado -mode tcl -source src/tcl/create_project.tcl -tclargs $(TOP_MODULE) $(FPGA) || (echo "Could \
+	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/create_project.tcl -tclargs $(TOP_MODULE) $(FPGA) || (echo "Could \
 not create core project"; exit 1)
-	@vivado -mode tcl -source src/tcl/run.tcl || (echo "ERROR: While running synthesis")
+	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/run.tcl || (echo "ERROR: While running synthesis")
 
 .PHONY: regress 
 regress:
