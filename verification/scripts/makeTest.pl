@@ -66,15 +66,21 @@ else {
 my $riscvIncludeDir = "$shaktiHome/verification/tests/directed/riscv-tests";
 my $testPath = "$shaktiHome/verification/tests";
 
-  open ARCH, "$shaktiHome/soc_config.inc" or die "[$scriptLog.pl] ERROR opening file $!\n";
-  my $first = <ARCH>;
-  close ARCH;
-  my  $num=32; 
-  my $XLEN;
-  if(index($first,$num)!=-1)
-{   $XLEN=32;}
-  else
-{  $XLEN=64;}
+my @isa = `grep ISA= $shaktiHome/soc_config.inc`;
+my $XLEN=64;
+chomp(@isa);
+if (scalar(@isa) == 1) {
+  if ($isa[0] =~ /RV32/) {
+    $XLEN=32;
+  }
+  else {
+    $XLEN=64;
+  }
+}
+else {
+  doPrint("ERROR: ISA undefined in $shaktiHome/soc_config.inc\n");
+  exit(1);
+}
 
 #my $workdir = "$testPath/workdir";
 doDebugPrint("Generating Test Dump Directory ------------\n");
@@ -208,16 +214,16 @@ systemFileCmd("riscv$XLEN-unknown-elf-objdump --disassemble-all --disassemble-ze
 
 # Generating hex
 
-if ($XLEN==64)
-{
-systemFileCmd("elf2hex  8  524288 $testName.elf 2147483648","code.mem");
-systemFileCmd("cut -c1-8 code.mem", "code.mem.MSB");
-systemFileCmd("cut -c9-16 code.mem", "code.mem.LSB");}
-else
-{
-systemFileCmd("elf2hex  4  524288 $testName.elf 2147483648","code.mem");
-systemFileCmd("cut -c1-8 code.mem", "code.mem.MSB");
-systemFileCmd("cp code.mem code.mem.LSB")}
+if ($XLEN==64) {
+  systemFileCmd("elf2hex  8  524288 $testName.elf 2147483648","code.mem");
+  systemFileCmd("cut -c1-8 code.mem", "code.mem.MSB");
+  systemFileCmd("cut -c9-16 code.mem", "code.mem.LSB");
+}
+else {
+  systemFileCmd("elf2hex  4  524288 $testName.elf 2147483648","code.mem");
+  systemFileCmd("cut -c1-8 code.mem", "code.mem.MSB");
+  systemFileCmd("cp code.mem code.mem.LSB")
+}
 
 if ($testSuite !~ /peripherals/) {
   if ($trace) {
@@ -249,33 +255,32 @@ if ($simulator =~ /^ncverilog$/) {
   systemCmd("ln -s $shaktiHome/verilog/hdl.var hdl.var");
   systemCmd("ln -s $shaktiHome/verilog/include include");
 }
-
+if ($simulator =~ /^vcs$/) {
+  systemCmd("ln -s /scratch/lavanya/c-class/bin/csrc csrc");
+  systemCmd("ln -s /scratch/lavanya/c-class/bin/out.daidir out.daidir");
+}
 
 if ($simulator =~ /^bluespec$/) {
   my $timeout="30m";
   if ($testSuite =~ /riscv-tests/) {
-    $timeout="10s";
+    $timeout="5m";
   }
   elsif ($testSuite =~ /riscv-torture/) {
-    $timeout="10m";
+    $timeout="30m";
   }
   systemFileCmd("timeout $timeout ./out -w","log.txt");
+}
+elsif ($testSuite =~ /peripherals.*smoke/ && $simulator =~ /^vcs$/) {
+    systemCmd("echo 53 > i2c.mem");
+    systemFileCmd("timeout 20m ./out -w","log.txt");
 }
 else {
   systemFileCmd("./out","log.txt");
 }
 my $result;
 
-if (!(-e "rtl.dump")) {
-  `touch FAILED`;
-   $result = "$testName.S | $test_suite | FAILED";
-}
-elsif (!(-e "spike.dump")) {
-  `touch FAILED`;
-   $result = "$testName.S | $test_suite | FAILED";
-}
-else {
-  my @diff = `diff -iqw rtl.dump spike.dump`;
+if ($testSuite =~ /peripherals.*smoke/) {
+  my @diff = `diff -w app_log $shaktiHome/verification/tests/$test_suite/app_log`;
   #print @diff;
   if (@diff) {
     `touch FAILED`;
@@ -286,7 +291,29 @@ else {
     $result = "$testName.S  | $test_suite | PASSED";
   }
 }
-systemFileCmd("sdiff -iW rtl.dump spike.dump", "diff");
+else {
+  if (!(-e "rtl.dump")) {
+    `touch FAILED`;
+     $result = "$testName.S | $test_suite | FAILED";
+  }
+  elsif (!(-e "spike.dump")) {
+    `touch FAILED`;
+     $result = "$testName.S | $test_suite | FAILED";
+  }
+  else {
+    my @diff = `diff -w rtl.dump spike.dump`;
+    #print @diff;
+    if (@diff) {
+      `touch FAILED`;
+      $result = "$testName.S | $test_suite | FAILED";
+    }
+    else {
+      `touch PASSED`;
+      $result = "$testName.S  | $test_suite | PASSED";
+    }
+  }
+  systemFileCmd("sdiff -iW rtl.dump spike.dump", "diff");
+}
 doDebugPrint("---------------------------------------------\n");
 doPrint("testDir: $testDir\n");
 doPrint("$result\n");

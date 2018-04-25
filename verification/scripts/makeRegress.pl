@@ -57,12 +57,12 @@ GetOptions(
           qw(filter=s)      => \my $test_filter,
           qw(test_count=s)  => \my $test_count,
           qw(parallel)      => \my $parallel,
+          qw(report)        => \my $report,
           qw(help)          => \my $help,
           qw(clean)         => \my $clean
 );
 
 my $submit;
-my $report;
 my $testSuite;
 my $testCount;
 my $generate;
@@ -300,13 +300,13 @@ if ($submit) {
   my $refreshCount = 0;
 
   while (@tempTests) {
-    my $line = pop @tempTests;
+    my $line = shift @tempTests;
     my @line = split(" ", $line);
     my $test = $line[0];
     my $tSuite = $line[1];
     my $pv = $line[2];
     unless (-e $workdir or mkdir -p $workdir/$tSuite) {
-      die "ERROR: Unable to create workdir, check SHAKTI_HOME is set!\n";
+      die "ERROR: Unable to create workdir, check SHAKTI_E_HOME is set!\n";
     }
     if ($parallel) {
       system("nohup perl -I $shaktiHome/verification/scripts $shaktiHome/verification/scripts/makeTest.pl --test=$test --suite=$tSuite --type=$pv --sim=$simulator &");
@@ -410,6 +410,7 @@ elsif ($finalReport) { # waits till all the test results are there/timesout
 }
 else {
   my @regress_report = ();
+  my %result = ();
   foreach my $line (@testList) {
     my @line = split(" ", $line);
     my $test = $line[0];
@@ -423,26 +424,34 @@ else {
     my $rtl_timeout = "$workdir/$tSuite/$pv/$test/RTL_TIMEOUT";
     my $result;
 
+    my $test_info=sprintf("%40s %40s %5s", $tSuite, $test, $pv);
     if (-e $compile_fail) {
       $result = sprintf("%40s %40s %5s    COMPILE_FAIL\n", $tSuite, $test, $pv);
+      $result{$test_info}="COMPILE_FAIL";
     }
     elsif (-e $model_fail) {
       $result = sprintf("%40s %40s %5s    MODEL_FAIL\n", $tSuite, $test, $pv);
+      $result{$test_info}="MODEL_FAIL";
     }
     elsif (-e $rtl_fail) {
       $result = sprintf("%40s %40s %5s    RTL_FAIL\n", $tSuite, $test, $pv);
+      $result{$test_info}="RTL_FAIL";
     }
     elsif (-e $rtl_timeout) {
       $result = sprintf("%40s %40s %5s    RTL_TIMEOUT\n", $tSuite, $test, $pv);
+      $result{$test_info}="RTL_TIMEOUT";
     }
     elsif (-e $fail) {
       $result = sprintf("%40s %40s %5s    FAILED\n", $tSuite, $test, $pv);
+      $result{$test_info}="FAILED";
     }
     elsif (-e $pass) {
       $result = sprintf("%40s %40s %5s    PASSED\n", $tSuite, $test, $pv);
+      $result{$test_info}="PASSED";
     }
     else {
       $result = sprintf("%40s %40s %5s    NOT_RUN\n", $tSuite, $test, $pv);
+      $result{$test_info}="NOT_RUN";
     }
     push @regress_report, $result;
   }
@@ -451,5 +460,23 @@ else {
   }
   else {
     print @regress_report;
+  }
+  if ($report) {
+    my @resultValues = values %result;
+    open REPORT, ">$shaktiHome/verification/workdir/regress_report.log" or die "[$scriptLog.pl] ERROR opening file $!\n";
+    print REPORT "#------------------------------------------------------------------------------------------------\n";
+    print REPORT "# Total tests      :", scalar(@regress_report),"\n";
+    print REPORT "# Pass percentage  :", sprintf("%.2f\%", (scalar(grep /PASSED/, @regress_report)/scalar(@regress_report))*100),"\n";
+    print REPORT "# FAILED           :", scalar(grep /FAILED/, @resultValues),"\n";
+    print REPORT "# RTL_FAIL         :", scalar(grep /RTL_FAIL/, @resultValues),"\n";
+    print REPORT "# RTL_TIMEOUT      :", scalar(grep /RTL_TIMEOUT/, @resultValues),"\n";
+    print REPORT "# COMPILE_FAIL     :", scalar(grep /COMPILE_FAIL/, @resultValues),"\n";
+    print REPORT "# MODEL_FAIL       :", scalar(grep /MODEL_FAIL/, @resultValues),"\n";
+    print REPORT "# NOT_RUN          :", scalar(grep /NOT_RUN/, @resultValues),"\n";
+    print REPORT "# PASSED           :", scalar(grep /PASSED/, @resultValues),"\n";
+    print REPORT "#------------------------------------------------------------------------------------------------\n";
+    #print REPORT @regress_report;
+    print REPORT "$_     $result{$_}\n" foreach(sort{$result{$b} cmp $result{$a}} keys %result);
+    close REPORT;
   }
 }

@@ -10,7 +10,7 @@
 
 * **Initial Setup**
 ```
-export SHAKTI_HOME=<repo-check-out-path>/c-class
+export SHAKTI_E_HOME=<repo-check-out-path>/e-class
 ```
 
 * Compile and simulate a single test
