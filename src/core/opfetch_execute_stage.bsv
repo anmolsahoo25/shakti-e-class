@@ -162,7 +162,8 @@ package opfetch_execute_stage;
           if(committype == MEMORY &&& trap matches tagged None)
             ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
-
+          if(verbosity>1)
+            $display($time, "\tSTAGE2: CommitType: ", fshow(committype), " done: %b", done);
         `ifdef MULDIV 
           if(done) begin 
             rx.u.deq;
@@ -173,6 +174,8 @@ package opfetch_execute_stage;
             `endif
           end
           else begin
+            if(verbosity>1)
+              $display($time, "\tSTAGE2: Setting Stall to True");
             rg_stall<= True;
           end
         `else
@@ -196,7 +199,7 @@ package opfetch_execute_stage;
       rule capture_stalled_output(rg_stall);
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
                                         pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
-        let {committype, op1_reslt, effaddr_csrdata} = alu.delayed_output;
+        let {committype, op1_reslt, effaddr_csrdata} <- alu.delayed_output;
         `ifdef simulate
           tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
         `else
