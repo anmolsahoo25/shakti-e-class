@@ -58,35 +58,6 @@ lrsc 			    directed/riscv-tests/isa/rv64ua			  p
 # rvc         directed/riscv-tests/isa/rv64uc        v
 
 # ------------------------------------------------------------------------------------
-# rv64ud tests
-# ------------------------------------------------------------------------------------
-fadd          directed/riscv-tests/isa/rv64ud         p  						
-fdiv				  directed/riscv-tests/isa/rv64ud         p		
-fclass			  directed/riscv-tests/isa/rv64ud         p			
-fcmp				  directed/riscv-tests/isa/rv64ud         p		
-fcvt				  directed/riscv-tests/isa/rv64ud         p		
-fcvt_w			  directed/riscv-tests/isa/rv64ud         p			
-fmadd				  directed/riscv-tests/isa/rv64ud         p		
-ldst				  directed/riscv-tests/isa/rv64ud         p		
-move				  directed/riscv-tests/isa/rv64ud         p		
-structural	  directed/riscv-tests/isa/rv64ud         p					
-recoding		  directed/riscv-tests/isa/rv64ud         p				
-
-# ------------------------------------------------------------------------------------
-# rv64uf tests
-# ------------------------------------------------------------------------------------
-fadd          directed/riscv-tests/isa/rv64uf         p  						
-fdiv				  directed/riscv-tests/isa/rv64uf         p		
-fclass			  directed/riscv-tests/isa/rv64uf         p			
-fcmp				  directed/riscv-tests/isa/rv64uf         p		
-fcvt				  directed/riscv-tests/isa/rv64uf         p		
-fcvt_w			  directed/riscv-tests/isa/rv64uf         p			
-fmadd				  directed/riscv-tests/isa/rv64uf         p		
-ldst				  directed/riscv-tests/isa/rv64uf         p		
-move				  directed/riscv-tests/isa/rv64uf         p		
-recoding		  directed/riscv-tests/isa/rv64uf         p				
-
-# ------------------------------------------------------------------------------------
 # rv64ui tests
 # ------------------------------------------------------------------------------------
 add 	        directed/riscv-tests/isa/rv64ui         p  											
@@ -142,6 +113,23 @@ xor					  directed/riscv-tests/isa/rv64ui         p
 xori 				  directed/riscv-tests/isa/rv64ui         p	
 
 # ------------------------------------------------------------------------------------
+# rv64um tests
+# ------------------------------------------------------------------------------------
+#div           directed/riscv-tests/isa/rv64um         p	
+#divu          directed/riscv-tests/isa/rv64um         p	
+#divuw         directed/riscv-tests/isa/rv64um         p	
+#divw          directed/riscv-tests/isa/rv64um         p	
+mul           directed/riscv-tests/isa/rv64um         p	
+mulh          directed/riscv-tests/isa/rv64um         p	
+mulhsu        directed/riscv-tests/isa/rv64um         p	
+mulhu         directed/riscv-tests/isa/rv64um         p	
+mulw          directed/riscv-tests/isa/rv64um         p	
+#rem           directed/riscv-tests/isa/rv64um         p	
+#remu          directed/riscv-tests/isa/rv64um         p	
+#remuw         directed/riscv-tests/isa/rv64um         p	
+#remw          directed/riscv-tests/isa/rv64um         p
+
+# ------------------------------------------------------------------------------------
 # rv32ui tests
 # ------------------------------------------------------------------------------------
 
@@ -186,18 +174,11 @@ xor       directed/riscv-tests/isa/rv32ui         p
 xori      directed/riscv-tests/isa/rv32ui         p									
 
 # ------------------------------------------------------------------------------------
-# rv64um tests
+# rv32um tests
 # ------------------------------------------------------------------------------------
-div           directed/riscv-tests/isa/rv64um         p	
-divu          directed/riscv-tests/isa/rv64um         p	
-divuw         directed/riscv-tests/isa/rv64um         p	
-divw          directed/riscv-tests/isa/rv64um         p	
-mul           directed/riscv-tests/isa/rv64um         p	
-mulh          directed/riscv-tests/isa/rv64um         p	
-mulhsu        directed/riscv-tests/isa/rv64um         p	
-mulhu         directed/riscv-tests/isa/rv64um         p	
-mulw          directed/riscv-tests/isa/rv64um         p	
-rem           directed/riscv-tests/isa/rv64um         p	
-remu          directed/riscv-tests/isa/rv64um         p	
-remuw         directed/riscv-tests/isa/rv64um         p	
-remw          directed/riscv-tests/isa/rv64um         p
+
+mul       directed/riscv-tests/isa/rv32um         p	
+mulh      directed/riscv-tests/isa/rv32um         p	
+mulhsu    directed/riscv-tests/isa/rv32um         p	
+mulhu     directed/riscv-tests/isa/rv32um         p	
+
