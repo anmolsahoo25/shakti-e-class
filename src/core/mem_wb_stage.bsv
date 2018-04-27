@@ -156,6 +156,7 @@ package mem_wb_stage;
         end
         else begin
           // in case of regular instruction simply update RF and forward the data.
+          $display($time, "\tSTAGE3: Commiting PC: %h", pc);
           wr_operand_fwding <= tuple3(rd, True, reslt);
           wr_commit <= tagged Valid (tuple2(rd, reslt));
           rx.u.deq;
