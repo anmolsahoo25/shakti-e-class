@@ -28,48 +28,78 @@ Email id: neelgala@gmail.com
 */
 package muldiv;
   import multiplier::*;
-  import divider::*;
+//  import divider::*;
   import common_types::*;
   `include "common_params.bsv"
 
 	interface Ifc_muldiv;
 		method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(Bit#(XLEN) operand1, Bit#(XLEN) operand2, 
         Bit#(3) funct3, Bool word32);
-		method ALU_OUT delayed_output;//returning the result
+		method ActionValue#(ALU_OUT) delayed_output;//returning the result
 	endinterface:Ifc_muldiv
 
   (*synthesize*)
 	module mkmuldiv(Ifc_muldiv);
     Ifc_multiplier#(XLEN) mult <- mkmultiplier;
-    Ifc_divider#(XLEN) divider <- mkdivider;
+//    Ifc_divider#(XLEN) divider <- mkdivider;
     Reg#(Bit#(TLog#(TAdd#(TMax#(`MULSTAGES, `DIVSTAGES), 1)))) rg_count <-mkReg(0);
     Reg#(Bool) mul_div <-mkReg(False); // False = Mul, True = Div.
+    Reg#(Bool) rg_upperbits <- mkReg(False);
+    Reg#(Bool) rg_complement <- mkReg(False);
+    Reg#(Bool) rg_word32 <- mkReg(False);
 
     rule increment_counter(rg_count!=0);
       if((rg_count== fromInteger(`MULSTAGES) && !mul_div) || 
-          (rg_count== fromInteger(`DIVSTAGES) && mul_div))
+          (rg_count== fromInteger(`DIVSTAGES) && mul_div)) begin
+        $display($time, "\tALU: got output from Mul/Div. mul_div: %b", mul_div);
         rg_count<= 0;
-      else
+      end
+      else begin
+        $display($time, "\tALU: Waiting for mul/div to respond. Count: %d", rg_count);
         rg_count<= rg_count+ 1;
+      end
     endrule
 
 		method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(Bit#(XLEN) operand1, Bit#(XLEN) operand2,
         Bit#(3) funct3,  Bool word32) if(rg_count==0);
+      Bool lv_upperbits = unpack(|funct3);
+
+      Bit#(XLEN) op1= ((funct3[0]^funct3[1])==1 && operand1[valueOf(XLEN)-1]==1)? 
+                                                                            (~operand1)+1:operand1;
+	    Bit#(XLEN) op2= (funct3[1:0]==1 && operand2[valueOf(XLEN)-1]==1)? (~operand2)+1:operand2;
+	    Bool lv_take_complement = False;
+    	if(funct3[1:0]==1)
+		    lv_take_complement=unpack(operand1[valueOf(XLEN)-1]^operand2[valueOf(XLEN)-1]);
+    	else if(funct3[1:0]==2)
+		    lv_take_complement=unpack(operand1[valueOf(XLEN)-1]);
+	
+
       if(funct3[2]==0)begin // multiplication operation
-        mult.iA(operand1);
-        mult.iB(operand2);
+        $display($time, "\tALU: Sending inputs to multiplier. A: %h B: %h funct3: %b", op1, op2,
+        funct3);
+        mult.iA(op1);
+        mult.iB(op2);
       end
-      else begin
-        divider.is_axis_divisor_tdata(operand1);
-        divider.is_axis_dividend_tdata(operand2);
-      end
-      if(`MULSTAGES!=0)
+//      else begin
+//        divider.is_axis_divisor_tdata(operand1);
+//        divider.is_axis_dividend_tdata(operand2);
+//      end
+      if(`MULSTAGES!=0)begin
         rg_count<= rg_count+ 1;
-      return tuple2(`MULSTAGES==0, tuple3(REGULAR, truncate(mult.oP), ?));
+        rg_upperbits<= lv_upperbits;
+        rg_complement<= lv_take_complement;
+        rg_word32<= word32;
+      end
+      return tuple2(`MULSTAGES==0, tuple3(REGULAR, lv_upperbits?truncateLSB(mult.oP): 
+                                                                            truncate(mult.oP), ?));
     endmethod
-		method ALU_OUT delayed_output if((rg_count== fromInteger(`MULSTAGES) && !mul_div) || 
+		method ActionValue#(ALU_OUT) delayed_output if((rg_count== fromInteger(`MULSTAGES) && !mul_div) || 
                                           (rg_count== fromInteger(`DIVSTAGES) && mul_div));
-      return tuple3(REGULAR, mul_div?truncate(divider.om_axis_dout_tdata):truncate(mult.oP), ?);
+      let prod = rg_complement?~mult.oP+ 1:mult.oP;
+      Bit#(XLEN) product=rg_word32?signExtend(prod[31:0]):rg_upperbits?truncateLSB(prod): 
+                                                                                    truncate(prod);
+      $display($time, "\tALU: Output from Multiplier: %h updated: %h", mult.oP, product);                                          
+      return tuple3(REGULAR, mul_div? ?/* div result*/: product, ?); 
     endmethod
 	endmodule:mkmuldiv
 
@@ -86,7 +116,7 @@ package muldiv;
       $display($time, "\t Giving inputs: %d", rg_count);
     endrule
     rule check_output;
-      let {committype, out, paddr} = muldiv.delayed_output;
+      let {committype, out, paddr} <- muldiv.delayed_output;
       $display($time, "\tOutput: %d", out);
       $finish(0);
     endrule
