@@ -128,7 +128,7 @@ generate_verilog: check-restore check-env
 ifeq ($(SYNTH), SIM)
 		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/multiplier_sim_netlist.v\
   	./verilog/multiplier.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
-		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/divider/divider_sim_netlist.v\
+#		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/divider/divider_sim_netlist.v\
   	./verilog/divider.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
 endif
 	@echo Compilation finished
@@ -196,7 +196,7 @@ ip_build:
 not create IP project"; exit 1)
 	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES) ||\
 (echo "Could not create Multiplier IP"; exit 1)
-	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_divider.tcl -tclargs $(XLEN) $(DIVSTAGES) ||\
+#	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_divider.tcl -tclargs $(XLEN) $(DIVSTAGES) ||\
 (echo "Could not create Divider IP"; exit 1)
 
 .PHONY: vivado_build
