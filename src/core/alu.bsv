@@ -125,7 +125,7 @@ package alu;
     method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs( Bit#(4) fn, Bit#(XLEN) op1, 
         Bit#(XLEN) op2, Bit#(PADDR) imm_value, Bit#(PADDR) op3, Instruction_type inst_type, 
         Funct3 funct3, Bool word32);
-		method ALU_OUT delayed_output;
+		method ActionValue#(ALU_OUT) delayed_output;
   endinterface:Ifc_alu
 
   (*synthesize*)
@@ -135,13 +135,14 @@ package alu;
       Bit#(XLEN) op2, Bit#(PADDR) imm_value, Bit#(PADDR) op3, Instruction_type inst_type, 
       Funct3 funct3, Bool word32);
       let reslt = fn_alu(fn, op1, op2, imm_value, op3, inst_type, funct3, word32);
-      let product <- muldiv.get_inputs(op1, op2, funct3, word32);
-      if(inst_type==MULDIV)
+      if(inst_type==MULDIV)begin
+        let product <- muldiv.get_inputs(op1, op2, funct3, word32);
         return product;
+      end
       else
         return tuple2(True, reslt);
     endmethod
-		method ALU_OUT delayed_output=muldiv.delayed_output;
+		method delayed_output=muldiv.delayed_output;
   endmodule
 `endif
 endpackage:alu
