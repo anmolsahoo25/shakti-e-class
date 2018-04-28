@@ -58,6 +58,7 @@ package opfetch_execute_stage;
   
     method Action flush_from_wb(Bool fl);
     `ifdef RV64 method Action inferred_xlen (Bool xlen); `endif // False-32bit,  True-64bit 
+    method Action csr_updated (Bool upd);
   endinterface:Ifc_opfetch_execute_stage
   
   (*synthesize*)
@@ -72,6 +73,16 @@ package opfetch_execute_stage;
     Reg#(Bit#(1)) rg_epoch[2] <- mkCReg(2,0);
     Wire#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
+
+    // If a CSR operation is detected then you need to stall fetching operands from the regfile
+    // untill the csr instruction has been committed. the forwarding path from the csr operation to
+    // the ALU is huge. This way we break the path and neither flush the entire pipe.
+    // Flushing the entire pipe will lead to fetching the same instruction again.
+    // However,  if we do add csrs which affect how an instruction is fetched (protection,  etc)
+    // then the entire pipe will have to flushed. 
+    // There does exist mechanism in the last stage to flush pipe on a trap. in case a full flush is
+    // required,  that particular method should be excited.
+    Reg#(Bool) rg_csr_stall <- mkReg(False);
 
     `ifdef RV64
       Wire#(Bool) wr_xlen <-mkWire();
@@ -130,7 +141,7 @@ package opfetch_execute_stage;
     RX#(PIPE1_DS) rx<-mkRX;
     TX#(PIPE2_DS) tx<-mkTX;
   
-    rule fetch_execute_pass(!initialize `ifdef MULDIV && !rg_stall `endif );
+    rule fetch_execute_pass(!initialize `ifdef MULDIV && !rg_stall `endif && !rg_csr_stall);
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
                                         pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
@@ -176,6 +187,10 @@ package opfetch_execute_stage;
           if(committype == MEMORY &&& trap matches tagged None)
             ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
+          if(committype==SYSTEM_INSTR)begin
+            $display($time, "STAGE2: Making CSR STALL TRUE");
+            rg_csr_stall<= True;
+          end
           if(verbosity>1)
             $display($time, "\tSTAGE2: CommitType: ", fshow(committype), " done: %b", done);
         `ifdef MULDIV 
@@ -274,6 +289,12 @@ package opfetch_execute_stage;
         wr_xlen<= xlen;
       endmethod  
     `endif // False-32bit,  True-64bit 
+    method Action csr_updated (Bool upd) if(rg_csr_stall);
+      if(upd) begin
+        $display($time, "STAGE2: Making SCR STALL FALSE");
+        rg_csr_stall<= False;
+      end
+    endmethod
   endmodule:mkopfetch_execute_stage
 endpackage:opfetch_execute_stage
 
