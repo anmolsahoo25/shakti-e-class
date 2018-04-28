@@ -63,7 +63,7 @@ if {[string equal [get_runs -quiet core_synth_1] ""]} {
     set_property flow "Vivado Synthesis 2016" [get_runs core_synth_1]
 }
 # do not flatten design
-set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs core_synth_1]
+#set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs core_synth_1]
 
 current_run -synthesis [get_runs core_synth_1]
 #et_property strategy Flow_PerfOptimized_high [get_runs core_synth_1]
