@@ -47,6 +47,7 @@ package csrfile;
     method ActionValue#(Bit#(PADDR)) upd_on_trap(`ifdef USERTRAPS Privilege_mode prv, `endif 
                                                   Bit#(6) cause, Bit#(PADDR) pc, Bit#(PADDR) tval);
     method Action incr_minstret;
+    `ifdef RV64 method Bool inferred_xlen; `endif // False-32bit,  True-64bit 
   endinterface
 
   (*synthesize*)
@@ -69,7 +70,11 @@ package csrfile;
     Bit#(XLEN) csr_mhartid    = 0;
 
 	  //MISA fields
-  	Bit#(2)  mxl	= `ifdef RV64 2 `else 1 `endif ;
+    `ifdef RV64
+      Reg#(Bit#(2)) rg_mxl <- mkReg(fromInteger(valueOf(TDiv#(XLEN, 32))));
+    `else
+      Bit#(2) rg_mxl = 'd1;
+    `endif
     Bit#(26) temp_misa='h141101;
 	 // temp_misa[8]=1;
 	 // temp_misa[20]=1;
@@ -196,6 +201,9 @@ package csrfile;
 	  //////////////////////////////////////////////////////////////////////////////////////////
 	  //////////////////////////////// USER LEVEL CSRs ////////////////////////////////////////
 	  Reg#(Bit#(XLEN)) rg_uscratch <- mkReg(0);
+    `ifdef RV64 
+      Reg#(Bit#(2)) rg_uxl <- mkReg(fromInteger(valueOf(TDiv#(XLEN, 32)))); 
+    `endif
 
     `ifdef USERTRAPS
   	  Reg#(Bit#(PADDR)) rg_uepc  		<- mkReg(0);
@@ -230,11 +238,21 @@ package csrfile;
         if (addr == `MARCHID) data= csr_marchid;
         if (addr == `MIMPID) data= csr_mimpid;
         if (addr == `MHARTID) data= csr_mhartid;
-        if (addr == `MISA)begin data[maxIndex-1:maxIndex-2]= mxl; data[25:0]= rg_misa; end
+        if (addr == `MISA) begin 
+          data[25:0]= rg_misa; 
+          `ifdef RV64
+            if(rg_mxl==1)
+              data[31:30]= rg_mxl; 
+            else
+              data[63:62]=rg_mxl;
+          `else
+            data[31:30]=rg_mxl;
+          `endif
+        end
         if (addr == `MTVEC) data= {'d0, rg_mtvec, rg_mode};
         if (addr == `MSTATUS)
           `ifdef RV64 
-            data= {sd, 27'd0, mxl, mxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
+            data= {sd, 27'd0, 2'd0, rg_uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
                     hpp, spp, rg_mpie, hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie};
           `else
             data= {sd, 8'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp, hpp, spp, rg_mpie,
@@ -263,7 +281,7 @@ package csrfile;
         // =============== User level CSRs ================//
         if (addr == `USTATUS)
           `ifdef RV64 
-            data= {sd, 27'd0, mxl, mxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
+            data= {sd, 27'd0, 2'd0, rg_uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
                     hpp, spp, rg_mpie, hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie};
           `else
             data= {sd, 8'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp, hpp, spp, rg_mpie,
@@ -296,6 +314,12 @@ package csrfile;
       case(addr)
         `MISA: begin 
           rg_misa<= truncate(word);
+          `ifdef RV64
+            if(rg_mxl==1)
+              rg_mxl<= word[31:30];
+            else
+              rg_mxl<= word[63:62];
+          `endif
         end
         `MTVEC: begin 
           rg_mtvec<= word[paddr- 1:2]; 
@@ -310,6 +334,10 @@ package csrfile;
           rg_mpie<= word[7];
           rg_mpp<= word[12:11];
           rg_mprv<= word[17];
+          `ifdef RV64
+            if(rg_uxl==1)
+              rg_uxl<=word[33:32]; 
+          `endif
         end
         `ifdef USERTRAPS
           `MIDELEG: begin
@@ -465,5 +493,13 @@ package csrfile;
         minstreth<= truncateLSB(instr); minstret <= truncate(instr);
       `endif
     endmethod
+    `ifdef RV64
+      method Bool inferred_xlen; // False-32bit,  True-64bit
+        if(rg_prv==Machine)
+          return unpack(rg_mxl[1]);
+        else
+          return unpack(rg_uxl[1]);
+      endmethod
+    `endif
   endmodule
 endpackage

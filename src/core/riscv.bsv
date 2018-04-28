@@ -73,6 +73,11 @@ package riscv;
 
     mkConnection(stage3.commit_rd,stage2.commit_rd);
     mkConnection(stage3.operand_fwding, stage2.operand_fwding);
+    `ifdef RV64
+      rule send_inferred_xlen;
+        stage2.inferred_xlen(stage3.inferred_xlen);
+      endrule
+    `endif
 
     rule flush_from_writeback;
       let {newpc, fl}=stage3.flush;
