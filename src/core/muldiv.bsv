@@ -131,11 +131,12 @@ package muldiv;
 		method ActionValue#(ALU_OUT) delayed_output if((rg_count== fromInteger(`MULSTAGES) && !mul_div)
                                             || (rg_count==(fromInteger(`DIVSTAGES)+ 1) && mul_div));
       Bit#(TMul#(2, XLEN)) reslt=mul_div?zeroExtend(divider.quo_rem):mult.oP;
-      if( (mul_div && rg_upperbits && rg_complement && reslt[valueOf(XLEN)-1]!=rg_sign_op1) || rg_complement)
+      rg_sign_op1, rg_complement,  rg_upperbits);
+      if( (mul_div && rg_upperbits && rg_complement && reslt[valueOf(XLEN)-1]!=rg_sign_op1) || 
+                      (mul_div && rg_complement && !rg_upperbits) ||(!mul_div && rg_complement))
         reslt=~reslt+ 1;
-      Bit#(XLEN) product=rg_word32?signExtend(reslt[31:0]):rg_upperbits?truncateLSB(reslt): 
+      Bit#(XLEN) product=rg_word32?signExtend(reslt[31:0]):(!mul_div && rg_upperbits)?truncateLSB(reslt): 
                                                                                     truncate(reslt);
-      $display($time, "\tALU: Output from Multiplier: %h updated: %h", mult.oP, reslt);
       return tuple3(REGULAR, mul_div? ?/* div result*/: product, ?); 
     endmethod
 	endmodule:mkmuldiv
