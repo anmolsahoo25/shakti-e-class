@@ -252,7 +252,7 @@ package csrfile;
         if (addr == `MTVEC) data= {'d0, rg_mtvec, rg_mode};
         if (addr == `MSTATUS)
           `ifdef RV64 
-            data= {sd, 27'd0, 2'd0, rg_uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
+            data= {sd, 27'd0, rg_uxl, rg_uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
                     hpp, spp, rg_mpie, hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie};
           `else
             data= {sd, 8'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp, hpp, spp, rg_mpie,
