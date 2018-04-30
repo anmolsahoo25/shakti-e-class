@@ -177,6 +177,10 @@ xori      directed/riscv-tests/isa/rv32ui         p
 # rv32um tests
 # ------------------------------------------------------------------------------------
 
+div       directed/riscv-tests/isa/rv32um         p
+divu      directed/riscv-tests/isa/rv32um         p
+rem       directed/riscv-tests/isa/rv32um         p
+remu      directed/riscv-tests/isa/rv32um         p
 mul       directed/riscv-tests/isa/rv32um         p	
 mulh      directed/riscv-tests/isa/rv32um         p	
 mulhsu    directed/riscv-tests/isa/rv32um         p	
