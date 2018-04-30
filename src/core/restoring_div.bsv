@@ -37,7 +37,7 @@ import Assert::*;
 (*noinline*)
  function Tuple2#(Bit#(TAdd#(1,XLEN)), Bit#(XLEN)) singlestep (Bit#(TAdd#(1,XLEN)) remainder, 
                                                       Bit#(XLEN) quotient, Bit#(XLEN) divisor);
-    for(Integer i=0; i<(64/`DIVSTAGES); i=i+ 1)begin
+    for(Integer i=0; i<(valueOf(XLEN)/`DIVSTAGES); i=i+ 1)begin
       let x={remainder, quotient}<<1;
       remainder=truncateLSB(x);
       quotient=truncate(x);
@@ -51,9 +51,10 @@ import Assert::*;
   endfunction 
 
   interface Ifc_restoring_div;
-    method Action get_inputs(Bit#(XLEN) op1, Bit#(XLEN) op2);
-    method Bit#(TMul#(2, XLEN)) quo_rem;
+    method Action get_inputs(Bit#(XLEN) op1, Bit#(XLEN) op2,  Bool qr);
+    method Bit#(XLEN) quo_rem;
   endinterface
+  (*synthesize*)
   module mkrestoring_div(Ifc_restoring_div);
     staticAssert(valueOf(TMul#(TDiv#(64, `DIVSTAGES), `DIVSTAGES))==64, "DIVSTAGES is not power of\
     2");
@@ -61,15 +62,18 @@ import Assert::*;
 
     Reg#(Bit#(TAdd#(1, TMul#(2, XLEN)))) partial<-mkReg(0);
     Reg#(Bit#(XLEN)) rg_op2 <-mkReg(0);
+    Reg#(Bool) quotient_remainder <- mkReg(False);
     rule single_step_div;
       let {upper, lower}=singlestep(truncateLSB(partial),truncate(partial), rg_op2); 
       partial<= {upper, lower};
     endrule
 
-    method Action get_inputs(Bit#(XLEN) op1, Bit#(XLEN) op2);
+    method Action get_inputs(Bit#(XLEN) op1, Bit#(XLEN) op2,  Bool qr);
       partial<= zeroExtend(op1);
       rg_op2<= op2;
+      quotient_remainder<= qr;
     endmethod
-    method quo_rem=truncate(partial);
+    method quo_rem=quotient_remainder?partial[valueOf(TMul#(2, XLEN))-1:valueOf(XLEN)]:
+                                                                                  truncate(partial);
   endmodule
 endpackage
