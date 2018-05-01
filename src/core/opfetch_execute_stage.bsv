@@ -191,9 +191,9 @@ package opfetch_execute_stage;
             $display($time, "STAGE2: Making CSR STALL TRUE");
             rg_csr_stall<= True;
           end
+        `ifdef MULDIV 
           if(verbosity>1)
             $display($time, "\tSTAGE2: CommitType: ", fshow(committype), " done: %b", done);
-        `ifdef MULDIV 
           if(done) begin 
             rx.u.deq;
             `ifdef simulate
