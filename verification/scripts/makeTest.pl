@@ -65,6 +65,23 @@ else {
 #my $scriptLog = `basename $0 .pl`; chomp($scriptLog);
 my $riscvIncludeDir = "$shaktiHome/verification/tests/directed/riscv-tests";
 my $testPath = "$shaktiHome/verification/tests";
+
+my @isa = `grep ISA= $shaktiHome/soc_config.inc`;
+my $XLEN=64;
+chomp(@isa);
+if (scalar(@isa) == 1) {
+  if ($isa[0] =~ /RV32/) {
+    $XLEN=32;
+  }
+  else {
+    $XLEN=64;
+  }
+}
+else {
+  doPrint("ERROR: ISA undefined in $shaktiHome/soc_config.inc\n");
+  exit(1);
+}
+
 #my $workdir = "$testPath/workdir";
 doDebugPrint("Generating Test Dump Directory ------------\n");
 
@@ -170,93 +187,89 @@ openLog("$testDir/$testName.log");
 #chdir("$workdir/$test_suite/$testName");
 # Compiling the test
 if ($testType =~ /^v$/) {
-  systemCmd("riscv64-unknown-elf-gcc -march=rv64g -mabi=lp64 -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -DENTROPY=0x9629af2 -std=gnu99 -O2 -I$riscvIncludeDir/env/v -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/v/link.ld $riscvIncludeDir/env/v/entry.S $riscvIncludeDir/env/v/*.c $test -o $testName.elf");
+  systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -DENTROPY=0x9629af2 -std=gnu99 -O2 -I$riscvIncludeDir/env/v -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/v/link.ld $riscvIncludeDir/env/v/entry.S $riscvIncludeDir/env/v/*.c $test -o $testName.elf");
 }
 elsif ($testType =~ /^p$/) {
   if ($testSuite =~ /csmith-run/) {
     my $csmithInc = "$shaktiHome/verification/tools/csmith_run";
-    systemCmd("riscv64-unknown-elf-gcc -march=rv64imafd  -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c -I /tools/csmith/runtime $csmithInc/crt.S -o crt.o");
-    systemCmd("riscv64-unknown-elf-gcc -march=rv64imafd  -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf  -c -I /tools/csmith/runtime $csmithInc/syscalls_shakti.c -o syscalls.o");
-    systemCmd("riscv64-unknown-elf-gcc -w -Os -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf  -c -I /tools/csmith/runtime $shaktiHome/verification/tests/$test_suite/$testName.c  -march=rv64imafd -o $testName.o");
-    systemCmd("riscv64-unknown-elf-gcc -T $csmithInc/link.ld -I /tools/csmith/runtime $testName.o syscalls.o crt.o -static -nostdlib -nostartfiles -lgcc -lm -o $testName.elf");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac  -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c -I /tools/csmith/runtime $csmithInc/crt.S -o crt.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac  -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf  -c -I /tools/csmith/runtime $csmithInc/syscalls_shakti.c -o syscalls.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -w -Os -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf  -c -I /tools/csmith/runtime $shaktiHome/verification/tests/$test_suite/$testName.c  -march=rv$XLEN.imac -o $testName.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -T $csmithInc/link.ld -I /tools/csmith/runtime $testName.o syscalls.o crt.o -static -nostdlib -nostartfiles -lgcc -lm -o $testName.elf");
   }
   elsif ($testSuite =~ /peripherals/) {
     my $periInc = "$shaktiHome/verification/tests/directed/peripherals";
-    systemCmd("riscv64-unknown-elf-gcc -march=rv64imafd  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c $periInc/common/crt.S -o crt.o");
-    systemCmd("riscv64-unknown-elf-gcc -march=rv64imafd  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf  -c $periInc/common/syscalls.c -o syscalls.o");
-    systemCmd("riscv64-unknown-elf-gcc -w -mcmodel=medany -static -std=gnu99 -fno-builtin-printf -I $periInc/i2c/ -I $periInc/qspi/ -I $periInc/dma/ -I $periInc/plic/ -I $periInc/common/ -c $periInc/smoketests/smoke.c -o smoke.o -march=rv64imafd -lm -lgcc");
-    systemCmd("riscv64-unknown-elf-gcc -T $periInc/common/link.ld smoke.o syscalls.o crt.o -o smoke.elf -static -nostartfiles -lm -lgcc");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c $periInc/common/crt.S -o crt.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rvi$XLEN\imac  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf  -c $periInc/common/syscalls.c -o syscalls.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -w -mcmodel=medany -static -std=gnu99 -fno-builtin-printf -I $periInc/i2c/ -I $periInc/qspi/ -I $periInc/dma/ -I $periInc/plic/ -I $periInc/common/ -c $periInc/smoketests/smoke.c -o smoke.o -march=rv$XLEN\imac -lm -lgcc");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -T $periInc/common/link.ld smoke.o syscalls.o crt.o -o smoke.elf -static -nostartfiles -lm -lgcc");
   }
   else {
-    systemCmd("riscv64-unknown-elf-gcc -march=rv64g -mabi=lp64 -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I$riscvIncludeDir/env/p -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/p/link.ld $test -o $testName.elf");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\g  -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I$riscvIncludeDir/env/p -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/p/link.ld $test -o $testName.elf");
   }
 }
 
 # Generating the disassembly
-systemFileCmd("riscv64-unknown-elf-objdump --disassemble-all --disassemble-zeroes --section=.text --section=.text.startup --section=.text.init --section=.data $testName.elf", "$testName.disass");
+systemFileCmd("riscv$XLEN-unknown-elf-objdump --disassemble-all --disassemble-zeroes --section=.text --section=.text.startup --section=.text.init --section=.data $testName.elf", "$testName.disass");
 
 # Generating hex
-systemFileCmd("elf2hex  8 524288 $testName.elf 2147483648","code.mem");
-systemFileCmd("cut -c1-8 code.mem", "code.mem.MSB");
-systemFileCmd("cut -c9-16 code.mem", "code.mem.LSB");
+
+if ($XLEN==64) {
+  systemFileCmd("elf2hex  8  524288 $testName.elf 2147483648","code.mem");
+  systemFileCmd("cut -c1-8 code.mem", "code.mem.MSB");
+  systemFileCmd("cut -c9-16 code.mem", "code.mem.LSB");
+}
+else {
+  systemFileCmd("elf2hex  4  524288 $testName.elf 2147483648","code.mem");
+  systemFileCmd("cut -c1-8 code.mem", "code.mem.MSB");
+  systemFileCmd("cp code.mem code.mem.LSB")
+}
 
 if ($testSuite !~ /peripherals/) {
   if ($trace) {
-    systemFileCmd("spike -l --isa=RV64IMAFD $testName.elf 2>&1","$testName\_spike.trace");
+    systemFileCmd("spike -l --isa=RV$XLEN\IMAC $testName.elf 2>&1","$testName\_spike.trace");
   }
-  systemCmd("spike -c --isa=RV64IMAFD $testName.elf");
+  systemCmd("spike -c --isa=RV$XLEN\IMAC $testName.elf");
 }
-if ($simulator =~ /^bluespec$/) {
-  systemCmd("ln -s $shaktiHome/bin/out.so    out.so");
-}
-systemCmd("ln -s $shaktiHome/bin/out       out");
-#if (!(-e "$shaktiHome/bin/boot.MSB")) {
-#  systemFileCmd("cut -c1-8 $shaktiHome/verification/dts/boot.hex","$shaktiHome/bin/boot.MSB");
-#  systemFileCmd("cut -c9-16 $shaktiHome/verification/dts/boot.hex","$shaktiHome/bin/boot.LSB");
+#if ($simulator =~ /^bluespec$/) {
+#  systemCmd("ln -s $shaktiHome/bin/out.so    out.so");
 #}
-systemCmd("ln -s $shaktiHome/bin/boot.MSB    boot.MSB");
-systemCmd("ln -s $shaktiHome/bin/boot.LSB    boot.LSB");
-#systemCmd("ln -s $shaktiHome/bin/boot.3l   boot.3l");
-#systemCmd("ln -s $shaktiHome/bin/boot.2l   boot.2l");
-#systemCmd("ln -s $shaktiHome/bin/boot.1l   boot.1l");
-#systemCmd("ln -s $shaktiHome/bin/boot.0l   boot.0l");
-#systemCmd("ln -s $shaktiHome/bin/boot.3h   boot.3h");
-#systemCmd("ln -s $shaktiHome/bin/boot.2h   boot.2h");
-#systemCmd("ln -s $shaktiHome/bin/boot.1h   boot.1h");
-#systemCmd("ln -s $shaktiHome/bin/boot.0h   boot.0h");
-if ($simulator =~ /^ncverilog$/) {
-  systemCmd("ln -s $shaktiHome/bin/work work");
-  systemCmd("ln -s $shaktiHome/verilog/cds.lib cds.lib");
-  systemCmd("ln -s $shaktiHome/verilog/hdl.var hdl.var");
-  systemCmd("ln -s $shaktiHome/verilog/include include");
-}
-
+#systemCmd("ln -s $shaktiHome/bin/out       out");
+#systemCmd("ln -s $shaktiHome/bin/boot.MSB    boot.MSB");
+#systemCmd("ln -s $shaktiHome/bin/boot.LSB    boot.LSB");
+#if ($simulator =~ /^ncverilog$/) {
+#  systemCmd("ln -s $shaktiHome/bin/work work");
+#  systemCmd("ln -s $shaktiHome/verilog/cds.lib cds.lib");
+#  systemCmd("ln -s $shaktiHome/verilog/hdl.var hdl.var");
+#  systemCmd("ln -s $shaktiHome/verilog/include include");
+#}
+#if ($simulator =~ /^vcs$/) {
+#  systemCmd("ln -s /scratch/lavanya/c-class/bin/csrc csrc");
+#  systemCmd("ln -s /scratch/lavanya/c-class/bin/out.daidir out.daidir");
+#}
+systemCmd("ln -s $shaktiHome/bin/* .");
 
 if ($simulator =~ /^bluespec$/) {
   my $timeout="30m";
   if ($testSuite =~ /riscv-tests/) {
-    $timeout="10s";
+    $timeout="5m";
   }
   elsif ($testSuite =~ /riscv-torture/) {
-    $timeout="10m";
+    $timeout="30m";
   }
   systemFileCmd("timeout $timeout ./out -w","log.txt");
+}
+elsif ($testSuite =~ /peripherals.*smoke/ && $simulator =~ /^vcs$/) {
+    systemCmd("echo 53 > i2c.mem");
+    systemFileCmd("timeout 20m ./out -w","log.txt");
 }
 else {
   systemFileCmd("./out","log.txt");
 }
 my $result;
 
-if (!(-e "rtl.dump")) {
-  `touch FAILED`;
-   $result = "$testName.S | $test_suite | FAILED";
-}
-elsif (!(-e "spike.dump")) {
-  `touch FAILED`;
-   $result = "$testName.S | $test_suite | FAILED";
-}
-else {
-  my @diff = `diff rtl.dump spike.dump`;
+if ($testSuite =~ /peripherals.*smoke/) {
+  my @diff = `diff -w app_log $shaktiHome/verification/tests/$test_suite/app_log`;
   #print @diff;
   if (@diff) {
     `touch FAILED`;
@@ -267,7 +280,29 @@ else {
     $result = "$testName.S  | $test_suite | PASSED";
   }
 }
-systemFileCmd("sdiff -W rtl.dump spike.dump", "diff");
+else {
+  if (!(-e "rtl.dump")) {
+    `touch FAILED`;
+     $result = "$testName.S | $test_suite | FAILED";
+  }
+  elsif (!(-e "spike.dump")) {
+    `touch FAILED`;
+     $result = "$testName.S | $test_suite | FAILED";
+  }
+  else {
+    my @diff = `diff -w rtl.dump spike.dump`;
+    #print @diff;
+    if (@diff) {
+      `touch FAILED`;
+      $result = "$testName.S | $test_suite | FAILED";
+    }
+    else {
+      `touch PASSED`;
+      $result = "$testName.S  | $test_suite | PASSED";
+    }
+  }
+  systemFileCmd("sdiff -iW rtl.dump spike.dump", "diff");
+}
 doDebugPrint("---------------------------------------------\n");
 doPrint("testDir: $testDir\n");
 doPrint("$result\n");

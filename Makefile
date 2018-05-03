@@ -4,7 +4,7 @@
 include ./old_vars
 include soc_config.inc
 
-export SHAKTI_HOME=$$PWD
+export SHAKTI_E_HOME=$(PWD)
 TOP_MODULE:=mkTbSoC
 TOP_FILE:=TbSoC.bsv
 TOP_DIR:=./src/testbench
@@ -78,8 +78,12 @@ BSVOUTDIR:=./bin
 
 ########## BSIM COMLILE, LINK AND SIMULATE TARGETS #################################
 .PHONY: check-restore
-check-restore:
+check-restore: update_xlen
 	@if [ "$(define_macros)" != "$(old_define_macros)" ];	then	make clean ;	fi;
+
+.PHONY: update_xlen
+update_xlen:
+	@echo "XLEN=$(XLEN)" > verification/dts/Makefile.inc
 
 .PHONY:  compile_bluesim
 compile_bluesim: check-restore check-env
@@ -124,7 +128,7 @@ generate_verilog: check-restore check-env
 ifeq ($(SYNTH), SIM)
 		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/multiplier_sim_netlist.v\
   	./verilog/multiplier.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
-		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/divider/divider_sim_netlist.v\
+#		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/divider/divider_sim_netlist.v\
   	./verilog/divider.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
 endif
 	@echo Compilation finished
@@ -188,43 +192,53 @@ link_iverilog:
 
 .PHONY: ip_build
 ip_build: 
-	@vivado -mode tcl -notrace -source src/tcl/create_ip_project.tcl -tclargs $(FPGA) || (echo "Could \
+	vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_ip_project.tcl -tclargs $(FPGA) || (echo "Could \
 not create IP project"; exit 1)
-	@vivado -mode tcl -notrace -source src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES) ||\
+	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES) ||\
 (echo "Could not create Multiplier IP"; exit 1)
-	@vivado -mode tcl -notrace -source src/tcl/create_divider.tcl -tclargs $(XLEN) $(DIVSTAGES) ||\
+#	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_divider.tcl -tclargs $(XLEN) $(DIVSTAGES) ||\
 (echo "Could not create Divider IP"; exit 1)
 
 .PHONY: vivado_build
 vivado_build: 
-	@vivado -mode tcl -source src/tcl/create_project.tcl -tclargs $(TOP_MODULE) $(FPGA) || (echo "Could \
+	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/create_project.tcl -tclargs $(TOP_MODULE) $(FPGA) || (echo "Could \
 not create core project"; exit 1)
-	@vivado -mode tcl -source src/tcl/run.tcl || (echo "ERROR: While running synthesis")
+	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/run.tcl || (echo "ERROR: While running synthesis")
 
 .PHONY: regress 
-regress: compile_bluesim link_bluesim generate_boot_files 
-	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeRegress.pl $(opts)
+regress:
+	@test -s $(SHAKTI_E_HOME)/bin/out || { echo "Executable not available"; exit 1; }
+	@test -s $(SHAKTI_E_HOME)/bin/boot.LSB || { echo "Boot files missing"; exit 1; }
+	SHAKTI_E_HOME=$$PWD perl -I$(SHAKTI_E_HOME)/verification/scripts $(SHAKTI_E_HOME)/verification/scripts/makeRegress.pl $(opts)
 
 .PHONY: test
-test: compile_bluesim link_bluesim generate_boot_files 
-	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeTest.pl $(opts)
+test: 
+	@test -s $(SHAKTI_E_HOME)/bin/out || { echo "Executable not available"; exit 1; }
+	@test -s $(SHAKTI_E_HOME)/bin/boot.LSB || { echo "Boot files missing"; exit 1; }
+	SHAKTI_E_HOME=$$PWD perl -I$(SHAKTI_E_HOME)/verification/scripts $(SHAKTI_E_HOME)/verification/scripts/makeTest.pl $(opts)
 
 .PHONY: torture
-torture: compile_bluesim link_bluesim generate_boot_files 
-	SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/scripts $(SHAKTI_HOME)/verification/scripts/makeTorture.pl $(opts)
+torture: 
+	@test -s $(SHAKTI_E_HOME)/bin/out || { echo "Executable not available"; exit 1; }
+	@test -s $(SHAKTI_E_HOME)/bin/boot.LSB || { echo "Boot files missing"; exit 1; }
+	SHAKTI_E_HOME=$$PWD perl -I$(SHAKTI_E_HOME)/verification/scripts $(SHAKTI_E_HOME)/verification/scripts/makeTorture.pl $(opts)
 
 
 .PHONY: generate_boot_files
 generate_boot_files:
 	@mkdir -p bin
-	@cd verification/dts/; make create_hex;
+	@cd verification/dts/; make;
 	@cut -c1-8 verification/dts/boot.hex > bin/boot.MSB
-	@cut -c9-16 verification/dts/boot.hex > bin/boot.LSB
+	@if [ "$(XLEN)" = "64" ]; then\
+	  cut -c9-16 verification/dts/boot.hex > bin/boot.LSB;\
+    else cp bin/boot.MSB bin/boot.LSB;\
+  fi
 
 .PHONY: clean
 clean:
 	rm -rf $(BSVBUILDDIR) *.log $(BSVOUTDIR)
 	rm -f *.jou rm *.log
+	rm -rf verification/workdir/*
 
 clean_verilog: clean 
 	rm -rf verilog/

@@ -36,20 +36,9 @@ package common_types;
 	`else
 		typedef 32 XLEN;
 	`endif
-	typedef 128 XLEN_2;
-	typedef Bit#(XLEN) Data;
-	typedef Bit#(XLEN_2) Data_2;
-	typedef Int #(XLEN) Data_S;   // Signed register data
-	typedef UInt#(XLEN) Data_U;
 	typedef 32 PADDR ;
 
 	typedef Bit #(3)  Funct3;
-	Funct3 f3_MUL     = 3'b000;     // 0
-	Funct3 f3_MULH    = 3'b001;     // 1
-	Funct3 f3_MULHSU  = 3'b010;     // 2
-	Funct3 f3_MULHU   = 3'b011;     // 3
-	Funct3 f3_DIV     = 3'b100;     // 4
-	Funct3 f3_DIVU    = 3'b101;     // 5
 
   // Define all enums here 
 	typedef enum {ALU, MEMORY, BRANCH, JAL, JALR, SYSTEM_INSTR `ifdef muldiv , MULDIV `endif }

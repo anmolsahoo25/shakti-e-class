@@ -51,30 +51,30 @@ set obj [get_filesets constrs_1]
 
 # generate all IP source code
 import_ip $ip_project_dir/manage_ip.srcs/sources_1/ip/multiplier/multiplier.xci
-import_ip $ip_project_dir/manage_ip.srcs/sources_1/ip/divider/divider.xci
+#import_ip $ip_project_dir/manage_ip.srcs/sources_1/ip/divider/divider.xci
 generate_target all [get_ips]
 
 # force create the synth_1 path (need to make soft link in Makefile)
 if {[string equal [get_runs -quiet core_synth_1] ""]} {
-    create_run -flow {Vivado Synthesis 2017} -part [lindex $argv 1] -strategy\
+    create_run -flow {Vivado Synthesis 2016} -part [lindex $argv 1] -strategy\
 "Vivado Synthesis Defaults" -constrset constrs_1 core_synth_1
 } else {
     set_property strategy "Vivado Synthesis Defaults" [get_runs core_synth_1]
-    set_property flow "Vivado Synthesis 2017" [get_runs core_synth_1]
+    set_property flow "Vivado Synthesis 2016" [get_runs core_synth_1]
 }
 # do not flatten design
-set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs core_synth_1]
+#set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs core_synth_1]
 
 current_run -synthesis [get_runs core_synth_1]
 #et_property strategy Flow_PerfOptimized_high [get_runs core_synth_1]
 
 # Create 'impl_1' run (if not found)
 if {[string equal [get_runs -quiet core_impl_1] ""]} {
-  create_run -part [lindex $argv 1] -flow {Vivado Implementation 2017} -strategy\
+  create_run -part [lindex $argv 1] -flow {Vivado Implementation 2016} -strategy\
  "Vivado Implementation Defaults" -constrset constrs_1 -parent_run core_synth_1 core_impl_1
 } else {
   set_property strategy "Vivado Implementation Defaults" [get_runs core_impl_1]
-  set_property flow "Vivado Implementation 2017" [get_runs core_impl_1]
+  set_property flow "Vivado Implementation 2016" [get_runs core_impl_1]
 }
 set obj [get_runs core_impl_1]
 set_property -name "part" -value [lindex $argv 1] -objects $obj

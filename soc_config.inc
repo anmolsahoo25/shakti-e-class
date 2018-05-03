@@ -1,4 +1,4 @@
-ISA=RV64IM
+ISA=RV64I
 MUL=sequential
 PERF=enable
 VERBOSE=disable

@@ -20,3 +20,7 @@ verification/workdir/
 *.log
 
 fpga/
+
+verification/dts/Makefile\.inc
+
+verification/dts/shakti\.dts

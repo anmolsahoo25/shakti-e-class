@@ -57,6 +57,8 @@ package opfetch_execute_stage;
     interface Get#(MemoryRequest) memory_request;
   
     method Action flush_from_wb(Bool fl);
+    `ifdef RV64 method Action inferred_xlen (Bool xlen); `endif // False-32bit,  True-64bit 
+    method Action csr_updated (Bool upd);
   endinterface:Ifc_opfetch_execute_stage
   
   (*synthesize*)
@@ -71,6 +73,20 @@ package opfetch_execute_stage;
     Reg#(Bit#(1)) rg_epoch[2] <- mkCReg(2,0);
     Wire#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
+
+    // If a CSR operation is detected then you need to stall fetching operands from the regfile
+    // untill the csr instruction has been committed. the forwarding path from the csr operation to
+    // the ALU is huge. This way we break the path and neither flush the entire pipe.
+    // Flushing the entire pipe will lead to fetching the same instruction again.
+    // However,  if we do add csrs which affect how an instruction is fetched (protection,  etc)
+    // then the entire pipe will have to flushed. 
+    // There does exist mechanism in the last stage to flush pipe on a trap. in case a full flush is
+    // required,  that particular method should be excited.
+    Reg#(Bool) rg_csr_stall <- mkReg(False);
+
+    `ifdef RV64
+      Wire#(Bool) wr_xlen <-mkWire();
+    `endif
 
     `ifdef MULDIV
       Ifc_alu alu <-mkalu;
@@ -98,6 +114,15 @@ package opfetch_execute_stage;
       if(((rs1_addr == rd && rs1_addr!=0) || (rs2_addr == rd && rs2_addr !=0))
             && !valid && rd!=0)
         operands_avail=False;
+
+      `ifdef RV64
+        // in 64-bit mode is you want to run 32-bit binaries you will have to set MXL/UXL to 1.
+        // This will cause the operands to be 32-bit sign-extended when you read/write them
+        if(!wr_xlen) begin
+          rs1=signExtend(rs1[31:0]);
+          rs2=signExtend(rs2[31:0]);
+        end
+      `endif
       return tuple3(rs1,rs2,operands_avail);
     endfunction
 
@@ -116,7 +141,7 @@ package opfetch_execute_stage;
     RX#(PIPE1_DS) rx<-mkRX;
     TX#(PIPE2_DS) tx<-mkTX;
   
-    rule fetch_execute_pass(!initialize && !rg_stall);
+    rule fetch_execute_pass(!initialize `ifdef MULDIV && !rg_stall `endif && !rg_csr_stall);
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
                                         pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
@@ -162,8 +187,13 @@ package opfetch_execute_stage;
           if(committype == MEMORY &&& trap matches tagged None)
             ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
-
+          if(committype==SYSTEM_INSTR)begin
+            $display($time, "STAGE2: Making CSR STALL TRUE");
+            rg_csr_stall<= True;
+          end
         `ifdef MULDIV 
+          if(verbosity>1)
+            $display($time, "\tSTAGE2: CommitType: ", fshow(committype), " done: %b", done);
           if(done) begin 
             rx.u.deq;
             `ifdef simulate
@@ -173,6 +203,8 @@ package opfetch_execute_stage;
             `endif
           end
           else begin
+            if(verbosity>1)
+              $display($time, "\tSTAGE2: Setting Stall to True");
             rg_stall<= True;
           end
         `else
@@ -196,7 +228,7 @@ package opfetch_execute_stage;
       rule capture_stalled_output(rg_stall);
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
                                         pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
-        let {committype, op1_reslt, effaddr_csrdata} = alu.delayed_output;
+        let {committype, op1_reslt, effaddr_csrdata} <- alu.delayed_output;
         `ifdef simulate
           tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
         `else
@@ -227,6 +259,10 @@ package opfetch_execute_stage;
         let {rd,value} = from_mem_to_rf;
         if(verbosity!=0)
           $display($time, "\tSTAGE2: Commiting Rd: %d, Data: %h", rd, value);
+        `ifdef RV64
+          if(!wr_xlen)
+            value=signExtend(value[31:0]);
+        `endif
         if(rd!=0)
           integer_rf.upd(rd,value);
       endmethod
@@ -246,6 +282,17 @@ package opfetch_execute_stage;
         rg_epoch[1]<=~rg_epoch[1];
         if(verbosity>1)
           $display($time, "\tSTAGE2: Received Flush");
+      end
+    endmethod
+    `ifdef RV64 
+      method Action inferred_xlen (Bool xlen); 
+        wr_xlen<= xlen;
+      endmethod  
+    `endif // False-32bit,  True-64bit 
+    method Action csr_updated (Bool upd) if(rg_csr_stall);
+      if(upd) begin
+        $display($time, "STAGE2: Making SCR STALL FALSE");
+        rg_csr_stall<= False;
       end
     endmethod
   endmodule:mkopfetch_execute_stage

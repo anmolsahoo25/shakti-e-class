@@ -51,9 +51,11 @@ package mem_wb_stage;
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
+    method Bool csr_updated;
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
+    `ifdef RV64 method Bool inferred_xlen; `endif // False-32bit,  True-64bit 
   endinterface:Ifc_mem_wb_stage
 
   (*synthesize*)
@@ -61,6 +63,7 @@ package mem_wb_stage;
 
     RX#(PIPE2_DS) rx<-mkRX;
     Ifc_csr csr <- mkcsr();
+    Wire#(Bool) wr_csr_updated <- mkDWire(False);
 
     // wire that captures the response coming from the external memory or cache.
     Wire#(Maybe#(Tuple3#(Bit#(XLEN), Bool,  Access_type))) wr_memory_response <- mkDWire(tagged Invalid);
@@ -150,12 +153,12 @@ package mem_wb_stage;
           else
             dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, dest));
           `endif
-          wr_operand_fwding <= tuple3(rd, True, dest);
           wr_commit <= tagged Valid (tuple2(rd, dest));
           rx.u.deq;
         end
         else begin
           // in case of regular instruction simply update RF and forward the data.
+          $display($time, "\tSTAGE3: Commiting PC: %h", pc);
           wr_operand_fwding <= tuple3(rd, True, reslt);
           wr_commit <= tagged Valid (tuple2(rd, reslt));
           rx.u.deq;
@@ -166,8 +169,11 @@ package mem_wb_stage;
         
         // if it is a branch/JAL_R instruction generate a flush signal to the pipe. 
         wr_flush<=tuple2(jump_address, (fl==Flush));
-        if(fl==Flush)
+        if(fl==Flush)begin
           rg_epoch <= ~rg_epoch;
+        end
+        if(fl==Flush || committype==SYSTEM_INSTR)
+          wr_csr_updated<= True;
 
       end
       else begin
@@ -203,6 +209,7 @@ package mem_wb_stage;
 
     method flush=wr_flush;
     method csrs_to_decode = csr.csrs_to_decode;
+    method Bool csr_updated = wr_csr_updated;
 
 	  method Action clint_msip(Bit#(1) intrpt);
       csr.clint_msip(intrpt);
@@ -224,5 +231,6 @@ package mem_wb_stage;
         endmethod
       endinterface;
     `endif
+    `ifdef RV64 method Bool inferred_xlen = csr.inferred_xlen; `endif // False-32bit,  True-64bit 
   endmodule:mkmem_wb_stage
 endpackage:mem_wb_stage

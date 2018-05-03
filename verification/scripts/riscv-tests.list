@@ -50,25 +50,6 @@ amoor_w		    directed/riscv-tests/isa/rv64ua			  p
 amoxor_w	    directed/riscv-tests/isa/rv64ua			  p					
 amoswap_w     directed/riscv-tests/isa/rv64ua			  p						
 lrsc 			    directed/riscv-tests/isa/rv64ua			  p			
-amoadd_d      directed/riscv-tests/isa/rv64ua    	  v								
-amoand_d	    directed/riscv-tests/isa/rv64ua			  v					
-amomax_d	    directed/riscv-tests/isa/rv64ua			  v					
-amomaxu_d	    directed/riscv-tests/isa/rv64ua			  v					
-amomin_d	    directed/riscv-tests/isa/rv64ua			  v					
-amominu_d	    directed/riscv-tests/isa/rv64ua			  v					
-amoor_d		    directed/riscv-tests/isa/rv64ua			  v				
-amoxor_d	    directed/riscv-tests/isa/rv64ua			  v					
-amoswap_d     directed/riscv-tests/isa/rv64ua			  v						
-amoadd_w	    directed/riscv-tests/isa/rv64ua			  v					
-amoand_w	    directed/riscv-tests/isa/rv64ua			  v					
-amomax_w	    directed/riscv-tests/isa/rv64ua			  v					
-amomaxu_w	    directed/riscv-tests/isa/rv64ua			  v					
-amomin_w	    directed/riscv-tests/isa/rv64ua			  v					
-amominu_w	    directed/riscv-tests/isa/rv64ua			  v					
-amoor_w		    directed/riscv-tests/isa/rv64ua			  v				
-amoxor_w	    directed/riscv-tests/isa/rv64ua			  v					
-amoswap_w     directed/riscv-tests/isa/rv64ua			  v						
-lrsc 			    directed/riscv-tests/isa/rv64ua			  v			
 
 # ------------------------------------------------------------------------------------
 # rv64uc tests
@@ -90,17 +71,6 @@ ldst				  directed/riscv-tests/isa/rv64ud         p
 move				  directed/riscv-tests/isa/rv64ud         p		
 structural	  directed/riscv-tests/isa/rv64ud         p					
 recoding		  directed/riscv-tests/isa/rv64ud         p				
-fadd          directed/riscv-tests/isa/rv64ud         v  						
-fdiv				  directed/riscv-tests/isa/rv64ud         v		
-fclass			  directed/riscv-tests/isa/rv64ud         v			
-fcmp				  directed/riscv-tests/isa/rv64ud         v		
-fcvt				  directed/riscv-tests/isa/rv64ud         v		
-fcvt_w			  directed/riscv-tests/isa/rv64ud         v			
-fmadd				  directed/riscv-tests/isa/rv64ud         v		
-ldst				  directed/riscv-tests/isa/rv64ud         v		
-move				  directed/riscv-tests/isa/rv64ud         v		
-structural	  directed/riscv-tests/isa/rv64ud         v					
-recoding		  directed/riscv-tests/isa/rv64ud         v				
 
 # ------------------------------------------------------------------------------------
 # rv64uf tests
@@ -115,16 +85,6 @@ fmadd				  directed/riscv-tests/isa/rv64uf         p
 ldst				  directed/riscv-tests/isa/rv64uf         p		
 move				  directed/riscv-tests/isa/rv64uf         p		
 recoding		  directed/riscv-tests/isa/rv64uf         p				
-fadd          directed/riscv-tests/isa/rv64uf         v  						
-fdiv				  directed/riscv-tests/isa/rv64uf         v		
-fclass			  directed/riscv-tests/isa/rv64uf         v			
-fcmp				  directed/riscv-tests/isa/rv64uf         v		
-fcvt				  directed/riscv-tests/isa/rv64uf         v		
-fcvt_w			  directed/riscv-tests/isa/rv64uf         v			
-fmadd				  directed/riscv-tests/isa/rv64uf         v		
-ldst				  directed/riscv-tests/isa/rv64uf         v		
-move				  directed/riscv-tests/isa/rv64uf         v		
-recoding		  directed/riscv-tests/isa/rv64uf         v				
 
 # ------------------------------------------------------------------------------------
 # rv64ui tests
@@ -180,57 +140,6 @@ sub					  directed/riscv-tests/isa/rv64ui         p
 subw 				  directed/riscv-tests/isa/rv64ui         p	
 xor					  directed/riscv-tests/isa/rv64ui         p
 xori 				  directed/riscv-tests/isa/rv64ui         p	
-add 	        directed/riscv-tests/isa/rv64ui         v  											
-addi				  directed/riscv-tests/isa/rv64ui         v									
-addiw				  directed/riscv-tests/isa/rv64ui         v									
-addw 				  directed/riscv-tests/isa/rv64ui         v									
-and					  directed/riscv-tests/isa/rv64ui         v								
-andi 				  directed/riscv-tests/isa/rv64ui         v									
-auipc 			  directed/riscv-tests/isa/rv64ui         v										
-beq					  directed/riscv-tests/isa/rv64ui         v								
-bge					  directed/riscv-tests/isa/rv64ui         v								
-bgeu				  directed/riscv-tests/isa/rv64ui         v									
-blt					  directed/riscv-tests/isa/rv64ui         v								
-bltu				  directed/riscv-tests/isa/rv64ui         v									
-bne 				  directed/riscv-tests/isa/rv64ui         v									
-simple 			  directed/riscv-tests/isa/rv64ui         v										
-fence_i 		  directed/riscv-tests/isa/rv64ui         v											
-jal           directed/riscv-tests/isa/rv64ui         v
-jalr 		      directed/riscv-tests/isa/rv64ui         v											
-lb					  directed/riscv-tests/isa/rv64ui         v								
-lbu					  directed/riscv-tests/isa/rv64ui         v								
-lh					  directed/riscv-tests/isa/rv64ui         v								
-lhu					  directed/riscv-tests/isa/rv64ui         v								
-lw					  directed/riscv-tests/isa/rv64ui         v								
-lwu					  directed/riscv-tests/isa/rv64ui         v								
-ld 					  directed/riscv-tests/isa/rv64ui         v								
-lui 				  directed/riscv-tests/isa/rv64ui         v									
-or					  directed/riscv-tests/isa/rv64ui         v								
-ori 				  directed/riscv-tests/isa/rv64ui         v									
-sb					  directed/riscv-tests/isa/rv64ui         v								
-sh					  directed/riscv-tests/isa/rv64ui         v								
-sw					  directed/riscv-tests/isa/rv64ui         v								
-sd 					  directed/riscv-tests/isa/rv64ui         v								
-sll					  directed/riscv-tests/isa/rv64ui         v								
-slli				  directed/riscv-tests/isa/rv64ui         v									
-slliw				  directed/riscv-tests/isa/rv64ui         v									
-sllw 				  directed/riscv-tests/isa/rv64ui         v									
-slt					  directed/riscv-tests/isa/rv64ui         v								
-slti				  directed/riscv-tests/isa/rv64ui         v									
-sltiu				  directed/riscv-tests/isa/rv64ui         v									
-sltu 				  directed/riscv-tests/isa/rv64ui         v									
-sra					  directed/riscv-tests/isa/rv64ui         v								
-srai				  directed/riscv-tests/isa/rv64ui         v									
-sraiw				  directed/riscv-tests/isa/rv64ui         v									
-sraw 				  directed/riscv-tests/isa/rv64ui         v									
-srl					  directed/riscv-tests/isa/rv64ui         v								
-srli				  directed/riscv-tests/isa/rv64ui         v									
-srliw				  directed/riscv-tests/isa/rv64ui         v									
-srlw 				  directed/riscv-tests/isa/rv64ui         v									
-sub					  directed/riscv-tests/isa/rv64ui         v
-subw 				  directed/riscv-tests/isa/rv64ui         v	
-xor					  directed/riscv-tests/isa/rv64ui         v
-xori 				  directed/riscv-tests/isa/rv64ui         v	
 
 # ------------------------------------------------------------------------------------
 # rv64um tests

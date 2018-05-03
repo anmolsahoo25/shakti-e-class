@@ -28,8 +28,8 @@
 #
 #!/usr/bin/perl
 
-if (defined $ENV{'SHAKTI_HOME'}) {
-  my $home = $ENV{'SHAKTI_HOME'};
+if (defined $ENV{'SHAKTI_E_HOME'}) {
+  my $home = $ENV{'SHAKTI_E_HOME'};
   
   chdir($home);
   my @out = `git log -1 --pretty=format:"%h"`;
@@ -42,6 +42,6 @@ if (defined $ENV{'SHAKTI_HOME'}) {
   }
 }
 else {
-  print "ERROR: SHAKTI_HOME not defined\n";
+  print "ERROR: SHAKTI_E_HOME not defined\n";
   exit(1);
 }
