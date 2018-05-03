@@ -243,8 +243,6 @@ package decode;
 				default:{1'b0,funct3};
 			endcase;
 		end
-		else if(opcode[4:3]=='b10)
-			fn=opcode[3:0];
 
 		Bool address_is_valid=address_valid(inst[31:20]);
 		Bool access_is_valid=valid_csr_access(inst[31:20],inst[19:15], inst[13:12], prv);
