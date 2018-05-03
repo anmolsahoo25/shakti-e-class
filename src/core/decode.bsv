@@ -179,8 +179,8 @@ package decode;
 		//need to be edited according to the supported instruction
 
     `ifdef RV64
-  		if(opcode==`IMM_ARITHW_op || opcode==`MULDIVW_op ||  opcode==`ARITHW_op ||
-          (opcode[4:3]=='b10 && funct7[0]==0)|| (opcode[4:1]=='b0101 && funct3[0]==0)) 
+  		if(opcode==`IMM_ARITHW_op `ifdef muldiv || opcode==`MULDIVW_op `endif || opcode==`ARITHW_op ||
+          (opcode[4:1]=='b0101 && funct3[0]==0)) 
       	word32=True;
     `endif
     			
@@ -198,7 +198,14 @@ package decode;
       case (opcode[2:0])  
          'b000:inst_type=MEMORY; // STORE
          'b101:inst_type=ALU;      // LUI 
-         'b100,'b110:inst_type=(funct7[0]==1)?MULDIV:ALU; 
+         'b100,'b110: begin 
+            if(funct7[0]==0)
+              inst_type=ALU;
+            `ifdef muldiv 
+              else
+                inst_type=MULDIV; 
+            `endif
+          end
       endcase 
     end 
     else if(opcode[4:3]=='b00)begin
