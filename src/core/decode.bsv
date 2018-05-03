@@ -250,6 +250,10 @@ package decode;
       exception = tagged Exception Inst_addr_misaligned;
     else if(err)
       exception = tagged Exception Inst_access_fault;
+    else if( `ifdef atomic (inst_type==MEMORY && mem_access==Atomic && misa[0]==0) || `endif 
+             `ifdef muldiv (inst_type==MULDIV && misa[12]==0) || `endif
+             (inst_type==ALU && misa[8]==0) )
+      exception=tagged Exception Illegal_inst; 
     else if(inst_type == SYSTEM_INSTR)begin
       if(funct3 == 0)
         case(inst[31:20])
