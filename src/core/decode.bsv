@@ -311,9 +311,7 @@ package decode;
 
 		Bool address_is_valid=address_valid(inst[31:20]);
 		Bool access_is_valid=valid_csr_access(inst[31:20],inst[19:15], inst[13:12], prv);
-    if(pc[1:0]!=0)
-      exception = tagged Exception Inst_addr_misaligned;
-    else if(err)
+    if(err)
       exception = tagged Exception Inst_access_fault;
     else if( `ifdef atomic (inst_type==MEMORY && mem_access==Atomic && misa[0]==0) || `endif 
              `ifdef muldiv (inst_type==MULDIV && misa[12]==0) || `endif
