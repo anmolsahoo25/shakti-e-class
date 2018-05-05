@@ -50,6 +50,7 @@ package csr;
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     method Action incr_minstret;
+    method Bool interrupt;
     `ifdef RV64 method Bool inferred_xlen; `endif // False-32bit,  True-64bit 
   endinterface:Ifc_csr
 
@@ -130,5 +131,6 @@ package csr;
     endmethod
     method incr_minstret=csrfile.incr_minstret;
     `ifdef RV64 method inferred_xlen = csrfile.inferred_xlen; `endif // False-32bit,  True-64bit 
+    method  interrupt=csrfile.interrupt;
   endmodule
 endpackage

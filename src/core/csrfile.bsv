@@ -47,6 +47,7 @@ package csrfile;
     method ActionValue#(Bit#(PADDR)) upd_on_trap(`ifdef USERTRAPS Privilege_mode prv, `endif 
                                                   Bit#(6) cause, Bit#(PADDR) pc, Bit#(PADDR) tval);
     method Action incr_minstret;
+    method Bool interrupt;
     `ifdef RV64 method Bool inferred_xlen; `endif // False-32bit,  True-64bit 
   endinterface
 
@@ -501,5 +502,6 @@ package csrfile;
           return unpack(rg_uxl[1]);
       endmethod
     `endif
+    method interrupt = unpack(|(csr_mie&csr_mip));
   endmodule
 endpackage

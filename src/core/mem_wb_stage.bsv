@@ -52,6 +52,7 @@ package mem_wb_stage;
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     method Bool csr_updated;
+    method Bool interrupt;
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
@@ -232,5 +233,6 @@ package mem_wb_stage;
       endinterface;
     `endif
     `ifdef RV64 method Bool inferred_xlen = csr.inferred_xlen; `endif // False-32bit,  True-64bit 
+    method  interrupt=csr.interrupt;
   endmodule:mkmem_wb_stage
 endpackage:mem_wb_stage
