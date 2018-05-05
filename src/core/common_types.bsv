@@ -41,7 +41,7 @@ package common_types;
 	typedef Bit #(3)  Funct3;
 
   // Define all enums here 
-	typedef enum {ALU, MEMORY, BRANCH, JAL, JALR, SYSTEM_INSTR `ifdef muldiv , MULDIV `endif }
+	typedef enum {ALU, MEMORY, BRANCH, JAL, JALR, SYSTEM_INSTR, WFI `ifdef muldiv , MULDIV `endif }
       Instruction_type deriving(Bits, Eq, FShow); // the type of the decoded instruction.
 	typedef enum {Load=0, Store=1} Access_type deriving (Bits, Eq, FShow);
 	typedef enum {Flush= 1, None= 0} Flush_type deriving (Bits, Eq, FShow);
