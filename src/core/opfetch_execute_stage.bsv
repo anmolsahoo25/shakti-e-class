@@ -161,6 +161,7 @@ package opfetch_execute_stage;
       if(insttype==MEMORY || insttype==JALR)
         op3=truncate(op1);
 
+      // TODO put the following in the above function
       if(rs1_type==PC)
         op1=zeroExtend(pc);
 

@@ -78,6 +78,7 @@ package fetch_decode_stage;
 			method Action put (Tuple2#(Bit#(32),Bool) resp);
         let {inst,err}=resp;
 			  PIPE1_DS x= decoder_func(inst,shadow_pc,shadow_epoch, err, wr_csr);
+        // TODO WFI
         if(verbosity!=0)
           $display($time, "\tSTAGE1: PC: %h Inst: %h, Err: %b Epoch: %b", shadow_pc, inst, err, 
               shadow_epoch);
