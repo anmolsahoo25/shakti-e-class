@@ -81,6 +81,9 @@ package riscv;
     rule indicate_csr_over;
       stage2.csr_updated(stage3.csr_updated);
     endrule
+    rule indicate_interrupt_for_wfi;
+      stage2.interrupt(stage3.interrupt);
+    endrule
 
     rule flush_from_writeback;
       let {newpc, fl}=stage3.flush;

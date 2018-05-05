@@ -59,12 +59,16 @@ package opfetch_execute_stage;
     method Action flush_from_wb(Bool fl);
     `ifdef RV64 method Action inferred_xlen (Bool xlen); `endif // False-32bit,  True-64bit 
     method Action csr_updated (Bool upd);
+    method Action interrupt(Bool i);
   endinterface:Ifc_opfetch_execute_stage
   
   (*synthesize*)
   module mkopfetch_execute_stage(Ifc_opfetch_execute_stage);
 
     let verbosity = `VERBOSITY;
+
+    Wire#(Bool) wr_interrupt<-mkWire();
+    Reg#(Bool) rg_wfi <- mkReg(False);
      
     // generating the register file
     RegFile#(Bit#(5),Bit#(XLEN)) integer_rf <-mkRegFileWCF(0,31);
@@ -94,21 +98,31 @@ package opfetch_execute_stage;
     `endif
   
     function (Tuple3#(Bit#(XLEN),Bit#(XLEN),Bool)) operand_provider(Bit#(5) rs1_addr, Operand1_type 
-               rs1_type, Bit#(5) rs2_addr, Operand2_type rs2_type);
+               rs1_type, Bit#(5) rs2_addr, Operand2_type rs2_type, Bit#(PADDR) pc, Bit#(32) imm);
      
       let {rd,valid,rd_value}=wr_opfwding;
       Bit#(XLEN) rs1=0;
       Bit#(XLEN) rs2=0;
     
-      if(rs1_addr == rd)
+      if(rs1_type==PC)
+        rs1=zeroExtend(pc);
+      else if(rs1_addr == rd)
         rs1=rd_value;
       else
         rs1=integer_rf.sub(rs1_addr);
 
-      if(rs2_addr == rd)
+      if(rs2_type==Constant4)
+        rs2='d4;
+      else if(rs2_type==Immediate)
+        rs2=signExtend(imm);
+      else if(rs2_addr == rd)
         rs2 = rd_value;
       else
         rs2=integer_rf.sub(rs2_addr);
+      
+      // TODO put the following in the above function
+
+
 
       Bool operands_avail=True;
       if(((rs1_addr == rd && rs1_addr!=0) || (rs2_addr == rd && rs2_addr !=0))
@@ -140,8 +154,13 @@ package opfetch_execute_stage;
     // TXRX interface instantiation
     RX#(PIPE1_DS) rx<-mkRX;
     TX#(PIPE2_DS) tx<-mkTX;
+
+    rule resume_from_wfi(rg_wfi && wr_interrupt);
+      rg_wfi<= False;
+    endrule
   
-    rule fetch_execute_pass(!initialize `ifdef MULDIV && !rg_stall `endif && !rg_csr_stall);
+    rule fetch_execute_pass(!initialize `ifdef MULDIV && !rg_stall `endif && !rg_csr_stall &&
+    !rg_wfi);
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
                                         pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
@@ -155,20 +174,11 @@ package opfetch_execute_stage;
       end
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
-      let {op1, op2, available}=operand_provider(rs1, rs1_type, rs2, rs2_type);
+      let {op1, op2, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, imm);
       // Muxing the right value into the operands
       Bit#(PADDR) op3=pc;
       if(insttype==MEMORY || insttype==JALR)
         op3=truncate(op1);
-
-      // TODO put the following in the above function
-      if(rs1_type==PC)
-        op1=zeroExtend(pc);
-
-      if(rs2_type==Constant4)
-        op2='d4;
-      else if(rs2_type==Immediate)
-        op2=signExtend(imm);
 
       if(verbosity!=0)
         $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
@@ -197,11 +207,14 @@ package opfetch_execute_stage;
             $display($time, "\tSTAGE2: CommitType: ", fshow(committype), " done: %b", done);
           if(done) begin 
             rx.u.deq;
-            `ifdef simulate
-              tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
-            `else
-              tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
-            `endif
+            if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
+              rg_wfi<= True;
+              `ifdef simulate
+                tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
+              `else
+                tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
+              `endif
+            end
           end
           else begin
             if(verbosity>1)
@@ -210,11 +223,14 @@ package opfetch_execute_stage;
           end
         `else
           rx.u.deq;
-          `ifdef simulate
-            tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
-          `else
-            tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
-          `endif
+          if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
+            rg_wfi<= True;
+            `ifdef simulate
+              tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
+            `else
+              tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
+            `endif
+          end
         `endif
         end
       end
@@ -295,6 +311,9 @@ package opfetch_execute_stage;
         $display($time, "STAGE2: Making SCR STALL FALSE");
         rg_csr_stall<= False;
       end
+    endmethod
+    method Action interrupt(Bool i);
+      wr_interrupt<= i;
     endmethod
   endmodule:mkopfetch_execute_stage
 endpackage:opfetch_execute_stage
