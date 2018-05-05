@@ -218,8 +218,8 @@ package decode;
 		//need to be edited according to the supported instruction
 
     `ifdef RV64
-  		if(opcode==`IMM_ARITHW_op || opcode==`MULDIVW_op ||  opcode==`ARITHW_op ||
-          (opcode[4:3]=='b10 && funct7[0]==0)|| (opcode[4:1]=='b0101 && funct3[0]==0)) 
+  		if(opcode==`IMM_ARITHW_op `ifdef muldiv || opcode==`MULDIVW_op `endif || opcode==`ARITHW_op ||
+          (opcode[4:1]=='b0101 && funct3[0]==0)) 
       	word32=True;
     `endif
     			
@@ -237,7 +237,14 @@ package decode;
       case (opcode[2:0])  
          'b000: `ifdef RV32 if(funct3!='b011) `endif inst_type=MEMORY; // STORE
          'b101:inst_type=ALU;      // LUI 
-         'b100,'b110:inst_type=(funct7[0]==1)?MULDIV:ALU; 
+         'b100,'b110: begin 
+            if(funct7[0]==0)
+              inst_type=ALU;
+            `ifdef muldiv 
+              else
+                inst_type=MULDIV; 
+            `endif
+          end
       endcase 
     end 
     else if(opcode[4:3]=='b00)begin
@@ -275,8 +282,6 @@ package decode;
 				default:{1'b0,funct3};
 			endcase;
 		end
-		else if(opcode[4:3]=='b10)
-			fn=opcode[3:0];
 
 		Bool address_is_valid=address_valid(inst[31:20]);
 		Bool access_is_valid=valid_csr_access(inst[31:20],inst[19:15], inst[13:12], prv);
@@ -284,6 +289,10 @@ package decode;
       exception = tagged Exception Inst_addr_misaligned;
     else if(err)
       exception = tagged Exception Inst_access_fault;
+    else if( `ifdef atomic (inst_type==MEMORY && mem_access==Atomic && misa[0]==0) || `endif 
+             `ifdef muldiv (inst_type==MULDIV && misa[12]==0) || `endif
+             (inst_type==ALU && misa[8]==0) )
+      exception=tagged Exception Illegal_inst; 
     else if(inst_type == SYSTEM_INSTR)begin
       if(funct3 == 0)
         case(inst[31:20])
