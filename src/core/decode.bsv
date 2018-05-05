@@ -37,6 +37,25 @@ package decode;
 	  
   function Bool address_valid(Bit#(12) csr_address);
 		case(csr_address[11:8])
+      `ifdef user
+        'h0: begin
+          if(csr_address[7:0]>'h00 && csr_address[7:0]<'h4)begin 
+            return False;
+          end
+          else if (csr_address[7:0]=='h00 || csr_address[7:0]=='h4 || csr_address[7:0]=='h5 ||
+          (csr_address[7:0]>='h40 && csr_address[7:0]<= 'h44)) begin
+            `ifndef usertraps  
+              return False;
+            `else
+              return True;
+            `endif
+          end
+          else if(csr_address[7:0]>'h5 && csr_address[7:0]<'h40)
+            return False;
+          else
+            return True;
+        end
+      `endif
 			'h3: begin // machine read-write registers
 				if((csr_address[7:0]>'h6 && csr_address[7:0]<'h23) || 
 				  (csr_address[7:0]>'h26 && csr_address[7:0]<'h40) ||
@@ -47,23 +66,31 @@ package decode;
 				else
 					return True;
 			end
+      `ifdef Debug
+        'h7:begin
+          if(csr_address[7:0]<'hA0 || (csr_address[7:0]>'hA3 && csr_address[7:0]<'hb0) ||
+              csr_address[7:0]>'hB2)
+            return False;
+          else
+            return True;
+        end
+      `endif
 			'hB:begin
-				if((csr_address[7:0]>'h6 && csr_address[7:0]<'h80 && csr_address[7:0]!='h20)||
-				 (csr_address[7:0]>'h86 && csr_address[7:0]<'hA0)||
-				 (csr_address[7:0]>'hA6))
-					return False;
-				else
-					return True;
-			end
-			'hC:begin
-				if((csr_address[7:0]>'h6 && csr_address[7:0]<'h83)|| 
-				 (csr_address[7:0]>'h86))
+				if( (csr_address[7:0]>('h2+ `Counters) `ifndef RV64 && csr_address[7:0]<'h80) ||
+             csr_address[7:0]>('h82+ `Counters)) `else )) `endif 
 					return False; 
 				else
 					return True;
 			end
-			'hF:begin
-				if(csr_address[7:0]<'h11 || csr_address[7:0]>'h15)
+			'hC:begin
+				if( (csr_address[7:0]>('h2+ `Counters) `ifndef RV64 && csr_address[7:0]<'h80) ||
+             csr_address[7:0]>('h82+ `Counters)) `else )) `endif 
+					return False; 
+				else
+					return True;
+			end
+			'hF:begin // MAchine MRO registers
+				if(csr_address[7:0]<'h11 || csr_address[7:0]>'h14)
 					return False;
 				else
 					return True;
@@ -91,7 +118,7 @@ package decode;
 		let pending_machine_interrupts = pending_interrupts & ~truncate(mideleg);
 		let machine_interrupts_enabled = (mie == 1) || (prv != Machine);
 		pending_interrupts =	(machine_interrupts_enabled ? pending_machine_interrupts : 0);
-
+    
 		// format pendingInterrupt value to return
 		Trap_type ret = tagged None;
 		if (pending_interrupts != 0) begin
@@ -101,12 +128,12 @@ package decode;
 	endfunction
 
   (*noinline*)
-  function PIPE1_DS decoder_func(Bit#(32) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch, Bool err, 
+  function PIPE1_DS decoder_func(Bit#(32) inst, Bit#(PADDR) pc, Bit#(1) epoch, Bool err, 
                                                                                CSRtoDecode csrs);
     let {prv, mip, csr_mie, mideleg, misa, counteren, mie}=csrs;
 
     Trap_type exception = tagged None;
-    Trap_type interrupt = chk_interrupt(prv, mip, csr_mie, mideleg, mie);
+    let interrupt = chk_interrupt(prv, mip, csr_mie, mideleg, mie);
 
 		Bit#(5) rs1=inst[19:15];
 		Bit#(5) rs2=inst[24:20];
@@ -115,7 +142,6 @@ package decode;
 		Bit#(3) funct3= inst[14:12];
     Bit#(7) funct7 = inst[31:25]; 
 		Bool word32 =False;
-		Bit#(PADDR) pc=shadow_pc;
     
 		//operand types
 		Operand1_type rs1type=IntegerRF;
