@@ -97,19 +97,24 @@ package opfetch_execute_stage;
       Reg#(Bool) rg_stall <- mkReg(False);
     `endif
   
-    function (Tuple3#(Bit#(XLEN),Bit#(XLEN),Bool)) operand_provider(Bit#(5) rs1_addr, Operand1_type 
-               rs1_type, Bit#(5) rs2_addr, Operand2_type rs2_type, Bit#(PADDR) pc, Bit#(32) imm);
+    function (Tuple4#(Bit#(XLEN),Bit#(XLEN),Bit#(PADDR), Bool)) operand_provider(Bit#(5) rs1_addr, 
+        Operand1_type rs1_type, Bit#(5) rs2_addr, Operand2_type rs2_type, Bit#(PADDR) pc, 
+        Instruction_type insttype, Bit#(32) imm);
      
       let {rd,valid,rd_value}=wr_opfwding;
+      Bit#(XLEN) rs1irf=(rs1_addr==rd)?rd_value:integer_rf.sub(rs1_addr);
       Bit#(XLEN) rs1=0;
       Bit#(XLEN) rs2=0;
-    
+      
       if(rs1_type==PC)
         rs1=zeroExtend(pc);
-      else if(rs1_addr == rd)
-        rs1=rd_value;
-      else
-        rs1=integer_rf.sub(rs1_addr);
+      else 
+        rs1=rs1irf;
+      
+      Bit#(PADDR) op3=pc;
+      if(insttype==MEMORY || insttype==JALR)
+        op3=truncate(rs1irf);
+    
 
       if(rs2_type==Constant4)
         rs2='d4;
@@ -137,7 +142,7 @@ package opfetch_execute_stage;
           rs2=signExtend(rs2[31:0]);
         end
       `endif
-      return tuple3(rs1,rs2,operands_avail);
+      return tuple4(rs1,rs2,op3,operands_avail);
     endfunction
 
   
@@ -174,11 +179,8 @@ package opfetch_execute_stage;
       end
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
-      let {op1, op2, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, imm);
+      let {op1, op2, op3, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, insttype, imm);
       // Muxing the right value into the operands
-      Bit#(PADDR) op3=pc;
-      if(insttype==MEMORY || insttype==JALR)
-        op3=truncate(op1);
 
       if(verbosity!=0)
         $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
@@ -208,13 +210,14 @@ package opfetch_execute_stage;
           if(done) begin 
             rx.u.deq;
             if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
-              rg_wfi<= True;
               `ifdef simulate
                 tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
               `else
                 tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
               `endif
             end
+            else
+              rg_wfi<= True;
           end
           else begin
             if(verbosity>1)
@@ -224,13 +227,14 @@ package opfetch_execute_stage;
         `else
           rx.u.deq;
           if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
-            rg_wfi<= True;
             `ifdef simulate
               tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
             `else
               tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
             `endif
           end
+          else
+            rg_wfi<= True;
         `endif
         end
       end
