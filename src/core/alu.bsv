@@ -98,6 +98,8 @@ package alu;
 		
     // generate the effective address to jump to 
 		Bit#(PADDR) effective_address=op3+ truncate(imm_value);
+    if(inst_type==JALR)
+      effective_address[0]=0;
 		`ifdef simulate
 			if(inst_type==BRANCH)
 				final_output=0;
