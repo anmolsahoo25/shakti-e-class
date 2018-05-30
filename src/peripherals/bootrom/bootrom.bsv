@@ -42,7 +42,7 @@ package bootrom;
 	import axi_addr_generator::*;
 
   interface UserInterface#(numeric type awidth,  numeric type dwidth);
-    method Action read_request (Bit#(awidth) addr,  Bit#(2) size);
+    method Action read_request (Bit#(awidth) addr);
     method Action write_request (Tuple3#(Bit#(awidth), Bit#(dwidth),  Bit#(TDiv#(dwidth, 8))) req);
     method ActionValue#(Tuple2#(Bool, Bit#(dwidth))) read_response;
     method ActionValue#(Bool) write_response;
@@ -76,7 +76,7 @@ package bootrom;
     endmethod
   
     // capture a read_request and latch the address on a BRAM.
-    method Action read_request (Bit#(awidth) addr,  Bit#(2) size);
+    method Action read_request (Bit#(awidth) addr);
   	  Bit#(13) index_address=(addr-(base_address))[byte_offset+ 13:byte_offset+1];
   		dmemLSB.put(False, index_address, ?);
       dmemMSB.put(False, index_address, ?);
@@ -139,7 +139,7 @@ package bootrom;
     // Burst. capture the request type and keep track of counter.
     rule read_request_first(read_state==Idle);
 		  let ar<- pop_o(s_xactor.o_rd_addr);
-      dut.read_request(ar.araddr, ar.arsize);
+      dut.read_request(ar.araddr);
       rg_rd_id<= ar.arid;
       if(ar.arlen!=0)
         read_state<=Burst;
@@ -156,7 +156,7 @@ package bootrom;
             rg_read_packet.arburst, rg_read_packet.araddr);
         rg_read_packet.araddr<=address;
         rg_readburst_counter<= rg_readburst_counter+1;
-        dut.read_request(address, rg_read_packet.arsize);
+        dut.read_request(address);
       end
     endrule
     // get data from the bootrom. shift,  truncate, duplicate based on the size and offset.
@@ -208,7 +208,7 @@ package bootrom;
     // Burst. capture the request type and keep track of counter.
     rule read_request_first;
 		  let ar<- pop_o(s_xactor.o_rd_addr);
-      dut.read_request(ar.araddr, ar.arsize);
+      dut.read_request(ar.araddr);
       rg_size<= ar.arsize;
       rg_offset<= ar.araddr[byte_offset:0];
     endrule
@@ -272,7 +272,7 @@ package bootrom;
     // read first request and send it to the dut. If it is a burst request then change state to
     // Burst. capture the request type and keep track of counter.
     rule read_request_first(wr_request.a_opcode==Get_data);
-      dut.read_request(wr_request.a_address, truncate(wr_request.a_size));
+      dut.read_request(wr_request.a_address);
       rg_size<= wr_request.a_size;
       rg_offset<= wr_request.a_address[byte_offset:0];
       rg_source<= wr_request.a_source;

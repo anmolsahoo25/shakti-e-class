@@ -42,7 +42,7 @@ package memory;
 	import axi_addr_generator::*;
 
   interface UserInterface#(numeric type awidth,  numeric type dwidth, numeric type mem_size);
-    method Action read_request (Bit#(awidth) addr,  Bit#(2) size);
+    method Action read_request (Bit#(awidth) addr);
     method Action write_request (Tuple3#(Bit#(awidth), Bit#(dwidth),  Bit#(TDiv#(dwidth, 8))) req);
     method ActionValue#(Tuple2#(Bool, Bit#(dwidth))) read_response;
     method ActionValue#(Bool) write_response;
@@ -82,7 +82,7 @@ package memory;
     endmethod
   
     // capture a read_request and latch the address on a BRAM.
-    method Action read_request (Bit#(awidth) addr,  Bit#(2) size);
+    method Action read_request (Bit#(awidth) addr);
 			Bit#(TSub#(mem_size,2)) index_address=(addr - base_address)[valueOf(mem_size)-1:byte_offset+1];
   		dmemLSB.a.put(0, index_address, ?);
       dmemMSB.a.put(0, index_address, ?);
@@ -155,7 +155,7 @@ package memory;
     // Burst. capture the request type and keep track of counter.
     rule read_request_first(read_state==Idle);
 		  let ar<- pop_o(s_xactor.o_rd_addr);
-      dut.read_request(ar.araddr, ar.arsize);
+      dut.read_request(ar.araddr);
       rg_rd_id<= ar.arid;
       if(ar.arlen!=0)
         read_state<=Burst;
@@ -172,7 +172,7 @@ package memory;
             rg_read_packet.arburst, rg_read_packet.araddr);
         rg_read_packet.araddr<=address;
         rg_readburst_counter<= rg_readburst_counter+1;
-        dut.read_request(address, rg_read_packet.arsize);
+        dut.read_request(address);
       end
     endrule
     // get data from the memory. shift,  truncate, duplicate based on the size and offset.
@@ -233,7 +233,7 @@ package memory;
     // Burst. capture the request type and keep track of counter.
     rule read_request_first;
 		  let ar<- pop_o(s_xactor.o_rd_addr);
-      dut.read_request(ar.araddr, ar.arsize);
+      dut.read_request(ar.araddr);
       rg_size<= ar.arsize;
       rg_offset<= ar.araddr[byte_offset:0];
     endrule
@@ -297,7 +297,7 @@ package memory;
     // Burst. capture the request type and keep track of counter.
     rule read_request_first;
       let req <- read_xactor.core_side.xactor_request.get;
-      dut.read_request(req.a_address, truncate(req.a_size));
+      dut.read_request(req.a_address);
       rg_size<= req.a_size;
       rg_offset<= req.a_address[byte_offset:0];
       rg_source<= req.a_source;
