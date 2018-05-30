@@ -33,6 +33,7 @@ package opfetch_execute_stage;
   import GetPut::*;
   import RegFile::*;
   import FIFOF::*;
+  import DReg::*;
 
   // files to be included
   import common_types::*;
@@ -75,7 +76,7 @@ package opfetch_execute_stage;
     Reg#(Bool) initialize<-mkReg(True);
     Reg#(Bit#(5)) rg_index<-mkReg(0);
     Reg#(Bit#(1)) rg_epoch[2] <- mkCReg(2,0);
-    Wire#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
+    Reg#(OpFwding) wr_opfwding <- mkDReg(unpack(0));
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
 
     // If a CSR operation is detected then you need to stall fetching operands from the regfile
