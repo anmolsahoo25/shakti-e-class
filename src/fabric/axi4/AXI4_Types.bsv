@@ -84,51 +84,51 @@ interface AXI4_Master_IFC #(numeric type wd_addr,
 				 numeric type wd_data,
 				 numeric type wd_user);
    // Wr Addr channel
-   (* always_ready, result="awvalid" *) method Bool           m_awvalid;                                // out
-   (* always_ready, result="awaddr" *)  method Bit #(wd_addr) m_awaddr;                                 // out
-   (* always_ready, result="awuser" *)  method Bit #(wd_user) m_awuser;                                 // out
-   (* always_ready, result="awlen" *)   method Bit #(8)  m_awlen;	    			                            // out
-   (* always_ready, result="awsize" *)  method Bit#(2)  m_awsize;			                                // out
-   (* always_ready, result="awburst" *) method Bit #(2)  m_awburst;			                                // out
-   (* always_ready, result="awid" *) method Bit #(4)			m_awid;			                                // out
-   (* always_ready, always_enabled *)   method Action m_awready ((* port="awready" *) Bool awready);    // in
+   (* always_ready, result="AWVALID" *) method Bool           m_awvalid;                                // out
+   (* always_ready, result="AWADDR" *)  method Bit #(wd_addr) m_awaddr;                                 // out
+   (* always_ready, result="AWUSER" *)  method Bit #(wd_user) m_awuser;                                 // out
+   (* always_ready, result="AWLEN" *)   method Bit #(8)  m_awlen;	    			                            // out
+   (* always_ready, result="AWSIZE" *)  method Bit#(3)  m_awsize;			                                // out
+   (* always_ready, result="AWBURST" *) method Bit #(2)  m_awburst;			                                // out
+   (* always_ready, result="AWID" *) method Bit #(4)			m_awid;			                                // out
+   (* always_ready, always_enabled , prefix="" *)   method Action m_awready ((* port="AWREADY" *) Bool awready);    // in
 
    // Wr Data channel
-   (* always_ready, result="wvalid" *)  method Bool                      m_wvalid;                      // out
-   (* always_ready, result="wdata" *)   method Bit #(wd_data)            m_wdata;                       // out
-   (* always_ready, result="wstrb" *)   method Bit #(TDiv #(wd_data, 8)) m_wstrb;                       // out
-   (* always_ready, result="wlast" *)   method Bool                      m_wlast;                       // out
-   (* always_ready, result="wid" *) method Bit #(4)			m_wid;			                                // out
-   (* always_ready, always_enabled *)   method Action m_wready ((* port="wready" *)  Bool wready);      // in
+   (* always_ready, result="WVALID" *)  method Bool                      m_wvalid;                      // out
+   (* always_ready, result="WDATA" *)   method Bit #(wd_data)            m_wdata;                       // out
+   (* always_ready, result="WSTRB" *)   method Bit #(TDiv #(wd_data, 8)) m_wstrb;                       // out
+   (* always_ready, result="WLAST" *)   method Bool                      m_wlast;                       // out
+   (* always_ready, result="WID" *) method Bit #(4)			m_wid;			                                // out
+   (* always_ready, always_enabled, prefix="" *)   method Action m_wready ((* port="WREADY" *)  Bool wready);      // in
 
    // Wr Response channel
-   (* always_ready, always_enabled *)
-   method Action m_bvalid ((* port="bvalid" *)  Bool           bvalid,    // in
-			   (* port="bresp"  *)  Bit #(2)       bresp,     // in
-			   (* port="buser"  *)  Bit #(wd_user) buser,    // in
-				(* port="bid"*) Bit#(4) bid);    // in
-   (* always_ready, result="bready" *)
+   (* always_ready, always_enabled, prefix="" *)
+   method Action m_bvalid ((* port="BVALID" *)  Bool           bvalid,    // in
+			   (* port="BRESP"  *)  Bit #(2)       bresp,     // in
+			   (* port="BUSER"  *)  Bit #(wd_user) buser,    // in
+				(* port="BID"*) Bit#(4) bid);    // in
+   (* always_ready, result="BREADY" *)
    method Bool m_bready;                                            // out
 
    // Rd Addr channel
-   (* always_ready, result="arvalid" *) method Bool            m_arvalid;                               // out
-   (* always_ready, result="araddr" *)  method Bit #(wd_addr)  m_araddr;                                // out
-   (* always_ready, result="aruser" *)  method Bit #(wd_user)  m_aruser;                                // out
-   (* always_ready, result="arlen" *)   method Bit #(8)  m_arlen;	    			                            // out
-   (* always_ready, result="arsize" *)  method Bit #(2)  m_arsize;			                                // out
-   (* always_ready, result="arburst" *) method Bit #(2)  m_arburst;			                                // out
-   (* always_ready, result="arid" *)	 method Bit #(4)	m_arid;			                                // out
-   (* always_ready, always_enabled  *)  method Action m_arready ((* port="arready" *) Bool arready);    // in
+   (* always_ready, result="ARVALID" *) method Bool            m_arvalid;                               // out
+   (* always_ready, result="ARADDR" *)  method Bit #(wd_addr)  m_araddr;                                // out
+   (* always_ready, result="ARUSER" *)  method Bit #(wd_user)  m_aruser;                                // out
+   (* always_ready, result="ARLEN" *)   method Bit #(8)  m_arlen;	    			                            // out
+   (* always_ready, result="ARSIZE" *)  method Bit #(3)  m_arsize;			                                // out
+   (* always_ready, result="ARBURST" *) method Bit #(2)  m_arburst;			                                // out
+   (* always_ready, result="ARID" *)	 method Bit #(4)	m_arid;			                                // out
+   (* always_ready, always_enabled, prefix=""  *)  method Action m_arready ((* port="ARREADY" *) Bool arready);    // in
 
    // Rd Data channel
-   (* always_ready, always_enabled  *)
-   method Action m_rvalid ((* port="rvalid" *) Bool           rvalid,    // in
-			   (* port="rresp" *)  Bit #(2)       rresp,     // in
-			   (* port="rdata" *)  Bit #(wd_data) rdata,     // in
-			   (* port="rlast" *)  Bool rlast,     // in
-			   (* port="ruser" *)  Bit #(wd_user) ruser,    // in
-				(* port="rid" *)  Bit #(4) rid);    // in
-   (* always_ready, result="rready" *)
+   (* always_ready, always_enabled, prefix="" *)
+   method Action m_rvalid ((* port="RVALID" *) Bool           rvalid,    // in
+			   (* port="RRESP" *)  Bit #(2)       rresp,     // in
+			   (* port="RDATA" *)  Bit #(wd_data) rdata,     // in
+			   (* port="RLAST" *)  Bool rlast,     // in
+			   (* port="RUSER" *)  Bit #(wd_user) ruser,    // in
+				(* port="RID" *)  Bit #(4) rid);    // in
+   (* always_ready, result="RREADY" *)
    method Bool m_rready;                                                 // out
 endinterface: AXI4_Master_IFC
 
@@ -141,55 +141,55 @@ interface AXI4_Slave_IFC #(numeric type wd_addr,
 				numeric type wd_data,
 				numeric type wd_user);
    // Wr Addr channel
-   (* always_ready, always_enabled *)
-   method Action m_awvalid ((* port="awvalid" *) Bool           awvalid,    // in
-			    (* port="awaddr" *)  Bit #(wd_addr) awaddr,     // in
-			    (* port="awsize" *)   Bit #(2) awsize,						// in
-			    (* port="awuser" *)  Bit #(wd_user) awuser,    // in
-			    (* port="awlen" *)   Bit #(8) awlen,						// in
-			    (* port="awburst" *)  Bit #(2) awburst,						// in
-					(* port="awid" *) Bit#(4) awid);
-   (* always_ready, result="awready" *)
+   (* always_ready, always_enabled , prefix=""*)
+   method Action m_awvalid ((* port="AWVALID" *) Bool           awvalid,    // in
+			    (* port="AWADDR" *)  Bit #(wd_addr) awaddr,     // in
+			    (* port="AWSIZE" *)   Bit #(3) awsize,						// in
+			    (* port="AWUSER" *)  Bit #(wd_user) awuser,    // in
+			    (* port="AWLEN" *)   Bit #(8) awlen,						// in
+			    (* port="AWBURST" *)  Bit #(2) awburst,						// in
+					(* port="AWID" *) Bit#(4) awid);
+   (* always_ready, result="AWREADY" *)
    method Bool m_awready;                                                   // out
 
    // Wr Data channel
-   (* always_ready, always_enabled *)
-   method Action m_wvalid ((* port="wvalid" *) Bool                     wvalid,    // in
-			   (* port="wdata" *)  Bit #(wd_data)           wdata,     // in
-			   (* port="wstrb" *)  Bit #(TDiv #(wd_data,8)) wstrb,    // in
-			   (* port="wlast" *)  Bool  wlast,
-				 (* port="wid" *) Bit#(4) wid);
-   (* always_ready, result="wready" *)
+   (* always_ready, always_enabled , prefix=""*)
+   method Action m_wvalid ((* port="WVALID" *) Bool                     wvalid,    // in
+			   (* port="WDATA" *)  Bit #(wd_data)           wdata,     // in
+			   (* port="WSTRB" *)  Bit #(TDiv #(wd_data,8)) wstrb,    // in
+			   (* port="WLAST" *)  Bool  wlast,
+				 (* port="WID" *) Bit#(4) wid);
+   (* always_ready, result="WREADY" *)
    method Bool m_wready;                                                           // out
 
    // Wr Response channel
-   (* always_ready, result="bvalid" *)  method Bool           m_bvalid;                                 // out
-   (* always_ready, result="bresp" *)   method Bit #(2)       m_bresp;                                  // out
-   (* always_ready, result="buser" *)   method Bit #(wd_user) m_buser;                                  // out
-   (* always_ready, result="bid" *)   method Bit #(4)       m_bid;                                  // out
-   (* always_ready, always_enabled *)   method Action m_bready  ((* port="bready" *)   Bool bready);    // in
+   (* always_ready, result="BVALID" *)  method Bool           m_bvalid;                                 // out
+   (* always_ready, result="BRESP" *)   method Bit #(2)       m_bresp;                                  // out
+   (* always_ready, result="BUSER" *)   method Bit #(wd_user) m_buser;                                  // out
+   (* always_ready, result="BID" *)   method Bit #(4)       m_bid;                                  // out
+   (* always_ready, always_enabled, prefix="" *)   method Action m_bready  ((* port="BREADY" *)   Bool bready);    // in
 
    // Rd Addr channel
-   (* always_ready, always_enabled *)
-   method Action m_arvalid ((* port="arvalid" *) Bool           arvalid,    // in
-			   (* port="araddr" *)  Bit #(wd_addr) araddr,     // in
-				(* port="arsize" *)	 Bit #(2)  arsize,        // in
-			   (* port="aruser" *)  Bit #(wd_user) aruser,    // in
-				(* port="arlen" *) 	 Bit #(8)  arlen,	 				// in
-				(* port="arburst" *) Bit #(2)  arburst,       // in
-				(* port="arid" *) Bit#(4) arid
+   (* always_ready, always_enabled , prefix=""*)
+   method Action m_arvalid ((* port="ARVALID" *) Bool           arvalid,    // in
+			  (* port="ARADDR" *)  Bit #(wd_addr) araddr,     // in
+				(* port="ARSIZE" *)	 Bit #(3)  arsize,        // in
+			  (* port="ARUSER" *)  Bit #(wd_user) aruser,    // in
+				(* port="ARLEN" *) 	 Bit #(8)  arlen,	 				// in
+				(* port="ARBURST" *) Bit #(2)  arburst,       // in
+				(* port="ARID" *) Bit#(4) arid
 				 );
-   (* always_ready, result="arready" *)
+   (* always_ready, result="ARREADY" *)
    method Bool m_arready;                                                   // out
 
    // Rd Data channel
-   (* always_ready, result="rvalid" *)  method Bool           m_rvalid;                                 // out
-   (* always_ready, result="rresp" *)   method Bit #(2)       m_rresp;                                  // out
-   (* always_ready, result="rdata" *)   method Bit #(wd_data) m_rdata;                                  // out
-   (* always_ready, result="rlast" *)   method Bool m_rlast;                                  // out
-   (* always_ready, result="ruser" *)   method Bit #(wd_user) m_ruser;                                  // out
-   (* always_ready, result="rid" *)   method Bit #(4)       m_rid;                                  // out
-   (* always_ready, always_enabled *)   method Action m_rready  ((* port="rready" *)   Bool rready);    // in
+   (* always_ready, result="RVALID" *)  method Bool           m_rvalid;                                 // out
+   (* always_ready, result="RRESP" *)   method Bit #(2)       m_rresp;                                  // out
+   (* always_ready, result="RDATA" *)   method Bit #(wd_data) m_rdata;                                  // out
+   (* always_ready, result="RLAST" *)   method Bool m_rlast;                                  // out
+   (* always_ready, result="RUSER" *)   method Bit #(wd_user) m_ruser;                                  // out
+   (* always_ready, result="RID" *)   method Bit #(4)       m_rid;                                  // out
+   (* always_ready, always_enabled, prefix="" *)   method Action m_rready  ((* port="RREADY" *)   Bool rready);    // in
 endinterface: AXI4_Slave_IFC
 
 // ================================================================
@@ -242,7 +242,7 @@ AXI4_Slave_IFC #(wd_addr, wd_data, wd_user)
 				  // Wr Addr channel
 			   method Action m_awvalid (Bool           awvalid,
 						   Bit #(wd_addr) awaddr,
-							Bit#(2) awsize,
+							Bit#(3) awsize,
 						   Bit #(wd_user) awuser,
 							Bit #(8) awlen,
 							Bit #(2) awburst,
@@ -290,7 +290,7 @@ AXI4_Slave_IFC #(wd_addr, wd_data, wd_user)
 				  // Rd Addr channel
 			   method Action m_arvalid (Bool           arvalid,
 						    Bit #(wd_addr)	araddr,
-							 Bit#(2)				arsize,
+							 Bit#(3)				arsize,
 						    Bit #(wd_user)	aruser,
 							 Bit#(8) 			arlen,
 							 Bit#(2)				arburst,
@@ -345,7 +345,7 @@ typedef struct {
    Bit #(wd_addr)		awaddr;
    Bit #(wd_user)		awuser;
 	Bit#(8) 				awlen;
-	Bit#(2) 				awsize;
+	Bit#(3) 				awsize;
 	Bit#(2)				awburst;
 	Bit#(4)				awid;
    } AXI4_Wr_Addr #(numeric type wd_addr, numeric type wd_user)
@@ -375,7 +375,7 @@ deriving (Bits, FShow);
 typedef struct {
    Bit #(wd_addr)  araddr;
    Bit #(wd_user)  aruser;
-	Bit#(2)			 arsize;
+	Bit#(3)			 arsize;
 	Bit#(8) 				 arlen;
 	Bit#(2) 				 arburst;
 	Bit#(4)				arid;
@@ -447,7 +447,7 @@ module mkAXI4_Master_Xactor (AXI4_Master_Xactor_IFC #(wd_addr, wd_data, wd_user)
 			   method Bit #(wd_addr) m_awaddr  = f_wr_addr.first.awaddr;
 			   method Bit #(wd_user) m_awuser  = f_wr_addr.first.awuser;
 				method Bit #(8)				m_awlen   = f_wr_addr.first.awlen;
-				method Bit#(2)				m_awsize	= f_wr_addr.first.awsize;
+				method Bit#(3)				m_awsize	= f_wr_addr.first.awsize;
 				method Bit #(2)				m_awburst = f_wr_addr.first.awburst;
 				method Bit #(4)				m_awid  = f_wr_addr.first.awid;
 			   method Action m_awready (Bool awready);
@@ -478,7 +478,7 @@ module mkAXI4_Master_Xactor (AXI4_Master_Xactor_IFC #(wd_addr, wd_data, wd_user)
 			   method Bool           m_arvalid	= f_rd_addr.notEmpty;
 			   method Bit #(wd_addr) m_araddr	= f_rd_addr.first.araddr;
 			   method Bit #(wd_user) m_aruser	= f_rd_addr.first.aruser;
-				method Bit #(2)		 m_arsize	= f_rd_addr.first.arsize;
+				method Bit #(3)		 m_arsize	= f_rd_addr.first.arsize;
 				method Bit #(8)		 m_arlen		= f_rd_addr.first.arlen;
 				method Bit #(2)		 m_arburst	= f_rd_addr.first.arburst;
 				method Bit #(4)		 m_arid		= f_rd_addr.first.arid;
@@ -568,7 +568,7 @@ module mkAXI4_Slave_Xactor (AXI4_Slave_Xactor_IFC #(wd_addr, wd_data, wd_user));
 			   // Wr Addr channel
 			   method Action m_awvalid (Bool           awvalid,
 						   Bit #(wd_addr) awaddr,
-							Bit#(2) awsize,
+							Bit#(3) awsize,
 						   Bit #(wd_user) awuser,
 							Bit#(8) awlen,
 							Bit#(2) awburst,
@@ -613,7 +613,7 @@ module mkAXI4_Slave_Xactor (AXI4_Slave_Xactor_IFC #(wd_addr, wd_data, wd_user));
 			   // Rd Addr channel
 			   method Action m_arvalid (Bool           arvalid,
 						    Bit #(wd_addr)	araddr,
-							 Bit#(2)				arsize,
+							 Bit#(3)				arsize,
 						    Bit #(wd_user)	aruser,
 							 Bit#(8) 			arlen,
 							 Bit#(2)				arburst,
