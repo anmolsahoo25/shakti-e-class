@@ -205,7 +205,7 @@ elsif ($testType =~ /^p$/) {
     systemCmd("riscv$XLEN-unknown-elf-gcc -T $periInc/common/link.ld smoke.o syscalls.o crt.o -o smoke.elf -static -nostartfiles -lm -lgcc");
   }
   else {
-    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\g  -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I$riscvIncludeDir/env/p -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/p/link.ld $test -o $testName.elf");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac -mabi=lp64  -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I$riscvIncludeDir/env/p -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/p/link.ld $test -o $testName.elf");
   }
 }
 
