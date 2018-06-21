@@ -156,7 +156,7 @@ if (-e $reportFile) {
     my @toList = split(/\s+/, $to);
     print "Mailed the regression status to: @toList\n";
     #print "cat $shaktiHome/verification/workdir/regress_report.html | mail -s \"$subject\" -a\'Content-Type: text/html\' -a\'From: Shakti Bot <shaktibot\@gmail.com>\' @toList";
-    `cat $shaktiHome/verification/workdir/regress_report.html | mail -s \"$subject\" -a\'Content-Type: text/html\' -a\'From: Shakti Bot <shaktibot\@gmail.com>\' @ARGV`;
+    `cat $shaktiHome/verification/workdir/regress_report.html | mail -s \"$subject\" -a\'Content-Type: text/html\' -a\'From: Shakti Bot <shaktibot\@gmail.com>\' @toList`;
 }
 else {
   print "ERROR: Nothing to report. please run regression\n";
