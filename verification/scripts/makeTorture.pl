@@ -29,8 +29,8 @@
 #!/usr/bin/perl
 
 #-----------------------------------------------------------
-# makeRegress.pl
-# Generates test related files
+# makeTorture.pl
+# Generates riscv-torture tests
 #-----------------------------------------------------------
 
 use strict;
@@ -45,16 +45,17 @@ my $simulator = getConfig("CONFIG_SIM");
 my $configPath = "$shaktiHome/verification/tests/random/riscv-torture/configs";
 my $testPath =  "$shaktiHome/verification/tests/random/riscv-torture/generated_tests";
 
-doPrint("Test generation: riscv-torture\n");
 
 # Parse options
 GetOptions(
-          qw(test_config=s)   => \my $test_config,
+          qw(config=s)        => \my $test_config,
+          qw(list_configs)    => \my $list_configs,
           qw(test_count=s)    => \my $test_count,
           qw(submit)          => \my $submit,
-          qw(nodebug) => \my $no_debug,
-          qw(help)     => \my $help,
-          qw(clean)    => \my $clean
+          qw(nodebug)         => \my $no_debug,
+          qw(parallel)        => \my $parallel,
+          qw(help)            => \my $help,
+          qw(clean)           => \my $clean
 );
 
 if (!$no_debug) {
@@ -73,7 +74,7 @@ if ($test_config) {
   $testConfig = $test_config;
 }
 else {
-  $testConfig = "all"; 
+  $testConfig = "bringup"; 
 }
 
 # Test count
@@ -106,6 +107,16 @@ if ($clean) {
   exit(0);
 }
 
+if ($list_configs) {
+  my @configs = `ls $configPath/*.config |  xargs -n 2 basename -s .config`;
+  doPrint("Config list at $configPath:\n");
+  foreach my $cfg (@configs) {
+    print "\t--config=$cfg";
+  }
+  exit(0);
+}
+
+doPrint("Test generation: riscv-torture\n");
 ## Process tests.list -----------
 open TESTLIST, "$shaktiHome/verification/scripts/tests.list" or die "[$scriptLog.pl] ERROR opening file $!\n";
 my @listFile = <TESTLIST>;
@@ -114,7 +125,23 @@ close TESTLIST;
 my @testList = ();
 
 if ($testConfig =~ /^all$/) {
-
+  chdir("$shaktiHome/verification/tools/riscv-torture");
+  doDebugPrint("cd $shaktiHome/verification/tools/riscv-torture\n");
+  systemCmd("rm -rf output/*");
+  systemCmd("ln -s $shaktiHome/verification/tests/random/riscv-torture/generated_tests output/generated_tests");
+  my @configs = `ls $shaktiHome/verification/tests/random/riscv-torture/configs/*.config`;
+  chomp(@configs);
+  foreach my $config (@configs) {
+    my $testConfig = `basename $config .config`; chomp($testConfig);
+    my $testGenDir = "$testPath/$testConfig";
+    my $configFile = "$configPath/$testConfig\.config";
+    systemCmd("mkdir -p $testGenDir");
+    for (my $i=0; $i < $testCount; $i++) {
+      my @date = `date +%d%m%Y%s`; chomp(@date);
+      my $testName = join("", "generated_tests/$testConfig/",$testConfig,"_", $date[0], "_test$i");
+      systemCmd("setsid java -Xmx1G -Xss8M -XX:MaxPermSize=128M -jar sbt-launch.jar \'generator/run --config $configFile --output $testName\'&");
+    } 
+  }
 }
 else {
   my $testGenDir = "$testPath/$testConfig";
@@ -134,7 +161,12 @@ else {
       system("CONFIG_LOG=1 perl -I $shaktiHome/verification/scripts $shaktiHome/verification/scripts/makeTest.pl --test=$name --suite=random/riscv-torture/generated_tests/$testConfig --type=p --sim=$simulator");
     }
     else {
-      systemCmd("setsid java -Xmx1G -Xss8M -XX:MaxPermSize=128M -jar sbt-launch.jar \'generator/run --config $configFile --output $testName\' &");
+      if ($parallel) { 
+        systemCmd("setsid java -Xmx1G -Xss8M -XX:MaxPermSize=128M -jar sbt-launch.jar \'generator/run --config $configFile --output $testName\' &");
+      }
+      else {
+        systemCmd("java -Xmx1G -Xss8M -XX:MaxPermSize=128M -jar sbt-launch.jar \'generator/run --config $configFile --output $testName\'");
+      }
     }
   }
 }

@@ -44,7 +44,6 @@ setEnvConfig();
 
 my $simulator = getConfig("CONFIG_SIM");
 
-doPrint("Regression run ------------\n");
 
 # Parse options
 GetOptions(
@@ -147,49 +146,43 @@ if ($clean) {
   doClean();
   exit(0);
 }
+else {
+  checkBins();
+}
 
+doPrint("Regression run ------------\n");
 my $MaxCount = 0;
 my $count = 0;
 if ($generate) {
+  chdir("$shaktiHome/verification/scripts");
   systemCmd("rm -rf $shaktiHome/verification/tests/random/riscv-torture/generated_tests/*");
   systemCmd("rm -rf $shaktiHome/verification/tests/random/aapg/generated_tests/*");
-  #if ($testSuite =~ /^all$/ || $testSuite=~ /^aapg$/) {
-  if ($testSuite=~ /^aapg$/) {
-    systemCmd("perl -pi -e 's/numberOfTests=.*/numberOfTests=$testCount/' $shaktiHome/verification/tests/random/aapg/configs/*.py");
+  if ($testSuite =~ /^all$/ || $testSuite=~ /^aapg$/) {
     my @configs = `ls $shaktiHome/verification/tests/random/aapg/configs/*.py`;
     $MaxCount = $MaxCount + scalar(@configs);
-    chomp(@configs);
-    foreach my $config (@configs) {
-      systemCmd("cp $config $shaktiHome/verification/tools/AAPG/config.py");
-      chdir("$shaktiHome/verification/tools/AAPG");
-      $config = `basename $config .py`; chomp($config);
-      systemCmd("nohup ./regress.py gen_only $config nodebug&");
-    }
+    systemCmd("perl makeAapg.pl --config=all --test_count=$testCount&");
   }
-  chdir("$shaktiHome/verification/scripts");
   if ($testSuite =~ /^all$/ || $testSuite=~ /^riscv-torture$/) {
     my @configs = `ls $shaktiHome/verification/tests/random/riscv-torture/configs/*.config`;
     $MaxCount = $MaxCount + scalar(@configs);
-    chomp(@configs);
-    foreach my $config (@configs) {
-      $config = `basename $config .config`; chomp($config);
-      systemCmd("perl makeTorture.pl --test_config=$config --test_count=$testCount");
-    }
+    systemCmd("perl makeTorture.pl --config=all --test_count=$testCount");
   }
   $MaxCount = $MaxCount * $testCount;
-  if ($testSuite =~ /^all$/ || $testSuite=~ /^riscv-torture$/) {
+  $count = `find $shaktiHome/verification/tests/random/ -name "*.S" | wc -l`;
+  doPrint("Test count to be generated = $MaxCount | Current count = $count\n");
+  if (($testSuite =~ /^all$/) || ($testSuite=~ /^riscv-torture$/) || ($testSuite =~ /^aapg$/)) {
     my $timeout = 0;
     while ($count != $MaxCount) {
-      sleep(5);
+      sleep(10);
       $count = `find $shaktiHome/verification/tests/random/ -name "*.S" | wc -l`;
       chomp($count);
+      doDebugPrint("Current test count = $count\n");
       $timeout++;
       if ($timeout == 300) {
         last;
       }
     }
   }
-  doPrint("test count = $count\n");
   open TESTLIST, "$shaktiHome/verification/scripts/riscv-tests.list" or die "[$scriptLog.pl] ERROR opening file $!\n";
   my @listFile = <TESTLIST>;
   close TESTLIST;
@@ -207,7 +200,7 @@ if ($generate) {
 }
 ####### src compilation
 if ($compile) {
-  if ($simulator == 0) {
+  if ($simulator =~ /^bluespec$/) {
     chdir($shaktiHome);
     doDebugPrint("cd $shaktiHome\n");
     systemCmd("make restore");
@@ -215,7 +208,7 @@ if ($compile) {
     systemCmd("make link_bluesim");
     systemCmd("make generate_boot_files");
   }
-  elsif ($simulator == 1) {
+  elsif ($simulator =~ /^ncverilog$/) {
     chdir($shaktiHome);
     doDebugPrint("cd $shaktiHome\n");
     systemCmd("make restore");
@@ -315,7 +308,7 @@ if ($submit) {
       system("perl -I $shaktiHome/verification/scripts $shaktiHome/verification/scripts/makeTest.pl --test=$test --suite=$tSuite --type=$pv --sim=$simulator");
       sleep(2);
     }
-    print "$test\t\t\t$tSuite\t\t\t$pv\t\t\tRunning\n";
+    #print "$test\t\t\t$tSuite\t\t\t$pv\t\t\tRunning\n";
     $refreshCount++;
     if ($refreshCount == $licenseCount) {
       if ($parallel) {

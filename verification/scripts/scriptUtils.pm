@@ -37,6 +37,7 @@ use Exporter qw(import);
 our @EXPORT = qw(systemCmd systemFileCmd systemKillCmd 
                  doClean doPrint doDebugPrint printHelp
                  checkSetup openLog closeLog appendLog
+                 checkBins
                  $scriptLog $shaktiHome $workdir
                  );
 
@@ -62,6 +63,9 @@ sub checkSetup {
   }
   appendLog("$workdir/$scriptLog.log");
 
+}
+
+sub checkBins {
   my $out = "$shaktiHome/bin/out";
   my $boot = "$shaktiHome/bin/boot.MSB";
 
@@ -74,6 +78,7 @@ sub checkSetup {
     doPrint("ERROR: Boot files not present! [option: make generate_boot_files]\n");
     exit(1);
   }
+
 }
 
 sub openLog {
@@ -202,12 +207,28 @@ sub systemKillCmd {
 # Deletes generated output
 #------------------------------------------------------------
 sub doClean {
-  doPrint("Cleaning...\n");
-  systemCmd("rm -rf $shaktiHome/verification/workdir/*");
-  systemCmd("rm -rf $shaktiHome/verification/scripts/nohup.out");
-  systemCmd("rm -rf $shaktiHome/verification/tools/AAPG/nohup.out");
-  systemCmd("rm -rf $shaktiHome/verification/tools/AAPG/__pycache__");
-  systemCmd("rm -rf $shaktiHome/verification/tests/random/*/generated_tests/*");
+  if ($scriptLog =~ /^makeRegress$/) {
+    doPrint("Cleaning...\n");
+    systemCmd("rm -rf $shaktiHome/verification/workdir/*");
+    systemCmd("rm -rf $shaktiHome/verification/scripts/nohup.out");
+    systemCmd("rm -rf $shaktiHome/verification/tools/AAPG/nohup.out");
+    systemCmd("rm -rf $shaktiHome/verification/tools/AAPG/__pycache__");
+    systemCmd("rm -rf $shaktiHome/verification/tests/random/*/generated_tests/*");
+    systemFileCmd("perl -ne 'print unless /riscv-torture/ || print' $shaktiHome/verification/scripts/tests.list","$shaktiHome/verification/scripts/tests.list");
+    systemFileCmd("perl -ne 'print unless /aapg/ || print' $shaktiHome/verification/scripts/tests.list","$shaktiHome/verification/scripts/tests.list");
+  }
+  elsif ($scriptLog =~ /^makeTorture$/) {
+    doPrint("Cleaning...\n");
+    systemCmd("rm -rf $shaktiHome/verification/tests/random/riscv-torture/generated_tests/*");
+    systemFileCmd("perl -ne 'print unless /riscv-torture/ || print' $shaktiHome/verification/scripts/tests.list","$shaktiHome/verification/scripts/tests.list");
+  }
+  elsif ($scriptLog =~ /^makeAapg/) {
+    doPrint("Cleaning...\n");
+    systemCmd("rm -rf $shaktiHome/verification/tests/random/aapg/generated_tests/*");
+    systemCmd("rm -rf $shaktiHome/verification/tools/AAPG/nohup.out");
+    systemCmd("rm -rf $shaktiHome/verification/tools/AAPG/__pycache__");
+    systemFileCmd("perl -ne 'print unless /aapg/ || print' $shaktiHome/verification/scripts/tests.list","$shaktiHome/verification/scripts/tests.list");
+  }
 }
 
 #-----------------------------------------------------------
@@ -237,15 +258,110 @@ sub doDebugPrint {
 # Displays script usage
 #------------------------------------------------------------
 sub printHelp {
-  my $usage =<<USAGE;
+  if ($scriptLog =~ /^makeRegress$/) {
+    my $usage =<<USAGE;
 
-Description: Generates test dump directory
+Description: Runs regression
+Usage: perl makeRegress.pl [OPTIONS]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+make regress opts="[OPTIONS]"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Options:
-  --test=TEST_NAME
-
+  --submit                      Simulates all the tests in the test list
+  --compile                     Compiles RTL 
+  --generate                    Generates random tests
+  --final                       Displays regression result by waiting till all simulation is done
+  --list=TEST_LIST              Tests in the TEST_LIST file are used for regression
+                                [default] --list=tests.list
+  --suite=TEST_SUITE            Specified along with --generate for a specific random generation
+                                [default] --suite=all
+                                --suite=[all|riscv-torture|aapg]
+  --filter=FILTER_PATTERN       Filters the test list based on FILTER_PATTERN
+  --test_count=TEST_COUNT       Generates TEST_COUNT value of random tests for each config 
+                                [default] --test_count=1
+  --parallel                    Specified along with --submit for running tests in parallel
+  --report                      Displays regression report with percentages 
+  --help                        Displays this help
+  --clean                       Cleans all regression work directory
 USAGE
 
-  print $usage;
+    print $usage;
+  }
+  if ($scriptLog =~ /^makeTest$/) {
+    my $usage =<<USAGE;
+
+Description: Compiles test
+Usage: perl makeTest.pl --test=TEST_NAME --suite=TEST_SUITE [OPTIONS]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+make test opts="--test=TEST_NAME --suite=TEST_SUITE [OPTIONS]"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Options:
+  --test=TEST_NAME              Test name 
+  --suite=TEST_SUITE            Test Suite, directory path that uniquely identifies the test
+                                starting from \$SHAKTI_C_HOME/verification/tests
+                                Examples:
+                                        directed/riscv-tests/isa/rv64ui 
+                                        aapg
+                                        riscv-torture
+  --sim=SIMULATOR               Specifies the simulator
+                                [default] --sim=bluespec
+                                --sim=[bluespec|ncverilog|vcs]
+  --type=TEST_TYPE              Specifies the test type
+                                [default] --type=p
+                                --type=[p|v]
+  --nodebug                     Forces no debug messages to be printed
+  --help                        Displays this help
+  --clean                       Cleans all regression work directory
+USAGE
+
+    print $usage;
+  }
+  if ($scriptLog =~ /^makeTorture$/) {
+    my $usage =<<USAGE;
+
+Description: Generates riscv-torture test
+Usage: perl makeTorture.pl [OPTIONS]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+make torture opts="[OPTIONS]"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Options:
+  --config=TEST_CONFIG          Config used for generation
+                                [default] --config=bringup
+  --list_configs                Lists available configs
+  --test_count=TEST_COUNT       Generates TEST_COUNT number of tests
+                                [default] --test_count=1
+  --submit                      Generates and simulates a single riscv-torture test
+  --nodebug                     Forces no debug messages to be printed
+  --parallel                    Test generation runs in parallel
+  --help                        Displays this help
+  --clean                       Cleans all regression work directory
+USAGE
+
+    print $usage;
+  }
+  if ($scriptLog =~ /^makeAapg$/) {
+    my $usage =<<USAGE;
+
+Description: Generates AAPG tests
+Usage: perl makeAapg.pl [OPTIONS]
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+make aapg opts="[OPTIONS]"
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Options:
+  --config=TEST_CONFIG          Config used for generation
+                                [default] --config=bringup
+  --list_configs                Lists available configs
+  --test_count=TEST_COUNT       Generates TEST_COUNT number of tests
+                                [default] --test_count=1
+  --submit                      Generates and simulates a single AAPG test
+  --nodebug                     [TODO] Forces no debug messages to be printed
+  --parallel                    [TODO] Test generation runs in parallel
+  --help                        Displays this help
+  --clean                       Cleans all regression work directory
+USAGE
+
+    print $usage;
+  }
 }
 
 

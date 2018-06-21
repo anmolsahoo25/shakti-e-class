@@ -5,6 +5,8 @@ include ./old_vars
 include soc_config.inc
 
 export SHAKTI_E_HOME=$(PWD)
+export SHAKTI_E_HOME
+
 TOP_MODULE:=mkTbSoC
 TOP_FILE:=TbSoC.bsv
 TOP_DIR:=./src/testbench
@@ -206,22 +208,20 @@ not create core project"; exit 1)
 	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/run.tcl || (echo "ERROR: While running synthesis")
 
 .PHONY: regress 
-regress:
-	@test -s $(SHAKTI_E_HOME)/bin/out || { echo "Executable not available"; exit 1; }
-	@test -s $(SHAKTI_E_HOME)/bin/boot.LSB || { echo "Boot files missing"; exit 1; }
+regress:  
 	SHAKTI_E_HOME=$$PWD perl -I$(SHAKTI_E_HOME)/verification/scripts $(SHAKTI_E_HOME)/verification/scripts/makeRegress.pl $(opts)
-
+	
 .PHONY: test
-test: 
-	@test -s $(SHAKTI_E_HOME)/bin/out || { echo "Executable not available"; exit 1; }
-	@test -s $(SHAKTI_E_HOME)/bin/boot.LSB || { echo "Boot files missing"; exit 1; }
+test:  
 	SHAKTI_E_HOME=$$PWD perl -I$(SHAKTI_E_HOME)/verification/scripts $(SHAKTI_E_HOME)/verification/scripts/makeTest.pl $(opts)
 
 .PHONY: torture
-torture: 
-	@test -s $(SHAKTI_E_HOME)/bin/out || { echo "Executable not available"; exit 1; }
-	@test -s $(SHAKTI_E_HOME)/bin/boot.LSB || { echo "Boot files missing"; exit 1; }
+torture:  
 	SHAKTI_E_HOME=$$PWD perl -I$(SHAKTI_E_HOME)/verification/scripts $(SHAKTI_E_HOME)/verification/scripts/makeTorture.pl $(opts)
+
+.PHONY: aapg
+aapg:  
+	SHAKTI_E_HOME=$$PWD perl -I$(SHAKTI_E_HOME)/verification/scripts $(SHAKTI_E_HOME)/verification/scripts/makeAapg.pl $(opts)
 
 
 .PHONY: generate_boot_files

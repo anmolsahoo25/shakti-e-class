@@ -83,7 +83,6 @@ else {
 }
 
 #my $workdir = "$testPath/workdir";
-doDebugPrint("Generating Test Dump Directory ------------\n");
 
 my $testName;
 my $testSuite;
@@ -92,6 +91,21 @@ my $test;
 my $simulator;
 my $testType;
 my $trace;
+
+# Prints command line usage of script
+if ($help) {
+  printHelp();
+  exit(0);
+}
+
+# Clean script generated outputs
+if ($clean) {
+  doClean();
+  exit(0);
+}
+else {
+  checkBins();
+}
 
 # Test name
 if (!$test_name) {
@@ -119,7 +133,7 @@ elsif ($test_sim =~ /^ncverilog$/ || $test_sim =~ /^vcs$/ || $test_sim =~ /^blue
   $simulator = $test_sim;
 }
 else {
-  doPrint("ERROR: Invalid simulator, --sim=[bluespec|ncverilog|vcs]\n");
+  doPrint("ERROR: Invalid simulator $test_sim, --sim=[bluespec|ncverilog|vcs]\n");
   exit(1);
 }
 
@@ -134,27 +148,14 @@ else {
   doPrint("ERROR: Invalid test type, --test_type=[p|v]\n");
   exit(1);
 }
-
-# trace
-
 if (!$no_trace) {
-  $trace = 1;
+  $trace=1;
 }
 else {
-  $trace = 0;
+  $trace=0;
 }
 
-# Prints command line usage of script
-if ($help) {
-  printHelp();
-  exit(0);
-}
-
-# Clean script generated outputs
-if ($clean) {
-  doClean();
-  exit(0);
-}
+doDebugPrint("Generating Test Dump Directory ------------\n");
 
 my @test = ();
 if ($testSuite =~ /csmith-run/) {
@@ -204,6 +205,9 @@ elsif ($testType =~ /^p$/) {
     systemCmd("riscv$XLEN-unknown-elf-gcc -w -mcmodel=medany -static -std=gnu99 -fno-builtin-printf -I $periInc/i2c/ -I $periInc/qspi/ -I $periInc/dma/ -I $periInc/plic/ -I $periInc/common/ -c $periInc/smoketests/smoke.c -o smoke.o -march=rv$XLEN\imac -lm -lgcc");
     systemCmd("riscv$XLEN-unknown-elf-gcc -T $periInc/common/link.ld smoke.o syscalls.o crt.o -o smoke.elf -static -nostartfiles -lm -lgcc");
   }
+  elsif ($testSuite =~ /aapg/) {
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\g  -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -T$shaktiHome/verification/tools/AAPG/link.ld $test -o $testName.elf");
+  }
   else {
     systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac -mabi=lp64  -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I$riscvIncludeDir/env/p -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/p/link.ld $test -o $testName.elf");
   }
@@ -231,23 +235,33 @@ if ($testSuite !~ /peripherals/) {
   }
   systemCmd("spike -c --isa=RV$XLEN\IMAC $testName.elf");
 }
-#if ($simulator =~ /^bluespec$/) {
-#  systemCmd("ln -s $shaktiHome/bin/out.so    out.so");
+if ($simulator =~ /^bluespec$/) {
+  systemCmd("ln -s $shaktiHome/bin/out.so    out.so");
+}
+systemCmd("ln -s $shaktiHome/bin/out       out");
+#if (!(-e "$shaktiHome/bin/boot.MSB")) {
+#  systemFileCmd("cut -c1-8 $shaktiHome/verification/dts/boot.hex","$shaktiHome/bin/boot.MSB");
+#  systemFileCmd("cut -c9-16 $shaktiHome/verification/dts/boot.hex","$shaktiHome/bin/boot.LSB");
 #}
-#systemCmd("ln -s $shaktiHome/bin/out       out");
-#systemCmd("ln -s $shaktiHome/bin/boot.MSB    boot.MSB");
-#systemCmd("ln -s $shaktiHome/bin/boot.LSB    boot.LSB");
-#if ($simulator =~ /^ncverilog$/) {
-#  systemCmd("ln -s $shaktiHome/bin/work work");
-#  systemCmd("ln -s $shaktiHome/verilog/cds.lib cds.lib");
-#  systemCmd("ln -s $shaktiHome/verilog/hdl.var hdl.var");
-#  systemCmd("ln -s $shaktiHome/verilog/include include");
-#}
-#if ($simulator =~ /^vcs$/) {
-#  systemCmd("ln -s /scratch/lavanya/c-class/bin/csrc csrc");
-#  systemCmd("ln -s /scratch/lavanya/c-class/bin/out.daidir out.daidir");
-#}
-systemCmd("ln -s $shaktiHome/bin/* .");
+systemCmd("ln -s $shaktiHome/bin/boot.MSB    boot.MSB");
+systemCmd("ln -s $shaktiHome/bin/boot.LSB    boot.LSB");
+#systemCmd("ln -s $shaktiHome/bin/boot.3l   boot.3l");
+#systemCmd("ln -s $shaktiHome/bin/boot.2l   boot.2l");
+#systemCmd("ln -s $shaktiHome/bin/boot.1l   boot.1l");
+#systemCmd("ln -s $shaktiHome/bin/boot.0l   boot.0l");
+#systemCmd("ln -s $shaktiHome/bin/boot.3h   boot.3h");
+#systemCmd("ln -s $shaktiHome/bin/boot.2h   boot.2h");
+#systemCmd("ln -s $shaktiHome/bin/boot.1h   boot.1h");
+#systemCmd("ln -s $shaktiHome/bin/boot.0h   boot.0h");
+if ($simulator =~ /^ncverilog$/) {
+  systemCmd("ln -s $shaktiHome/bin/work work");
+  systemCmd("ln -s $shaktiHome/bin/cds.lib cds.lib");
+  systemCmd("ln -s $shaktiHome/bin/hdl.var hdl.var");
+}
+if ($simulator =~ /^vcs$/) {
+  systemCmd("ln -s /scratch/lavanya/c-class/bin/csrc csrc");
+  systemCmd("ln -s /scratch/lavanya/c-class/bin/out.daidir out.daidir");
+}
 
 if ($simulator =~ /^bluespec$/) {
   my $timeout="30m";
@@ -265,6 +279,14 @@ elsif ($testSuite =~ /peripherals.*smoke/ && $simulator =~ /^vcs$/) {
 }
 else {
   systemFileCmd("./out","log.txt");
+  if ($simulator =~ /^ncverilog$/) {
+    if (-d "cov_work/scope/test") {
+      my $name = join("_",$test_suite, $testType, $testName);
+      $name =~ s/\//\_/g ;
+      systemCmd("mkdir -p $shaktiHome/bin/cov_work/scope/$name");
+      systemCmd("mv cov_work/scope/test/*  $shaktiHome/bin/cov_work/scope/$name");
+    }
+  }
 }
 my $result;
 
