@@ -47,6 +47,9 @@ package SoC;
   `ifdef BOOTROM
     import bootrom:: *;
   `endif
+  `ifdef EXTERNAL
+    import external_mem::*;
+  `endif
   // package imports
   import Connectable:: *;
   import GetPut:: *;
@@ -94,16 +97,25 @@ package SoC;
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
+    `ifdef EXTERNAL
+      interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
+    `endif
   endinterface
 
 `ifdef CORE_AXI4
   (*synthesize*)
-  module mkSoC(Ifc_SoC);
+  module mkSoC `ifdef EXTERNAL #(Clock exmem_clk, Reset exmem_rst) `endif (Ifc_SoC);
     Ifc_core_AXI4 core <- mkcore_AXI4();
     AXI4_Fabric_IFC #(`Num_Masters, `Num_Slaves, PADDR, XLEN, USERSPACE) 
                                                     fabric <- mkAXI4_Fabric(fn_slave_map);
-		Ifc_memory_AXI4#(PADDR, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4(`MemoryBase, 
+    `ifdef BRAM
+  		Ifc_memory_AXI4#(PADDR, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4(`MemoryBase, 
                                                 "code.mem.MSB", "code.mem.LSB");
+    `endif
+    `ifdef EXTERNAL
+      Ifc_exteral_mem#(PADDR, XLEN, USERSPACE) external_memory <- mkexternal_mem(exmem_clk,
+                                                                                        exmem_rst);
+    `endif
 		`ifdef BOOTROM
 			Ifc_bootrom_AXI4#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_AXI4(`BootRomBase);
 		`endif
@@ -111,13 +123,21 @@ package SoC;
    	mkConnection(core.mem_master,	fabric.v_from_masters[`Mem_master_num]);
    	mkConnection(core.fetch_master, fabric.v_from_masters[`Fetch_master_num]);
 
-		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.slave);
+    `ifdef EXTERNAL
+  		mkConnection(fabric.v_to_slaves[`Memory_slave_num],external_memory.slave);
+    `endif
+    `ifdef BRAM
+  		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.slave);
+    `endif
 		`ifdef BOOTROM
 			mkConnection (fabric.v_to_slaves [`BootRom_slave_num],bootrom.slave);
 		`endif
 
     `ifdef simulate
       interface dump= core.dump;
+    `endif
+    `ifdef EXTERNAL
+      interface mem_master=external_memory.master;
     `endif
   endmodule: mkSoC
 `endif

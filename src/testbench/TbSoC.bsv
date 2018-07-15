@@ -30,12 +30,20 @@ Details:
 */
 package TbSoC;
   import SoC:: *;
-
+  import Clocks::*;
   import GetPut:: *;
-
+	import Semi_FIFOF:: *;
+	import AXI4_Types:: *;
+	import AXI4_Fabric:: *;
   module mkTbSoC(Empty);
 
-    Ifc_SoC soc <- mkSoC();
+    let def_clk <- exposeCurrentClock;
+    let def_rst <- exposeCurrentReset;
+    `ifdef EXTERNAL
+      Ifc_SoC soc <- mkSoC(def_clk, def_rst);
+    `else
+      Ifc_SoC soc <- mkSoC();
+    `endif
 
     Reg#(Bit#(1)) rg_cnt <-mkReg(0);
  	  let dump <- mkReg(InvalidFile) ;
