@@ -58,7 +58,7 @@ ifeq ($(COREFABRIC), AXI4Lite)
   define_macros += -D CORE_AXI4Lite=True
 endif
 define_macros += -D VERBOSITY=$(VERBOSITY) -D USERTRAPS=$(USERTRAPS) -D CORE_$(COREFABRIC)=True\
--D MULSTAGES=$(MULSTAGES) -D DIVSTAGES=$(DIVSTAGES) -D Counters=$(COUNTERS)
+-D MULSTAGES=$(MULSTAGES) -D DIVSTAGES=$(DIVSTAGES) -D Counters=$(COUNTERS) -D $(MAINMEM)=True
 CORE:=./src/core/
 FABRIC:=./src/fabric/axi4:./src/fabric/axi4lite:./src/fabric/tilelink_lite
 UNCORE:=./src/uncore
@@ -134,6 +134,7 @@ generate_verilog: check-restore check-env
 	@cp ${BLUESPECDIR}/Verilog/FIFO2.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFO20.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFOL1.v ./verilog/
+	@cp ${BLUESPECDIR}/Verilog/SyncFIFO.v ./verilog/
 ifeq ($(SYNTH), SIM)
 		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/multiplier_sim_netlist.v\
   	./verilog/multiplier.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
