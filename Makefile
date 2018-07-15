@@ -21,10 +21,17 @@ ifneq (,$(findstring RV32,$(ISA)))
   XLEN=32
 endif
 ifneq (,$(findstring M,$(ISA)))
-  define_macros += -D MULDIV=True
+  ifeq ($(MUL), fpga)
+    define_macros += -D muldiv_fpga=True -D muldiv=True
+  else
+    define_macros += -D $(MUL)=True -D muldiv=True
+  endif
 endif
 ifneq (,$(findstring A,$(ISA)))
   define_macros += -D atomic=True
+endif
+ifneq (,$(findstring C,$(ISA)))
+  define_macros += -D compressed=True
 endif
 ifeq ($(VERBOSE),enable)
   define_macros += -D verbose=True
@@ -157,12 +164,32 @@ link_ncverilog:
 	@mkdir work
 	@echo "define work ./work" > cds.lib
 	@echo "define WORK work" > hdl.var
-	@ncvlog -sv -cdslib ./cds.lib -hdlvar ./hdl.var +define+TOP=$(TOP_MODULE) ${BLUESPECDIR}/Verilog/main.v -y ./$(VERILOGDIR)/ -y ${BLUESPECDIR}/Verilog/ -y ./src/bfm
+	@ncvlog -64BIT -sv -cdslib ./cds.lib -hdlvar ./hdl.var +define+TOP=$(TOP_MODULE) \
+	${BLUESPECDIR}/Verilog/main.v ${XILINX_VIVADO}/data/verilog/src/glbl.v \
+	-y $(VERILOGDIR)/ \
+	-y ${BLUESPECDIR}/Verilog/ \
+	-y ${XILINX_VIVADO}/data/verilog/src/ \
+	-y ${XILINX_VIVADO}/data/verilog/src/unisims \
+	-y ${XILINX_VIVADO}/data/verilog/src/unimacro \
+	-y ${XILINX_VIVADO}/data/verilog/src/retarget 
 	@ncelab  -cdslib ./cds.lib -hdlvar ./hdl.var work.main -timescale 1ns/1ps
 	@echo 'ncsim -cdslib ./cds.lib -hdlvar ./hdl.var work.main #> /dev/null' > $(BSVOUTDIR)/out
 	@mv work cds.lib hdl.var $(BSVOUTDIR)/
 	@chmod +x $(BSVOUTDIR)/out
 	@echo Linking finished
+
+.PHONY: link_irun
+link_irun:
+	@irun -define TOP=mkTbSoC -timescale 1ns/1ps $(VERILOGDIR)/main.v \
+	${XILINX_VIVADO}/data/verilog/src/glbl.v \
+	-y $(VERILOGDIR)/ \
+	-y ${BLUESPECDIR}/Verilog/ \
+	-y ${XILINX_VIVADO}/data/verilog/src/ \
+	-y ${XILINX_VIVADO}/data/verilog/src/unisims \
+	-y ${XILINX_VIVADO}/data/verilog/src/unimacro \
+	-y ${XILINX_VIVADO}/data/verilog/src/retarget 
+	
+	
 
 .PHONY: link_msim
 link_msim: 
@@ -243,6 +270,10 @@ clean:
 clean_verilog: clean 
 	rm -rf verilog/
 	rm -rf fpga/
+	rm -rf INCA*
+	rm -rf work
+	rm -f ./ncvlog.*
+	rm -f irun.*
 
 
 restore: clean_verilog
