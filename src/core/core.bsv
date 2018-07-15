@@ -380,8 +380,4 @@ package core;
     `endif
   endmodule
 
-  (*synthesize*)
-  module mkTbCore(Empty);
-    Ifc_core_TLU coretlu <- mkcore_TLU;
-  endmodule
 endpackage
