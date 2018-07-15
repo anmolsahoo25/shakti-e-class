@@ -226,6 +226,8 @@ ip_build:
 not create IP project"; exit 1)
 	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES) ||\
 (echo "Could not create Multiplier IP"; exit 1)
+	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_nexys4_mig.tcl ||\
+(echo "Could not create NEXYS4DDR-MIG  IP"; exit 1)
 #	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_divider.tcl -tclargs $(XLEN) $(DIVSTAGES) ||\
 (echo "Could not create Divider IP"; exit 1)
 
