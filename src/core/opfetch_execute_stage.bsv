@@ -93,7 +93,7 @@ package opfetch_execute_stage;
       Wire#(Bool) wr_xlen <-mkWire();
     `endif
 
-    `ifdef MULDIV
+    `ifdef muldiv
       Ifc_alu alu <-mkalu;
       Reg#(Bool) rg_stall <- mkReg(False);
     `endif
@@ -165,7 +165,7 @@ package opfetch_execute_stage;
       rg_wfi<= False;
     endrule
   
-    rule fetch_execute_pass(!initialize `ifdef MULDIV && !rg_stall `endif && !rg_csr_stall &&
+    rule fetch_execute_pass(!initialize `ifdef muldiv && !rg_stall `endif && !rg_csr_stall &&
     !rg_wfi);
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
@@ -187,34 +187,37 @@ package opfetch_execute_stage;
         $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
             %h,  Type: ", rs1, op1, rs2, op2, op3, fshow(insttype));
 
-      `ifndef MULDIV
-        let {committype, op1_reslt, effaddr_csrdata} = fn_alu(fn, op1, op2, imm, op3, 
-                                                            insttype, funct3, word32);
+      `ifndef muldiv
+        let {committype, op1_reslt, effaddr_csrdata, trap1} = fn_alu(fn, op1, op2, imm, op3, 
+                                                            insttype, funct3, mem_access, word32);
       `endif
       if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
         if(available)begin
-          `ifdef MULDIV
-            let {done, committype, op1_reslt, effaddr_csrdata} <- alu.get_inputs(fn, op1, op2, imm,
-                                                                    op3, insttype, funct3, word32);
+          `ifdef muldiv
+            let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- alu.get_inputs(fn, op1, op2, imm,
+                                                       op3, insttype, funct3, mem_access, word32);
           `endif
-          if(committype == MEMORY &&& trap matches tagged None)
+          Trap_type final_trap=trap matches tagged None?trap1:trap;
+          if(committype == MEMORY &&& final_trap matches tagged None)
             ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
           if(committype==SYSTEM_INSTR)begin
             $display($time, "STAGE2: Making CSR STALL TRUE");
             rg_csr_stall<= True;
           end
-        `ifdef MULDIV 
+        `ifdef muldiv 
           if(verbosity>1)
             $display($time, "\tSTAGE2: CommitType: ", fshow(committype), " done: %b", done);
           if(done) begin 
             rx.u.deq;
             if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
               `ifdef simulate
-                tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
+                tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
+                    final_trap, inst));
               `else
-                tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
+                tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
+                    final_trap));
               `endif
             end
             else
@@ -229,9 +232,11 @@ package opfetch_execute_stage;
           rx.u.deq;
           if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
             `ifdef simulate
-              tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
+              tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
+                  final_trap, inst));
             `else
-              tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
+              tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
+                  final_trap));
             `endif
           end
           else
@@ -246,16 +251,18 @@ package opfetch_execute_stage;
       end
     endrule
  
-    `ifdef MULDIV
+    `ifdef muldiv
       rule capture_stalled_output(rg_stall);
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
                                         pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
-        let {committype, op1_reslt, effaddr_csrdata} <- alu.delayed_output;
+      let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu.delayed_output;
+      if(epoch==rg_epoch[0])begin
         `ifdef simulate
           tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
         `else
           tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
         `endif
+      end
         rg_stall<= False;
         rx.u.deq;
       endrule

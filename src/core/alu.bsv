@@ -38,13 +38,17 @@ This module contains single cycle MUL instruction execution.
 
 package alu;
 
-  `ifdef MULDIV import muldiv::*; `endif
+  `ifdef muldiv_fpga
+    import muldiv_fpga::*; 
+  `else
+    import muldiv_asic::*;
+  `endif
   import common_types::*;
   `include "common_params.bsv"
 
 	(*noinline*)
 	function ALU_OUT fn_alu (Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(PADDR) imm_value, 
-        Bit#(PADDR) op3, Instruction_type inst_type, Funct3 funct3, 
+        Bit#(PADDR) op3, Instruction_type inst_type, Funct3 funct3, Access_type memaccess, 
         Bool word32);
 
 	  /*========= Perform all the arithmetic ===== */
@@ -100,14 +104,24 @@ package alu;
 		Bit#(PADDR) effective_address=op3+ truncate(imm_value);
     if(inst_type==JALR)
       effective_address[0]=0;
+    // The following can be placed here since we are not using a branch predictor yet.
 		`ifdef simulate
 			if(inst_type==BRANCH)
 				final_output=0;
 		`endif
 
-//	Trap_type exception=tagged None;
-//	if((inst_type==JAL_R) && effective_address[1]!=0)
-//		exception=tagged Exception Inst_addr_misaligned;
+    Trap_type exception=tagged None;
+    `ifndef compressed
+	    if((inst_type==JAL || inst_type==JALR) && effective_address[1]!=0)
+	  	  exception=tagged Exception Inst_addr_misaligned;
+      else
+    `endif
+    if(inst_type==MEMORY && ((funct3[1:0]==1 && effective_address[0]!=0) || funct3[1:0]==2 &&
+        effective_address[1:0]!=0))begin
+      exception = memaccess==Load? tagged Exception Load_addr_misaligned: 
+                                   tagged Exception Store_addr_misaligned;
+    end
+
     
     Commit_type committype = REGULAR;
     if(inst_type==MEMORY)
@@ -119,14 +133,14 @@ package alu;
                                             zeroExtend({funct3, imm_value[16:0]}): 
                                             {pack(flush), effective_address};
 
-	  return tuple3(committype, final_output, effaddr_csrdata);
+	  return tuple4(committype, final_output, effaddr_csrdata, exception);
 	endfunction
 
-`ifdef MULDIV
+`ifdef muldiv
   interface Ifc_alu;
     method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs( Bit#(4) fn, Bit#(XLEN) op1, 
         Bit#(XLEN) op2, Bit#(PADDR) imm_value, Bit#(PADDR) op3, Instruction_type inst_type, 
-        Funct3 funct3, Bool word32);
+        Funct3 funct3, Access_type memaccess, Bool word32);
 		method ActionValue#(ALU_OUT) delayed_output;
   endinterface:Ifc_alu
 
@@ -135,13 +149,13 @@ package alu;
     Ifc_muldiv muldiv <- mkmuldiv;
     method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs( Bit#(4) fn, Bit#(XLEN) op1, 
       Bit#(XLEN) op2, Bit#(PADDR) imm_value, Bit#(PADDR) op3, Instruction_type inst_type, 
-      Funct3 funct3, Bool word32);
+      Funct3 funct3, Access_type memaccess,  Bool word32);
       if(inst_type==MULDIV)begin
         let product <- muldiv.get_inputs(op1, op2, funct3, word32);
         return product;
       end
       else
-        return tuple2(True, fn_alu(fn, op1, op2, imm_value, op3, inst_type, funct3, word32));
+        return tuple2(True, fn_alu(fn, op1, op2, imm_value, op3, inst_type, funct3, memaccess, word32));
     endmethod
 		method delayed_output=muldiv.delayed_output;
   endmodule

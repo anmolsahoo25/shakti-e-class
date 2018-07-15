@@ -41,7 +41,7 @@ package common_types;
 	typedef Bit #(3)  Funct3;
 
   // Define all enums here 
-	typedef enum {ALU, MEMORY, BRANCH, JAL, JALR, SYSTEM_INSTR, WFI `ifdef MULDIV , MULDIV `endif }
+	typedef enum {ALU, MEMORY, BRANCH, JAL, JALR, SYSTEM_INSTR, WFI `ifdef muldiv , MULDIV `endif }
       Instruction_type deriving(Bits, Eq, FShow); // the type of the decoded instruction.
 	typedef enum {Load=0, Store=1} Access_type deriving (Bits, Eq, FShow);
 	typedef enum {Flush= 1, None= 0} Flush_type deriving (Bits, Eq, FShow);
@@ -66,7 +66,7 @@ package common_types;
     typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(TAdd#(PADDR, 1)), Bit#(PADDR), Bit#(5), Bit#(1), 
                     Trap_type) PIPE2_DS;
   `endif
-  typedef Tuple3#(Commit_type, Bit#(XLEN), Bit#(TAdd#(PADDR, 1))) ALU_OUT;
+  typedef Tuple4#(Commit_type, Bit#(XLEN), Bit#(TAdd#(PADDR, 1)), Trap_type) ALU_OUT;
   
   typedef Tuple5#(Bit#(PADDR), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
   typedef Tuple4#(Bit#(PADDR), Access_type, Bit#(2), Bit#(1)) CoreRequest;
