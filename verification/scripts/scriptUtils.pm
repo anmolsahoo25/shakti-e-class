@@ -277,6 +277,8 @@ Options:
                                 [default] --suite=all
                                 --suite=[all|riscv-torture|aapg]
   --filter=FILTER_PATTERN       Filters the test list based on FILTER_PATTERN
+  --result=RESULT_PATTERN       Filters the regression report based on RESULT_PATTERN
+                                Eg. --res=[pass|fail|timeout|compile_fail]
   --test_count=TEST_COUNT       Generates TEST_COUNT value of random tests for each config 
                                 [default] --test_count=1
   --parallel                    Specified along with --submit for running tests in parallel
