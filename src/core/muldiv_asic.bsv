@@ -284,12 +284,12 @@ package muldiv_asic;
 		method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(Bit#(XLEN) in1, Bit#(XLEN) in2, Bit#(3)
     funct3, Bool word_flag);
 			ff_input.enq(tuple5(in1,in2,funct3[1:0],pack(word_flag),~funct3[2]));
-      return tuple2(False, tuple5(REGULAR, '1, 0, tagged None, None));
+      return tuple2(False, tuple4(REGULAR, '1, 0, tagged None));
 		endmethod
 		method ActionValue#(ALU_OUT) delayed_output;//returning the result
 			ff_muldiv_result.deq;
       let default_out=ff_muldiv_result.first();
-      return tuple5(REGULAR, default_out, 0, tagged None, None);
+      return tuple4(REGULAR, default_out, 0, tagged None);
 		endmethod
 		method Action flush;
 			rg_count[0]<=8;
