@@ -122,6 +122,8 @@ package mem_wb_stage;
           if (wr_memory_response matches tagged Valid .resp)begin
             let {data, err, access_type}=resp;
             if(!err)begin // no bus error
+              if(rd==0)
+                data=0;
               wr_operand_fwding <= tuple3(rd, True, data);
               wr_commit <= tagged Valid (tuple2(rd, data));
               `ifdef simulate 
@@ -146,7 +148,7 @@ package mem_wb_stage;
           end
         end
         else if(committype == SYSTEM_INSTR)begin
-          let {drain, newpc, dest}<-csr.system_instruction(effaddr_csrdata[11:0], 
+          let {drain, newpc, dest}<-csr.system_instruction(rd, effaddr_csrdata[11:0], 
                                               effaddr_csrdata[16:12], reslt, effaddr_csrdata[19:17]);
           jump_address=newpc;
           if(drain) 
@@ -161,6 +163,8 @@ package mem_wb_stage;
         else begin
           // in case of regular instruction simply update RF and forward the data.
           $display($time, "\tSTAGE3: Commiting PC: %h", pc);
+          if(rd==0)
+            reslt=0;
           wr_operand_fwding <= tuple3(rd, True, reslt);
           wr_commit <= tagged Valid (tuple2(rd, reslt));
           rx.u.deq;

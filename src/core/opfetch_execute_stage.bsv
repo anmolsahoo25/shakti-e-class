@@ -103,7 +103,7 @@ package opfetch_execute_stage;
         Instruction_type insttype, Bit#(32) imm);
      
       let {rd,valid,rd_value}=wr_opfwding;
-      Bit#(XLEN) rs1irf=(rs1_addr==rd && rs1_addr!=0)?rd_value:integer_rf.sub(rs1_addr);
+      Bit#(XLEN) rs1irf=(rs1_addr==rd)?rd_value:integer_rf.sub(rs1_addr);
       Bit#(XLEN) rs1=0;
       Bit#(XLEN) rs2=0;
       
@@ -121,7 +121,7 @@ package opfetch_execute_stage;
         rs2='d4;
       else if(rs2_type==Immediate)
         rs2=signExtend(imm);
-      else if(rs2_addr == rd && rs2_addr!=0)
+      else if(rs2_addr == rd)
         rs2 = rd_value;
       else
         rs2=integer_rf.sub(rs2_addr);
@@ -289,7 +289,6 @@ package opfetch_execute_stage;
           if(!wr_xlen)
             value=signExtend(value[31:0]);
         `endif
-        if(rd!=0)
           integer_rf.upd(rd,value);
       endmethod
     endinterface;
