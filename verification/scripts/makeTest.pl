@@ -235,9 +235,9 @@ if ($testSuite !~ /peripherals/) {
   }
   systemCmd("spike -c --isa=RV$XLEN\IMAC $testName.elf");
 }
-if ($simulator =~ /^bluespec$/) {
-  systemCmd("ln -s $shaktiHome/bin/out.so    out.so");
-}
+#if ($simulator =~ /^bluespec$/) {
+#  systemCmd("ln -s $shaktiHome/bin/out.so    out.so");
+#}
 systemCmd("ln -s $shaktiHome/bin/* .");
 #if (!(-e "$shaktiHome/bin/boot.MSB")) {
 #  systemFileCmd("cut -c1-8 $shaktiHome/verification/dts/boot.hex","$shaktiHome/bin/boot.MSB");
