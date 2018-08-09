@@ -39,6 +39,7 @@ package mem_wb_stage;
   import GetPut::*; 
   import FIFO:: *;
   import SpecialFIFOs:: *;
+  import DReg::*;
 
   interface Ifc_mem_wb_stage;
     interface RXe#(PIPE2_DS) from_execute;
@@ -67,7 +68,7 @@ package mem_wb_stage;
     Wire#(Bool) wr_csr_updated <- mkDWire(False);
 
     // wire that captures the response coming from the external memory or cache.
-    Wire#(Maybe#(Tuple3#(Bit#(XLEN), Bool,  Access_type))) wr_memory_response <- mkDWire(tagged Invalid);
+    Wire#(Maybe#(Tuple3#(Bit#(XLEN), Bool,  Access_type))) wr_memory_response <- mkDReg(tagged Invalid);
 
     // wire that carriues the information for operand forwarding
     Wire#(OpFwding) wr_operand_fwding <- mkDWire(tuple3(0, False, 0));
