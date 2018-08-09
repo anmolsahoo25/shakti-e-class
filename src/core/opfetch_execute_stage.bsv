@@ -76,7 +76,7 @@ package opfetch_execute_stage;
     Reg#(Bool) initialize<-mkReg(True);
     Reg#(Bit#(5)) rg_index<-mkReg(0);
     Reg#(Bit#(1)) rg_epoch[2] <- mkCReg(2,0);
-    Reg#(OpFwding) wr_opfwding <- mkDReg(unpack(0));
+    Reg#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
 
     // If a CSR operation is detected then you need to stall fetching operands from the regfile
@@ -116,7 +116,6 @@ package opfetch_execute_stage;
       if(insttype==MEMORY || insttype==JALR)
         op3=truncate(rs1irf);
     
-
       if(rs2_type==Constant4)
         rs2='d4;
       else if(rs2_type==Immediate)
@@ -126,13 +125,8 @@ package opfetch_execute_stage;
       else
         rs2=integer_rf.sub(rs2_addr);
       
-      // TODO put the following in the above function
-
-
-
       Bool operands_avail=True;
-      if(((rs1_addr == rd && rs1_addr!=0) || (rs2_addr == rd && rs2_addr !=0))
-            && !valid && rd!=0)
+      if(((rs1_addr == rd) || (rs2_addr == rd)) && !valid && rd!=0)
         operands_avail=False;
 
       `ifdef RV64
@@ -184,8 +178,8 @@ package opfetch_execute_stage;
       // Muxing the right value into the operands
 
       if(verbosity!=0)
-        $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
-            %h,  Type: ", rs1, op1, rs2, op2, op3, fshow(insttype));
+        $display($time, "\tSTAGE2: Operands Available:%b rs1: %d op1: %h rs2: %d op2: %h op3: \
+            %h,  Type: ",pack(available), rs1, op1, rs2, op2, op3, fshow(insttype));
 
       `ifndef muldiv
         let {committype, op1_reslt, effaddr_csrdata, trap1} = fn_alu(fn, op1, op2, imm, op3, 
