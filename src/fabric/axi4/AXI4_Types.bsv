@@ -250,6 +250,7 @@ AXI4_Slave_IFC #(wd_addr, wd_data, wd_user)
 				     noAction;
 				  endmethod
 
+				  method Bit#(4) m_rid=?;
 				  method Bool m_awready;
 				     return False;
 				  endmethod
