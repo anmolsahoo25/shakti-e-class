@@ -226,14 +226,14 @@ ip_build:
 not create IP project"; exit 1)
 	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES) ||\
 (echo "Could not create Multiplier IP"; exit 1)
-	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_nexys4_mig.tcl ||\
+#	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_nexys4_mig.tcl ||\
 (echo "Could not create NEXYS4DDR-MIG  IP"; exit 1)
 #	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_divider.tcl -tclargs $(XLEN) $(DIVSTAGES) ||\
 (echo "Could not create Divider IP"; exit 1)
 
 .PHONY: vivado_build
 vivado_build: 
-	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/create_project.tcl -tclargs $(TOP_MODULE) $(FPGA) || (echo "Could \
+	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/create_project.tcl -tclargs $(SYNTHTOP) $(FPGA) || (echo "Could \
 not create core project"; exit 1)
 	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/run.tcl || (echo "ERROR: While running synthesis")
 
