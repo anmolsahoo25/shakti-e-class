@@ -38,10 +38,12 @@ This module contains single cycle MUL instruction execution.
 
 package alu;
 
-  `ifdef muldiv_fpga
-    import muldiv_fpga::*; 
-  `else
-    import muldiv_asic::*;
+  `ifdef muldiv
+    `ifdef muldiv_fpga
+      import muldiv_fpga::*; 
+    `else
+      import muldiv_asic::*;
+    `endif
   `endif
   import common_types::*;
   `include "common_params.bsv"
