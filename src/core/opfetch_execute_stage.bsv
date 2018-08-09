@@ -103,7 +103,7 @@ package opfetch_execute_stage;
         Instruction_type insttype, Bit#(32) imm);
      
       let {rd,valid,rd_value}=wr_opfwding;
-      Bit#(XLEN) rs1irf=(rs1_addr==rd)?rd_value:integer_rf.sub(rs1_addr);
+      Bit#(XLEN) rs1irf=(rs1_addr==rd && rs1_addr!=0)?rd_value:integer_rf.sub(rs1_addr);
       Bit#(XLEN) rs1=0;
       Bit#(XLEN) rs2=0;
       
@@ -116,15 +116,18 @@ package opfetch_execute_stage;
       if(insttype==MEMORY || insttype==JALR)
         op3=truncate(rs1irf);
     
+
       if(rs2_type==Constant4)
         rs2='d4;
       else if(rs2_type==Immediate)
         rs2=signExtend(imm);
-      else if(rs2_addr == rd)
+      else if(rs2_addr == rd && rs2_addr!=0)
         rs2 = rd_value;
       else
         rs2=integer_rf.sub(rs2_addr);
       
+
+
       Bool operands_avail=True;
       if(((rs1_addr == rd) || (rs2_addr == rd)) && !valid && rd!=0)
         operands_avail=False;
@@ -178,8 +181,8 @@ package opfetch_execute_stage;
       // Muxing the right value into the operands
 
       if(verbosity!=0)
-        $display($time, "\tSTAGE2: Operands Available:%b rs1: %d op1: %h rs2: %d op2: %h op3: \
-            %h,  Type: ",pack(available), rs1, op1, rs2, op2, op3, fshow(insttype));
+        $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
+            %h,  Type: ", rs1, op1, rs2, op2, op3, fshow(insttype));
 
       `ifndef muldiv
         let {committype, op1_reslt, effaddr_csrdata, trap1} = fn_alu(fn, op1, op2, imm, op3, 
