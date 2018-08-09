@@ -188,28 +188,28 @@ openLog("$testDir/$testName.log");
 #chdir("$workdir/$test_suite/$testName");
 # Compiling the test
 if ($testType =~ /^v$/) {
-  systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -DENTROPY=0x9629af2 -std=gnu99 -O2 -I$riscvIncludeDir/env/v -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/v/link.ld $riscvIncludeDir/env/v/entry.S $riscvIncludeDir/env/v/*.c $test -o $testName.elf");
+  systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\ima -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -DENTROPY=0x9629af2 -std=gnu99 -O2 -I$riscvIncludeDir/env/v -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/v/link.ld $riscvIncludeDir/env/v/entry.S $riscvIncludeDir/env/v/*.c $test -o $testName.elf");
 }
 elsif ($testType =~ /^p$/) {
   if ($testSuite =~ /csmith-run/) {
     my $csmithInc = "$shaktiHome/verification/tools/csmith_run";
-    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac  -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c -I /tools/csmith/runtime $csmithInc/crt.S -o crt.o");
-    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac  -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf  -c -I /tools/csmith/runtime $csmithInc/syscalls_shakti.c -o syscalls.o");
-    systemCmd("riscv$XLEN-unknown-elf-gcc -w -Os -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf  -c -I /tools/csmith/runtime $shaktiHome/verification/tests/$test_suite/$testName.c  -march=rv$XLEN.imac -o $testName.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\ima  -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c -I /tools/csmith/runtime $csmithInc/crt.S -o crt.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\ima  -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf  -c -I /tools/csmith/runtime $csmithInc/syscalls_shakti.c -o syscalls.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -w -Os -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf  -c -I /tools/csmith/runtime $shaktiHome/verification/tests/$test_suite/$testName.c  -march=rv$XLEN.ima -o $testName.o");
     systemCmd("riscv$XLEN-unknown-elf-gcc -T $csmithInc/link.ld -I /tools/csmith/runtime $testName.o syscalls.o crt.o -static -nostdlib -nostartfiles -lgcc -lm -o $testName.elf");
   }
   elsif ($testSuite =~ /peripherals/) {
     my $periInc = "$shaktiHome/verification/tests/directed/peripherals";
-    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c $periInc/common/crt.S -o crt.o");
-    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rvi$XLEN\imac  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf  -c $periInc/common/syscalls.c -o syscalls.o");
-    systemCmd("riscv$XLEN-unknown-elf-gcc -w -mcmodel=medany -static -std=gnu99 -fno-builtin-printf -I $periInc/i2c/ -I $periInc/qspi/ -I $periInc/dma/ -I $periInc/plic/ -I $periInc/common/ -c $periInc/smoketests/smoke.c -o smoke.o -march=rv$XLEN\imac -lm -lgcc");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\ima  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c $periInc/common/crt.S -o crt.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rvi$XLEN\ima  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf  -c $periInc/common/syscalls.c -o syscalls.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -w -mcmodel=medany -static -std=gnu99 -fno-builtin-printf -I $periInc/i2c/ -I $periInc/qspi/ -I $periInc/dma/ -I $periInc/plic/ -I $periInc/common/ -c $periInc/smoketests/smoke.c -o smoke.o -march=rv$XLEN\ima -lm -lgcc");
     systemCmd("riscv$XLEN-unknown-elf-gcc -T $periInc/common/link.ld smoke.o syscalls.o crt.o -o smoke.elf -static -nostartfiles -lm -lgcc");
   }
   elsif ($testSuite =~ /aapg/) {
     systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\g  -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -T$shaktiHome/verification/tools/AAPG/link.ld $test -o $testName.elf");
   }
   else {
-    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac -mabi=lp64  -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I$riscvIncludeDir/env/p -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/p/link.ld $test -o $testName.elf");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\ima -mabi=lp64  -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I$riscvIncludeDir/env/p -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/p/link.ld $test -o $testName.elf");
   }
 }
 
