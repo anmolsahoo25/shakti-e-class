@@ -58,7 +58,6 @@ package opfetch_execute_stage;
     interface Get#(MemoryRequest) memory_request;
   
     method Action flush_from_wb(Bool fl);
-    `ifdef RV64 method Action inferred_xlen (Bool xlen); `endif // False-32bit,  True-64bit 
     method Action csr_updated (Bool upd);
     method Action interrupt(Bool i);
   endinterface:Ifc_opfetch_execute_stage
@@ -88,10 +87,6 @@ package opfetch_execute_stage;
     // There does exist mechanism in the last stage to flush pipe on a trap. in case a full flush is
     // required,  that particular method should be excited.
     Reg#(Bool) rg_csr_stall <- mkReg(False);
-
-    `ifdef RV64
-      Wire#(Bool) wr_xlen <-mkWire();
-    `endif
 
     `ifdef muldiv
       Ifc_alu alu <-mkalu;
@@ -132,14 +127,6 @@ package opfetch_execute_stage;
       if(((rs1_addr == rd) || (rs2_addr == rd)) && !valid && rd!=0)
         operands_avail=False;
 
-      `ifdef RV64
-        // in 64-bit mode is you want to run 32-bit binaries you will have to set MXL/UXL to 1.
-        // This will cause the operands to be 32-bit sign-extended when you read/write them
-        if(!wr_xlen) begin
-          rs1=signExtend(rs1[31:0]);
-          rs2=signExtend(rs2[31:0]);
-        end
-      `endif
       return tuple4(rs1,rs2,op3,operands_avail);
     endfunction
 
@@ -285,10 +272,6 @@ package opfetch_execute_stage;
         let {rd,value} = from_mem_to_rf;
         if(verbosity!=0)
           $display($time, "\tSTAGE2: Commiting Rd: %d, Data: %h", rd, value);
-        `ifdef RV64
-          if(!wr_xlen)
-            value=signExtend(value[31:0]);
-        `endif
           integer_rf.upd(rd,value);
       endmethod
     endinterface;
@@ -309,11 +292,6 @@ package opfetch_execute_stage;
           $display($time, "\tSTAGE2: Received Flush");
       end
     endmethod
-    `ifdef RV64 
-      method Action inferred_xlen (Bool xlen); 
-        wr_xlen<= xlen;
-      endmethod  
-    `endif // False-32bit,  True-64bit 
     method Action csr_updated (Bool upd) if(rg_csr_stall);
       if(upd) begin
         $display($time, "STAGE2: Making SCR STALL FALSE");

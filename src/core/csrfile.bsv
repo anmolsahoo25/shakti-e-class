@@ -48,8 +48,14 @@ package csrfile;
                                                   Bit#(6) cause, Bit#(PADDR) pc, Bit#(PADDR) tval);
     method Action incr_minstret;
     method Bool interrupt;
-    `ifdef RV64 method Bool inferred_xlen; `endif // False-32bit,  True-64bit 
   endinterface
+  
+  function Reg#(t) readOnlyReg(t r);
+    return (interface Reg;
+       method t _read = r;
+       method Action _write(t x) = noAction;
+    endinterface);
+  endfunction
 
   (*synthesize*)
   (*mutually_exclusive="upd_on_ret, write_csr"*)
@@ -71,11 +77,10 @@ package csrfile;
     Bit#(XLEN) csr_mhartid    = 0;
 
 	  //MISA fields
-    `ifdef RV64
-      Reg#(Bit#(2)) rg_mxl <- mkReg(fromInteger(valueOf(TDiv#(XLEN, 32))));
-    `else
-      Bit#(2) rg_mxl = 'd1;
-    `endif
+    // TODO: it is difficult to write a binary which can transition from 64-bit to 32-bit or vice
+    // versa. This is achieved by changing the mxl bit. This is doesn't seem to be happening in the
+    // near future. So not integrating it right now.
+    Reg#(Bit#(2)) rg_mxl = readOnlyReg(valueOf(TDiv#(XLEN, 32))));
     Bit#(26) temp_misa='h141101;
 	 // temp_misa[8]=1;
 	 // temp_misa[20]=1;
@@ -202,9 +207,7 @@ package csrfile;
 	  //////////////////////////////////////////////////////////////////////////////////////////
 	  //////////////////////////////// USER LEVEL CSRs ////////////////////////////////////////
 	  Reg#(Bit#(XLEN)) rg_uscratch <- mkReg(0);
-    `ifdef RV64 
-      Reg#(Bit#(2)) rg_uxl <- mkReg(fromInteger(valueOf(TDiv#(XLEN, 32)))); 
-    `endif
+    Reg#(Bit#(2)) rg_uxl = readOnlyReg(valueOf(TDiv#(XLEN, 32))));
 
     `ifdef USERTRAPS
   	  Reg#(Bit#(PADDR)) rg_uepc  		<- mkReg(0);
@@ -242,10 +245,7 @@ package csrfile;
         if (addr == `MISA) begin 
           data[25:0]= rg_misa; 
           `ifdef RV64
-            if(rg_mxl==1)
-              data[31:30]= rg_mxl; 
-            else
-              data[63:62]=rg_mxl;
+            data[63:62]= rg_mxl; 
           `else
             data[31:30]=rg_mxl;
           `endif
@@ -315,12 +315,6 @@ package csrfile;
       case(addr)
         `MISA: begin 
           rg_misa<= truncate(word);
-          `ifdef RV64
-            if(rg_mxl==1)
-              rg_mxl<= word[31:30];
-            else
-              rg_mxl<= word[63:62];
-          `endif
         end
         `MTVEC: begin 
           rg_mtvec<= word[paddr- 1:2]; 
@@ -335,10 +329,6 @@ package csrfile;
           rg_mpie<= word[7];
           rg_mpp<= word[12:11];
           rg_mprv<= word[17];
-          `ifdef RV64
-            if(rg_uxl==1)
-              rg_uxl<=word[33:32]; 
-          `endif
         end
         `ifdef USERTRAPS
           `MIDELEG: begin
@@ -494,14 +484,6 @@ package csrfile;
         minstreth<= truncateLSB(instr); minstret <= truncate(instr);
       `endif
     endmethod
-    `ifdef RV64
-      method Bool inferred_xlen; // False-32bit,  True-64bit
-        if(rg_prv==Machine)
-          return unpack(rg_mxl[1]);
-        else
-          return unpack(rg_uxl[1]);
-      endmethod
-    `endif
     method interrupt = unpack(|(csr_mie&csr_mip));
   endmodule
 endpackage
