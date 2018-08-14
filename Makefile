@@ -148,7 +148,7 @@ link_vcs:
 	@mkdir -p bin
 	@rm -rf bin/*
 	@vcs -full64 -l vcs_compile.log -sverilog +vpi +v2k -lca +define+TOP=$(TOP_MODULE) \
-	+define+BSV_TIMESCALE=1ns/1ps +cli+4 +libext+.v +notimingcheck +vcs+dumpvars+test.vcd \
+	+define+BSV_TIMESCALE=1ns/1ps +cli+4 +libext+.v +notimingcheck\
   ${XILINX_VIVADO}/data/verilog/src/glbl.v \
 	-y $(VERILOGDIR)/ -y ${BLUESPECDIR}/Verilog/ \
 	-y ${XILINX_VIVADO}/data/verilog/src/unisims +libext+.v \
