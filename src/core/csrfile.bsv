@@ -80,7 +80,7 @@ package csrfile;
     // TODO: it is difficult to write a binary which can transition from 64-bit to 32-bit or vice
     // versa. This is achieved by changing the mxl bit. This is doesn't seem to be happening in the
     // near future. So not integrating it right now.
-    Reg#(Bit#(2)) rg_mxl = readOnlyReg(valueOf(TDiv#(XLEN, 32))));
+    Reg#(Bit#(2)) rg_mxl = readOnlyReg(fromInteger(valueOf(XLEN)/32));
     Bit#(26) temp_misa='h141101;
 	 // temp_misa[8]=1;
 	 // temp_misa[20]=1;
@@ -207,7 +207,7 @@ package csrfile;
 	  //////////////////////////////////////////////////////////////////////////////////////////
 	  //////////////////////////////// USER LEVEL CSRs ////////////////////////////////////////
 	  Reg#(Bit#(XLEN)) rg_uscratch <- mkReg(0);
-    Reg#(Bit#(2)) rg_uxl = readOnlyReg(valueOf(TDiv#(XLEN, 32))));
+    Reg#(Bit#(2)) rg_uxl = readOnlyReg(fromInteger(valueOf(XLEN)/32));
 
     `ifdef USERTRAPS
   	  Reg#(Bit#(PADDR)) rg_uepc  		<- mkReg(0);

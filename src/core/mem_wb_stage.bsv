@@ -57,7 +57,6 @@ package mem_wb_stage;
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
-    `ifdef RV64 method Bool inferred_xlen; `endif // False-32bit,  True-64bit 
   endinterface:Ifc_mem_wb_stage
 
   (*synthesize*)
@@ -237,7 +236,6 @@ package mem_wb_stage;
         endmethod
       endinterface;
     `endif
-    `ifdef RV64 method Bool inferred_xlen = csr.inferred_xlen; `endif // False-32bit,  True-64bit 
     method  interrupt=csr.interrupt;
   endmodule:mkmem_wb_stage
 endpackage:mem_wb_stage
