@@ -144,7 +144,7 @@ package fetch_decode_stage;
             $display($time, "\tSTAGE1: Sending Instruction Addr: %h", pc[0]);
 		      return tuple2(pc[0],rg_epoch[0]);
         endmethod
-      endinterface
+      endinterface;
 		  interface inst_response= interface Put
 		  	method Action put (Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1)) resp);
           ff_response_from_memory.enq(resp);
