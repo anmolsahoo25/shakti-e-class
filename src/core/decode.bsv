@@ -328,7 +328,7 @@ package decode;
     else
       exception = tagged Exception Illegal_inst;
 		Bit#(4) fn=0;
-		if(opcode==`BRANCH_op)begin
+		if(opcode==`BRANCH_op )begin
 			if(funct3[2]==0)
 				fn={2'b0,1,funct3[0]};
 			else
@@ -337,7 +337,7 @@ package decode;
 //		else if(opcode==`JAL_op || opcode==`JALR_op || opcode==`LOAD_op	|| opcode==`STORE_op ||
 //                                                              opcode==`AUIPC_op || opcode==`LUI_op)
 //			fn=0;
-		else if(`ifdef RV64 opcode==`IMM_ARITHW_op || `endif opcode==`IMM_ARITH_op)begin
+		else if(`ifdef RV64 opcode==`IMM_ARITHW_op || `endif opcode==`IMM_ARITH_op )begin
 			fn=case(funct3)
 				'b010: 'b1100;
 				'b011: 'b1110;
@@ -345,7 +345,7 @@ package decode;
 				default:{1'b0,funct3};
 			endcase;
 		end
-		else if(`ifdef RV64 opcode==`ARITHW_op || `endif opcode==`ARITH_op)begin
+		else if(`ifdef RV64 opcode==`ARITHW_op || `endif opcode==`ARITH_op )begin
 			fn=case(funct3)
 				'b000:if(funct7[5]==1) 'b1010; else 'b0000;
 				'b010:'b1100;
@@ -418,7 +418,7 @@ package decode;
     Bool t_ARITH_W=(t_ADDIW||(t_CS &&inst[12]==1'b1));
     Bool t_SP_OP =
     (opcode=='b10001||opcode=='b10010||opcode=='b10011||opcode=='b10101||opcode=='b10110||opcode=='b10111||opcode=='b00000||t_ADDI16SP);
-    Bool t_CJ=(`ifdef RV32(opcode =='b01001)||`endif opcode=='b01101);
+    Bool t_CJ=(`ifdef RV32 (opcode =='b01001) || `endif opcode=='b01101);
     Bool t_LUI = t_ADDI_LUI && inst[11:7]!=2;
     Bool t_LI = (opcode =='b01010);
     Bool t_LWSP = (opcode =='b10010); 
