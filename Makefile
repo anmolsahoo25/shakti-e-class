@@ -132,6 +132,8 @@ generate_verilog: check-restore check-env
 	@cp ${BLUESPECDIR}/Verilog.Vivado/BRAM1Load.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog.Vivado/BRAM2BELoad.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFO2.v ./verilog/
+	@cp ${BLUESPECDIR}/Verilog/FIFO1.v ./verilog/
+	@cp ${BLUESPECDIR}/Verilog/RevertReg.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFO20.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFOL1.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/SyncFIFO.v ./verilog/
