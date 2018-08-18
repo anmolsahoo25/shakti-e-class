@@ -478,126 +478,36 @@ package decode;
 		if(t_CL_STORE||t_SWSP||t_SDSP)
 			mem_access=Store;
 
-// Decoding the immediate values
+    // immediate value 
+    Bit#(32)imm_value=0;
 
-// Bit#(32)imm_value=0;
-//
-// Bit#(1) bit0=0;
-// Bit#(1) bit1=0;
-// Bit#(1) bit2=0;
-// Bit#(1) bit3=0;
-// Bit#(1) bit4=0;
-// Bit#(1) bit5=0;
-// Bit#(1) bit6=0;
-// Bit#(1) bit7=0;
-// Bit#(1) bit8=0;
-// Bit#(1) bit9=0;
-//
-//
-// if(t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11)||t_SLLI)
-// bit0=inst[2];
-// else
-// bit0=0;
-//
-// if (t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11)||t_SLLI||t_CB)
-// bit1=inst[3];
-// else
-// bit1=0;
-//
-// if(t_LWSP||t_CB||t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11)||t_SLLI)
-// bit2=inst[4];
-// else if(t_CIW||(t_CL&&inst[14:13]!=2'b11))
-// bit2=inst[6];
-// else if(t_SWSP)
-// bit2=inst[9];
-// else
-// bit2=0;
-//
-//if (t_LDSP||t_LWSP||t_CIW||t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11)||t_SLLI)
-//bit3=inst[5];
-//
-//else if(!t_ADDI16SP) 
-//bit3=inst[10];
-//else
-//bit3=0;
-//
-//if(t_ADDI16SP||t_LWSP||t_CIW||
-//t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11)||t_SLLI)
-//bit4=inst[6];
-//else
-//bit4=inst[11];
-//
-//if(t_CB)
-//bit5=inst[2];
-//else
-//bit5=inst[12];
-//
-//if(t_SWSP||t_SDSP||t_CIW) 
-//bit6=inst[7];
-//else if(t_CL||t_CB||t_ADDI16SP)
-//bit6=inst[5];
-//else if(t_LWSP||t_LDSP) 
-//bit6=inst[2];
-//
-//
-//if(t_CL||t_CB)
-//bit7=inst[6];
-//else if(t_SWSP||t_SDSP||t_CIW)
-//bit7=inst[8];
-//else if(t_LWSP||t_LDSP)
-//bit7=inst[3];
-//
-//if(t_LDSP||t_ADDI16SP)
-//bit8=inst[4];
-//else if(t_SDSP||t_CIW)
-//bit8=inst[9];
-//else if(t_CB)
-//bit8=inst[12];
-//
-//
-//if (t_CIW)
-//bit9=inst[10];
-//else if(t_ADDI16SP)
-//bit9=inst[12];
-//
-//if(t_LDSP||t_SWSP||t_SDSP||t_CIW||t_CL)
-//imm_value=zeroExtend({bit9,bit8,bit7,bit6,bit5,bit4,bit3,bit2,bit1,bit0});
-//else if (t_LUI)
-//imm_value=signExtend({inst[12],inst[6],inst[5],inst[4],inst[3],inst[2],12'b0});
-//else
-//imm_value=signExtend({bit9,bit8,bit7,bit6,bit5,bit4,bit3,bit2,bit1,bit0});
-
-
- // immediate value 
- Bit#(32)imm_value=0;
-
-   if(t_LWSP) 
-       imm_value=zeroExtend({inst[3:2],inst[12],inst[6:4],2'b00});//word 
-   else if(t_LDSP)
-       imm_value=zeroExtend({inst[4:2],inst[12],inst[6:5],3'b000});//double 
-   else if(t_SWSP)
-       imm_value=zeroExtend({inst[8:7],inst[12:10],inst[9],2'b00});
-   else if(t_SDSP)
-       imm_value=zeroExtend({inst[9:7],inst[12:10],3'b000});
-     else if(t_CIW)
-        imm_value=zeroExtend({inst[10],inst[9],inst[8],inst[7],inst[12],inst[11],inst[5],inst[6],2'b00}); 
-   else if(t_ADDI16SP)
-         imm_value =signExtend({inst[12],inst[4],inst[3],inst[5],inst[2],inst[6],4'b0000});
- 	else if(t_CL)
-        if(inst[14:13]!=2'b11)
- 		   imm_value=zeroExtend({inst[5],inst[12],inst[11],inst[10],inst[6],2'b00});
-        else
+    if(t_LWSP) 
+      imm_value=zeroExtend({inst[3:2],inst[12],inst[6:4],2'b00});//word 
+    else if(t_LDSP)
+      imm_value=zeroExtend({inst[4:2],inst[12],inst[6:5],3'b000});//double 
+    else if(t_SWSP)
+      imm_value=zeroExtend({inst[8:7],inst[12:10],inst[9],2'b00});
+    else if(t_SDSP)
+      imm_value=zeroExtend({inst[9:7],inst[12:10],3'b000});
+    else if(t_CIW)
+      imm_value=zeroExtend({inst[10],inst[9],inst[8],inst[7],inst[12],inst[11],inst[5],inst[6],2'b00}); 
+    else if(t_ADDI16SP)
+      imm_value =signExtend({inst[12],inst[4],inst[3],inst[5],inst[2],inst[6],4'b0000});
+ 	  else if(t_CL)
+      if(inst[14:13]!=2'b11)
+ 		    imm_value=zeroExtend({inst[5],inst[12],inst[11],inst[10],inst[6],2'b00});
+      else
         imm_value=zeroExtend({inst[6],inst[5],inst[12],inst[11],inst[10],3'b000});
     else if(t_CJ)
-            imm_value=signExtend({inst[12],inst[8],inst[10:9],inst[6],inst[7],inst[2],inst[11],inst[5:3],1'b0});
+      imm_value=signExtend({inst[12],inst[8],inst[10:9],inst[6],inst[7],inst[2],inst[11],inst[5:3],1'b0});
     else if(t_CB)
-        imm_value=signExtend({inst[12],inst[6],inst[5],inst[2],inst[11],inst[10],inst[4],inst[3],1'b0}); 
-     else if( t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11||t_SLLI))//imm_arith
-        imm_value=signExtend({inst[12],inst[6],inst[5],inst[4],inst[3],inst[2]});
-     else if (t_LUI)
-        imm_value=signExtend({inst[12],inst[6],inst[5],inst[4],inst[3],inst[2],12'b0});
-     else
-       imm_value=0;
+      imm_value=signExtend({inst[12],inst[6],inst[5],inst[2],inst[11],inst[10],inst[4],inst[3],1'b0}); 
+    else if( t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11||t_SLLI))//imm_arith
+      imm_value=signExtend({inst[12],inst[6],inst[5],inst[4],inst[3],inst[2]});
+    else if (t_LUI)
+      imm_value=signExtend({inst[12],inst[6],inst[5],inst[4],inst[3],inst[2],12'b0});
+    else
+      imm_value=0;
 
 		Bit#(32) immediate_value=signExtend(imm_value);
     // Following table describes what the ALU will need for some critical operations. Based on this
@@ -636,43 +546,34 @@ package decode;
 
     Instruction_type inst_type=ALU;
     if((t_CL)||(t_LWSP)||t_LDSP||t_SWSP||t_SDSP)
-    inst_type=MEMORY;
+      inst_type=MEMORY;
     else if(t_CJ)
-    inst_type=JAL;
+      inst_type=JAL;
     else if(t_J_R)
-    inst_type=JALR;
+      inst_type=JALR;
     else if(t_BR)
-    inst_type=BRANCH;
+      inst_type=BRANCH;
     else
-    inst_type=ALU;
+      inst_type=ALU;
 
     Bit#(3) funct3=gen_funct3(opcode,inst);
     if((op_comp==2'b11)||(opcode==5'b00100)||(opcode==5'b00101)||
-    (opcode==5'b10001)||(opcode==5'b10101))
+        (opcode==5'b10001)||(opcode==5'b10101))
+      exception = tagged Exception Illegal_inst;
 
-     exception = tagged Exception Illegal_inst;
+    if (inst==0)
+		  exception = tagged Exception Illegal_inst;
 
-     if (inst==0)
-		
-     exception = tagged Exception Illegal_inst;
-
-  if(t_CIW||t_ADDI16SP||t_LUI||t_SLLI)
-
-    if(immediate_value==0)
-
-     exception = tagged Exception Illegal_inst;
+    if(t_CIW||t_ADDI16SP||t_LUI||t_SLLI)
+      if(immediate_value==0)
+        exception = tagged Exception Illegal_inst;
     Bit#(4) fn=0;
-		if(t_BR)
-    begin
-				fn={2'b0,1,funct3[0]};
+		if(t_BR) begin
+		  fn={2'b0,1,funct3[0]};
 		end
-//		else if(opcode==`JAL_op || opcode==`JALR_op || opcode==`LOAD_op	|| opcode==`STORE_op ||
-//                                                              opcode==`AUIPC_op || opcode==`LUI_op)
-//			fn=0;
-//immediate operations except LUI and LI
-else if(`ifdef RV64 t_ADDIW||`endif t_SLLI||(t_ADDI)||(opcode=='b01100 && inst[11:10]!='b11))
-begin//SLLI,SRLI,SRAI,ANDI,ADDI 
-			fn=case(funct3)
+    else if(`ifdef RV64 t_ADDIW||`endif t_SLLI||(t_ADDI)||(opcode=='b01100 
+        && inst[11:10]!='b11))begin//SLLI,SRLI,SRAI,ANDI,ADDI 
+		  fn=case(funct3)
 				'b010: 'b1100;
 				'b011: 'b1110;
 				'b101: if(inst[10]==1'b1)'b1011; else 'b0101 ;
@@ -680,8 +581,7 @@ begin//SLLI,SRLI,SRAI,ANDI,ADDI
 			endcase;
 		end
     //Arithmetic instructions
-		else if(`ifdef RV64 t_ARITH_W ||`endif t_CS||t_ADD  )
-    begin
+		else if(`ifdef RV64 t_ARITH_W ||`endif t_CS||t_ADD  )begin
 			fn=case(funct3)
 				'b000:if (t_ADD)
                 if(inst[1]==1'b0)'b1010;else 'b0000;
@@ -692,28 +592,10 @@ begin//SLLI,SRLI,SRAI,ANDI,ADDI
 				default:{1'b0,funct3};
 			endcase;
 		end
-    
-		//else if(opcode[4:3]=='b10)
-		//	fn=opcode[3:0];
-	//	Bool address_is_valid=address_valid(inst[31:20]);
-	//	Bool access_is_valid=valid_csr_access(inst[31:20],inst[19:15], inst[13:12], prv);
     if(pc[0]!=0)
       exception = tagged Exception Inst_addr_misaligned;
     else if(err)
       exception = tagged Exception Inst_access_fault;
- //   else if(inst_type == SYSTEM_INSTR)begin
- //     if(funct3 == 0)
- //       case(inst[31:20])
- //         'h000: exception = tagged Exception ((prv==User)?Ecall_from_user:Ecall_from_machine);
- //         'h001: exception = tagged Exception Breakpoint;
- //         'h302: exception = (prv!=Machine)?tagged Exception Illegal_inst:tagged None;
- //         default: exception = tagged None;
- //       endcase
- //    else begin // CSR read write operation
- // 		  if(!(address_is_valid && access_is_valid))
- //          exception = tagged Exception Illegal_inst;
- //      end
- //    end
     if(interrupt matches tagged None)
       interrupt =  exception;
    
@@ -725,8 +607,7 @@ begin//SLLI,SRLI,SRAI,ANDI,ADDI
       Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
       Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt, epoch);
     `endif
-    return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32,
-    funct3, type_tuple);            
+    return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
   endfunction
 `endif
 endpackage

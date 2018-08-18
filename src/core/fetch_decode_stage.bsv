@@ -62,123 +62,106 @@ package fetch_decode_stage;
     Reg#(Bit#(1)) rg_epoch[2] <- mkCReg(2,0);
 		Reg#(Bit#(1)) shadow_epoch <- mkReg(0);  //shadow pc to preserve it
     Wire#(CSRtoDecode) wr_csr <-mkWire();
+    Integer verbosity = valueOf(`VERBOSITY);
     `ifdef compressed
     	Reg#(Maybe#(Bit#(16)))buff<-mkReg(tagged Invalid);
     	Reg#(Bit#(1)) epoch_buff<-mkReg(0);
      	FIFOF#(Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1))) ff_response_from_memory <-mkSizedBypassFIFOF(1);
-    `else
-	Reg#(Bit#(PADDR)) shadow_pc <-mkRegU;  //shadow pc to preserve it
+    `else 
+    	Reg#(Bit#(PADDR)) shadow_pc <-mkRegU;  //shadow pc to preserve it
     `endif
     //instantiating the tx interface with name tx
 		TX#(PIPE1_DS) tx<-mkTX;
-
-    Integer verbosity = valueOf(`VERBOSITY);
     `ifdef compressed
-     rule inst_response_to_decode;
-       Bit#(32) inst_decode = 0;
-       Bool compressed = False;
-       let {inst,err,shadow_pc,shadow_epoch}=ff_response_from_memory.first;
-       
-      if(shadow_pc[1:0] == 2'b10 && inst[17:16]==2'b11)//upon a jump inst to pc+2
-            begin
-                ff_response_from_memory.deq;
-                buff      <= tagged Valid inst[31:16];
-                epoch_buff<= shadow_epoch;
+      rule inst_response_to_decode;
+        Bit#(32) inst_decode = 0;
+        Bool compressed = False;
+        let {inst,err,shadow_pc,shadow_epoch}=ff_response_from_memory.first;
+         
+        if(shadow_pc[1:0] == 2'b10 && inst[17:16]==2'b11) begin//upon a jump inst to pc+2
+          ff_response_from_memory.deq;
+          buff      <= tagged Valid inst[31:16];
+          epoch_buff<= shadow_epoch;
+        end
+        else begin
+          if(shadow_pc[1:0] == 2'b10 && inst[17:16]!=2'b11) begin
+            inst_decode =  zeroExtend(inst[31:16]);
+            ff_response_from_memory.deq;
+            compressed=True;
+            buff       <= tagged Invalid;
+          end
+          else if(!isValid(buff) && inst[1:0]==2'b11)begin
+            inst_decode=inst;
+            buff <= tagged Invalid;
+            ff_response_from_memory.deq;
+          end
+          else if(buff matches tagged Valid .d) begin
+            if(d[1:0]==2'b11 && (epoch_buff==shadow_epoch)) begin
+              inst_decode={inst[15:0],d};
+              buff <= tagged Valid inst[31:16];
+              epoch_buff<=shadow_epoch;
+              ff_response_from_memory.deq;
             end
-     else
-     begin
-
-          if(shadow_pc[1:0] == 2'b10 && inst[17:16]!=2'b11)
-          begin
-                inst_decode =  zeroExtend(inst[31:16]);
-                ff_response_from_memory.deq;
-                compressed=True;
-                buff       <= tagged Invalid;
+            else begin
+              inst_decode=zeroExtend(d);
+              compressed = True;
+              buff <= tagged Invalid;
+            end
           end
-
-          else if(!isValid(buff) && inst[1:0]==2'b11)
-          begin
-                inst_decode=inst;
-                buff <= tagged Invalid;
-                ff_response_from_memory.deq;
-
+          else if(!(isValid(buff)) && inst[1:0]!=2'b11) begin
+            inst_decode=zeroExtend(inst[15:0]);
+            buff <= tagged Valid inst[31:16];
+            compressed = True;
+            epoch_buff<=shadow_epoch;
+            ff_response_from_memory.deq;
           end
-          else if(buff matches tagged Valid .d) 
-          begin
-              if(d[1:0]==2'b11 && (epoch_buff==shadow_epoch))
-              begin
-                inst_decode={inst[15:0],d};
-                buff <= tagged Valid inst[31:16];
-                epoch_buff<=shadow_epoch;
-                ff_response_from_memory.deq;
-              end
-              else
-               begin
-                inst_decode=zeroExtend(d);
-                compressed = True;
-                buff <= tagged Invalid;
-              end
+//              TO DO WFI
+          if(verbosity!=0)
+            $display($time,"\tSTAGE1: PC: %h Inst: %h, Err: %b Epoch: %b", shadow_pc,
+                inst_decode, err, shadow_epoch);
 
-          end
-          else if(!(isValid(buff)) && inst[1:0]!=2'b11)
-          begin
-                inst_decode=zeroExtend(inst[15:0]);
-                buff <= tagged Valid inst[31:16];
-                compressed = True;
-                epoch_buff<=shadow_epoch;
-                ff_response_from_memory.deq;
-                
-          end
-//            TO DO WFI
-              if(verbosity!=0)
-              $display($time,"\tSTAGE1: PC: %h Inst: %h, Err: %b Epoch: %b", shadow_pc,
-              inst_decode, err, 
-              shadow_epoch);
-              let pc_inst =((!isValid(buff)||shadow_pc[1:0]==2'b10))?shadow_pc:shadow_pc-2;
-              let epoch_inst=((!isValid(buff)||shadow_pc[1:0]==2'b10))?shadow_epoch:epoch_buff;
-              PIPE1_DS x = decoder_func_16(inst_decode[15:0],pc_inst,epoch_inst,err,wr_csr);
-              PIPE1_DS y = decoder_func(inst_decode,pc_inst,epoch_inst,err,wr_csr);
-              if (compressed)
-              tx.u.enq(x);
-              else
-              tx.u.enq(y);
-     end
-  
-     endrule
-`endif
+          let pc_inst =((!isValid(buff)||shadow_pc[1:0]==2'b10))?shadow_pc:shadow_pc-2;
+          let epoch_inst=((!isValid(buff)||shadow_pc[1:0]==2'b10))?shadow_epoch:epoch_buff;
+          PIPE1_DS x = decoder_func_16(inst_decode[15:0],pc_inst,epoch_inst,err,wr_csr);
+          PIPE1_DS y = decoder_func(inst_decode,pc_inst,epoch_inst,err,wr_csr);
+          if (compressed)
+            tx.u.enq(x);
+          else
+            tx.u.enq(y);
+        end
+      endrule
+    `endif
     //getting response from bus  
     //instruction whose addr is needed
-		interface inst_request = interface Get
-		  `ifdef compressed
+		`ifdef compressed
+		  interface inst_request = interface Get
 			  method ActionValue#(Tuple2#(Bit#(PADDR),Bit#(1))) get;
 				  if(pc[0][1:0]==2'b10)
 				    pc[0]<=pc[0]+2;
 				  else
-		  `else 
-			  method ActionValue#(Bit#(PADDR)) get;
-				  shadow_pc<=pc[0];
-          shadow_epoch<=rg_epoch[0];
-	  	`endif
-        pc[0]<=pc[0]+4;
-        if(verbosity!=0)
-          $display($time, "\tSTAGE1: Sending Instruction Addr: %h", pc[0]);
-		  `ifdef compressed
-		    return tuple2(pc[0],rg_epoch[0]);
-		  `else
-			  return pc[0];
-      `endif
-		  endmethod
-		endinterface;
-    
-    //getting response from bus 
-		`ifdef compressed
+            pc[0]<=pc[0]+4;
+          if(verbosity!=0)
+            $display($time, "\tSTAGE1: Sending Instruction Addr: %h", pc[0]);
+		      return tuple2(pc[0],rg_epoch[0]);
+        endmethod
+      endinterface
 		  interface inst_response= interface Put
 		  	method Action put (Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1)) resp);
           ff_response_from_memory.enq(resp);
             $display($time,"Enqueuing response on to the Stage1 for inst %h",resp);
 		  	endmethod
 		  endinterface;
-		`else 
+    `else 
+		  interface inst_request = interface Get
+			  method ActionValue#(Bit#(PADDR)) get;
+          pc[0]<=pc[0]+4;
+          if(verbosity!=0)
+            $display($time, "\tSTAGE1: Sending Instruction Addr: %h", pc[0]);
+				  shadow_pc<=pc[0];
+          shadow_epoch<=rg_epoch[0];
+			    return pc[0];
+		    endmethod
+		  endinterface;
 		  interface inst_response= interface Put
 		  	method Action put (Tuple2#(Bit#(32),Bool) resp);
           let {inst,err}=resp;
@@ -190,8 +173,8 @@ package fetch_decode_stage;
 		  		tx.u.enq(x);  //enq the output of the decoder function in the tx interface
 		  	endmethod
 		  endinterface;
-		`endif
-
+    `endif
+    
     //providing the output of the decoder function to the opfetch unit via tx interface
 		interface to_opfetch_unit=tx.e;
     method Action flush_from_wb( Bit#(PADDR) newpc, Bool fl);
