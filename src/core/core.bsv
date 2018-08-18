@@ -40,6 +40,7 @@ package core;
   import Tilelink_lite_Types::*;
   import riscv:: * ;
   import common_types:: * ;
+  import FIFOF::*;
   `include "common_params.bsv"
   `include "SoC.defines"
 
@@ -70,13 +71,21 @@ package core;
     Reg#(TxnState) memory_state<- mkReg(Request);
     Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
 
+    `ifdef compressed
+      FIFOF#(Bit#(32)) ff_inst <-mkFIFOF;
+      FIFOF#(Bit#(1))  ff_epoch <-mkFIFOF;
+    `endif
     Integer verbosity = `VERBOSITY;
 
     rule handle_fetch_request(fetch_state == Request) ;
-      let inst_addr<- riscv.inst_request.get;
-			AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: inst_addr, aruser: ?, arlen: 0, 
+      let {inst_addr `ifdef compressed ,epoch `endif }<- riscv.inst_request.get;
+			AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: {inst_addr `ifdef compressed [31:2],2'b00 `endif }, aruser: ?, arlen: 0, 
           arsize: 2, arburst: 'b01, arid:`Fetch_master_num}; // arburst: 00-FIXED 01-INCR 10-WRAP
 			fetch_xactor.i_rd_addr.enq(read_request);	
+      `ifdef compressed
+        ff_inst.enq(inst_addr);
+        ff_epoch.enq(epoch);   	
+      `endif
       fetch_state<= Response;
       if(verbosity!=0)
         $display($time, "\tCORE: Fetch Request ", fshow(read_request));
@@ -84,8 +93,15 @@ package core;
     rule handle_fetch_response(fetch_state == Response);
 			let response <- pop_o (fetch_xactor.o_rd_data);	
 			Bool bus_error = !(response.rresp==AXI4_OKAY);
-      riscv.inst_response.put(tuple2(truncate(response.rdata), bus_error));
+      `ifdef compressed
+        riscv.inst_response.put(tuple4(truncate(response.rdata), bus_error,ff_inst.first,ff_epoch.first));
+        ff_inst.deq;
+        ff_epoch.deq;
+      `else
+        riscv.inst_response.put(tuple2(truncate(response.rdata), bus_error));
+      `endif
       fetch_state<= Request;
+
       if(verbosity!=0)
         $display($time, "\tCORE: Fetch Response ", fshow(response));
     endrule
@@ -190,13 +206,17 @@ package core;
     Reg#(TxnState) memory_state<- mkReg(Request);
     Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
 
+    FIFOF#(Bit#(32)) ff_inst <-mkFIFOF;
+    FIFOF#(Bit#(1))  ff_epoch <-mkFIFOF;
     Integer verbosity = `VERBOSITY;
 
     rule handle_fetch_request(fetch_state == Request) ;
-      let inst_addr<- riscv.inst_request.get;
-			AXI4_Lite_Rd_Addr#(PADDR, 0) read_request = AXI4_Lite_Rd_Addr {araddr: inst_addr, aruser: ?, 
+      let {inst_addr,epoch}<- riscv.inst_request.get;
+			AXI4_Lite_Rd_Addr#(PADDR, 0) read_request = AXI4_Lite_Rd_Addr {araddr:{inst_addr[31:2],2'b00}, aruser: ?, 
           arsize: 2}; // arburst: 00-FIXED 01-INCR 10-WRAP
 			fetch_xactor.i_rd_addr.enq(read_request);	
+	ff_inst.enq(inst_addr);
+	ff_epoch.enq(epoch);		
       fetch_state<= Response;
       if(verbosity!=0)
         $display($time, "\tCORE: Fetch Request ", fshow(read_request));
@@ -204,7 +224,9 @@ package core;
     rule handle_fetch_response(fetch_state == Response);
 			let response <- pop_o (fetch_xactor.o_rd_data);	
 			Bool bus_error = !(response.rresp==AXI4_LITE_OKAY);
-      riscv.inst_response.put(tuple2(truncate(response.rdata), bus_error));
+      riscv.inst_response.put(tuple4(truncate(response.rdata), bus_error,ff_inst.first,ff_epoch.first));
+      ff_inst.deq;
+      ff_epoch.deq;
       fetch_state<= Request;
       if(verbosity!=0)
         $display($time, "\tCORE: Fetch Response ", fshow(response));
@@ -307,20 +329,27 @@ package core;
     Reg#(TxnState) fetch_state<- mkReg(Request);
     Reg#(Bit#(1)) memory_request <- mkReg(0);
 
+    FIFOF#(Bit#(32)) ff_inst <-mkFIFOF;
+    FIFOF#(Bit#(1))  ff_epoch <-mkFIFOF;
     Integer verbosity = `VERBOSITY;
 
     rule handle_fetch_request(fetch_state == Request) ;
-      let inst_addr<- riscv.inst_request.get;
+      let {inst_addr,epoch}<- riscv.inst_request.get;
       A_channel_lite#(PADDR, TDiv#(XLEN, 8), 2) lite_request = A_channel_lite { a_opcode : Get_data, a_size :2, 
-                                       a_source: `Fetch_master_num, a_address : inst_addr, a_mask : ?, a_data : ?};
+                                       a_source: `Fetch_master_num, a_address
+                                       :{inst_addr[31:2],2'b00}, a_mask : ?, a_data : ?};
 	  	fetch_xactor.core_side.master_request.put(lite_request);	
+       ff_inst.enq(inst_addr);
+       ff_epoch.enq(epoch);	
       fetch_state<= Response;
       if(verbosity!=0)
         $display($time, "\tCORE: Fetch Request ", fshow(lite_request));
     endrule
     rule handle_fetch_response(fetch_state == Response);
 	    let response <- fetch_xactor.core_side.master_response.get;	
-      riscv.inst_response.put(tuple2(truncate(response.d_data), response.d_error));
+      riscv.inst_response.put(tuple4(truncate(response.d_data), response.d_error,ff_inst.first,ff_epoch.first));
+      ff_inst.deq();
+      ff_epoch.deq();
       fetch_state<= Request;
       if(verbosity!=0)
         $display($time, "\tCORE: Fetch Response ", fshow(response));

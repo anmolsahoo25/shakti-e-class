@@ -46,7 +46,7 @@ package common_types;
 	typedef enum {Load=0, Store=1} Access_type deriving (Bits, Eq, FShow);
 	typedef enum {Flush= 1, None= 0} Flush_type deriving (Bits, Eq, FShow);
 	typedef enum {IntegerRF, PC} Operand1_type deriving(Bits, Eq, FShow);
-	typedef enum {IntegerRF, Immediate, Constant4} Operand2_type deriving(Bits, Eq, FShow);
+	typedef enum {IntegerRF, Immediate, Constant4 `ifdef compressed ,Constant2 `endif } Operand2_type deriving(Bits, Eq, FShow);
   typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq, Bits, FShow);
   typedef enum {Machine=3, User=0} Privilege_mode deriving(Eq, Bits, FShow);
 

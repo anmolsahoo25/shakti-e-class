@@ -22,7 +22,7 @@ IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISI
 OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------------------------
 
-Author: Neel Gala, Aditya Mathur
+Author: Neel Gala, Aditya Mathur,Deepa N Sarma
 Email id: neelgala@gmail.com
 Details:
 
@@ -98,6 +98,52 @@ package decode;
 			default:return False;
 		endcase
 	endfunction
+`ifdef compressed
+  function Bit#(3) gen_funct3(Bit#(5) opcode,Bit #(16) inst);
+    Bit #(3) funct3 =3'b000;
+    
+    
+    case (opcode)
+    
+    5'b00000:funct3=3'b000;
+    5'b01000:funct3=3'b000;
+    5'b10000:funct3=3'b001;
+    5'b01001:funct3=3'b000;
+    5'b00010:funct3=3'b010;
+    5'b01010:funct3=3'b000;
+    5'b10010:funct3=3'b010;
+    5'b00011:funct3=3'b011;
+    5'b01011:funct3=3'b000;
+    5'b10011:funct3=3'b011;
+    5'b01100:
+            if((inst[11:10]==2'b00)||(inst[11:10]==2'b01))
+                funct3=3'b101;//SRLI,SRAI
+            else if(inst[11:10]==2'b10)
+                funct3=3'b111;//ANDI
+            else if(inst[11:10]==2'b11)
+            case({inst[6:5]})
+                2'b00:funct3=3'b000;
+                2'b01:if(inst[12]==1'b1)
+                          funct3=3'b000;
+                      else
+                          funct3=3'b100;
+                2'b10:funct3=3'b110;
+                2'b11:funct3=3'b111;
+              endcase
+    5'b10100:funct3=3'b000;
+    5'b00110:funct3=3'b010;
+    5'b01110:funct3=3'b000;
+    5'b10110:funct3=3'b010;
+    5'b10111:funct3=3'b011;
+    5'b00111:funct3=3'b011;
+    5'b01111:funct3=3'b001;
+    default:funct3=3'b000;
+    endcase
+    
+    return funct3;
+
+ endfunction
+`endif
 	
   function Bool hasCSRPermission(Bit#(12) address, Bool write,  Privilege_mode prv);
     Bit#(12) csr_index = pack(address);
@@ -343,4 +389,344 @@ package decode;
     `endif
     return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
   endfunction
+`ifdef compressed
+ function PIPE1_DS decoder_func_16(Bit#(16) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch, Bool err, 
+                                                                               CSRtoDecode csrs );
+    let {prv, mip, csr_mie, mideleg, misa, counteren, mie}=csrs;
+
+    Trap_type exception = tagged None;
+    Trap_type interrupt = chk_interrupt(prv, mip, csr_mie, mideleg, mie);
+    
+		Bit#(2) op_comp=inst[1:0];
+		Bit#(3) funct3_comp=inst[15:13];
+    let opcode = {op_comp,funct3_comp};
+  
+
+    Bool t_CL_LOAD = (opcode=='b00010||opcode =='b00001||opcode=='b00011);
+    Bool t_CL_STORE = (opcode=='b00101||opcode=='b00110||opcode=='b00111);
+    Bool t_CL=t_CL_LOAD ||t_CL_STORE;
+    Bool t_ADDI_LUI=(opcode=='b01011);
+    Bool t_ADDI16SP= t_ADDI_LUI && inst[11:7]==2;
+    Bool t_CS =(opcode=='b01100&&inst[11:10]==2'b11);
+    Bool t_ADDI_EQ=(opcode=='b00000||opcode=='b01010||opcode=='b01000||t_ADDI16SP);
+    Bool t_ADDI = (opcode == 'b01000);
+    Bool t_ADDIW=((opcode=='b01001)&&(inst[11:7]!=0));
+    Bool t_SLLI=(opcode=='b10000);
+    Bool t_J_R =((opcode =='b10100)&&inst[6:2]==0);
+    Bool t_ADD =((opcode =='b10100)&&inst[6:2]!=0);
+    Bool t_BR  =((opcode=='b01110)||opcode =='b01111);
+    Bool t_ARITH_W=(t_ADDIW||(t_CS &&inst[12]==1'b1));
+    Bool t_SP_OP =
+    (opcode=='b10001||opcode=='b10010||opcode=='b10011||opcode=='b10101||opcode=='b10110||opcode=='b10111||opcode=='b00000||t_ADDI16SP);
+    Bool t_CJ=(`ifdef RV32(opcode =='b01001)||`endif opcode=='b01101);
+    Bool t_LUI = t_ADDI_LUI && inst[11:7]!=2;
+    Bool t_LI = (opcode =='b01010);
+    Bool t_LWSP = (opcode =='b10010); 
+    Bool t_LDSP = (opcode =='b10011);
+    Bool t_SWSP = (opcode =='b10110);
+    Bool t_SDSP = (opcode =='b10111);
+    Bool t_CI =(t_ADDI||t_ADDIW||t_LUI||t_LI||t_LWSP||t_LDSP||t_ADDI16SP);
+    Bool t_CB =(t_BR);
+    Bool t_CIW = (opcode =='b00000);
+    Bool t_ANDI=(opcode=='b01100 && inst[9:7]==3);
+    Bool t_IMM=((funct3_comp=='b000)||(op_comp=='b01 && inst[15]==1'b0)||(opcode=='b01100 &&
+    inst[11:10]!='b11)); 
+
+    Bit#(5) rs1={2'b01,inst[9:7]};
+    Bit#(5) rs2={2'b01,inst[4:2]};
+    Bit#(5) rd={2'b01,inst[4:2]};
+
+    if((t_CL)||(t_CB)||(t_CS)||(opcode=='b01100 && inst[11:10]!='b11))//Memory,branch and logical
+           rs1={2'b01,inst[9:7]};
+    else if((opcode==5'b01000)||t_ADDIW||t_ADD||t_J_R||t_SLLI)//SLLI,JUMP,ADDI and ADDIW
+           rs1=inst[11:7];
+    else if (t_SP_OP)//SP operations
+           rs1 =2;
+    else 
+           rs1=0;
+
+	  if((t_CL_STORE)||(t_CS))//Store and logical inst 
+           rs2={2'b01,inst[4:2]};
+    else if(t_ADD||t_SWSP||t_SDSP)//SP operations,mov and add
+           rs2=inst[6:2];
+    else 
+           rs2=0;
+
+    if((t_CI||t_SLLI||t_ADD)&&(!t_ADDI16SP))//ADDI,ADDIW,LUI,Stack load
+     rd =inst[11:7];
+    else if (t_CL_LOAD||t_CIW)//Load operations,ADDI14SP
+     rd ={2'b01,inst[4:2]};
+    else if ((opcode=='b01100))//ALU operations 
+     rd ={2'b01,inst[9:7]};
+    else if (t_CJ)//Jump
+     rd =((inst[15]==1'b1)?5'b0:5'b1);//JR x0,JALR x1
+    else if (t_ADDI16SP)
+     rd =2;
+    else
+    rd =0;
+
+  //  Bit#(7) funct7=inst[31:25]; 
+		Bool word32 =False;
+		Bit#(PADDR) pc=shadow_pc;
+    
+		//operand types
+		Operand1_type rs1type=IntegerRF;
+		Operand2_type rs2type=IntegerRF;
+
+		//memory access type
+		Access_type mem_access=Load;
+		if(t_CL_STORE||t_SWSP||t_SDSP)
+			mem_access=Store;
+
+// Decoding the immediate values
+
+// Bit#(32)imm_value=0;
+//
+// Bit#(1) bit0=0;
+// Bit#(1) bit1=0;
+// Bit#(1) bit2=0;
+// Bit#(1) bit3=0;
+// Bit#(1) bit4=0;
+// Bit#(1) bit5=0;
+// Bit#(1) bit6=0;
+// Bit#(1) bit7=0;
+// Bit#(1) bit8=0;
+// Bit#(1) bit9=0;
+//
+//
+// if(t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11)||t_SLLI)
+// bit0=inst[2];
+// else
+// bit0=0;
+//
+// if (t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11)||t_SLLI||t_CB)
+// bit1=inst[3];
+// else
+// bit1=0;
+//
+// if(t_LWSP||t_CB||t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11)||t_SLLI)
+// bit2=inst[4];
+// else if(t_CIW||(t_CL&&inst[14:13]!=2'b11))
+// bit2=inst[6];
+// else if(t_SWSP)
+// bit2=inst[9];
+// else
+// bit2=0;
+//
+//if (t_LDSP||t_LWSP||t_CIW||t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11)||t_SLLI)
+//bit3=inst[5];
+//
+//else if(!t_ADDI16SP) 
+//bit3=inst[10];
+//else
+//bit3=0;
+//
+//if(t_ADDI16SP||t_LWSP||t_CIW||
+//t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11)||t_SLLI)
+//bit4=inst[6];
+//else
+//bit4=inst[11];
+//
+//if(t_CB)
+//bit5=inst[2];
+//else
+//bit5=inst[12];
+//
+//if(t_SWSP||t_SDSP||t_CIW) 
+//bit6=inst[7];
+//else if(t_CL||t_CB||t_ADDI16SP)
+//bit6=inst[5];
+//else if(t_LWSP||t_LDSP) 
+//bit6=inst[2];
+//
+//
+//if(t_CL||t_CB)
+//bit7=inst[6];
+//else if(t_SWSP||t_SDSP||t_CIW)
+//bit7=inst[8];
+//else if(t_LWSP||t_LDSP)
+//bit7=inst[3];
+//
+//if(t_LDSP||t_ADDI16SP)
+//bit8=inst[4];
+//else if(t_SDSP||t_CIW)
+//bit8=inst[9];
+//else if(t_CB)
+//bit8=inst[12];
+//
+//
+//if (t_CIW)
+//bit9=inst[10];
+//else if(t_ADDI16SP)
+//bit9=inst[12];
+//
+//if(t_LDSP||t_SWSP||t_SDSP||t_CIW||t_CL)
+//imm_value=zeroExtend({bit9,bit8,bit7,bit6,bit5,bit4,bit3,bit2,bit1,bit0});
+//else if (t_LUI)
+//imm_value=signExtend({inst[12],inst[6],inst[5],inst[4],inst[3],inst[2],12'b0});
+//else
+//imm_value=signExtend({bit9,bit8,bit7,bit6,bit5,bit4,bit3,bit2,bit1,bit0});
+
+
+ // immediate value 
+ Bit#(32)imm_value=0;
+
+   if(t_LWSP) 
+       imm_value=zeroExtend({inst[3:2],inst[12],inst[6:4],2'b00});//word 
+   else if(t_LDSP)
+       imm_value=zeroExtend({inst[4:2],inst[12],inst[6:5],3'b000});//double 
+   else if(t_SWSP)
+       imm_value=zeroExtend({inst[8:7],inst[12:10],inst[9],2'b00});
+   else if(t_SDSP)
+       imm_value=zeroExtend({inst[9:7],inst[12:10],3'b000});
+     else if(t_CIW)
+        imm_value=zeroExtend({inst[10],inst[9],inst[8],inst[7],inst[12],inst[11],inst[5],inst[6],2'b00}); 
+   else if(t_ADDI16SP)
+         imm_value =signExtend({inst[12],inst[4],inst[3],inst[5],inst[2],inst[6],4'b0000});
+ 	else if(t_CL)
+        if(inst[14:13]!=2'b11)
+ 		   imm_value=zeroExtend({inst[5],inst[12],inst[11],inst[10],inst[6],2'b00});
+        else
+        imm_value=zeroExtend({inst[6],inst[5],inst[12],inst[11],inst[10],3'b000});
+    else if(t_CJ)
+            imm_value=signExtend({inst[12],inst[8],inst[10:9],inst[6],inst[7],inst[2],inst[11],inst[5:3],1'b0});
+    else if(t_CB)
+        imm_value=signExtend({inst[12],inst[6],inst[5],inst[2],inst[11],inst[10],inst[4],inst[3],1'b0}); 
+     else if( t_ADDI||t_ADDIW||t_LI||(opcode=='b01100&&inst[11:10]!=2'b11||t_SLLI))//imm_arith
+        imm_value=signExtend({inst[12],inst[6],inst[5],inst[4],inst[3],inst[2]});
+     else if (t_LUI)
+        imm_value=signExtend({inst[12],inst[6],inst[5],inst[4],inst[3],inst[2],12'b0});
+     else
+       imm_value=0;
+
+		Bit#(32) immediate_value=signExtend(imm_value);
+    // Following table describes what the ALU will need for some critical operations. Based on this
+    // the next set of logic is implemented. rs1+ rs2 is a XLEN bit adder. rs3+ rs4 is PADDR bit
+    // adder.
+    //
+    //          rs1   rs2   rs3   rs4
+    // Branch   OP1   OP2   PC    Imm
+    // JAL      PC    'd4   PC    Imm   (rs1=0, rs2=0 since neither required)
+    // JALR     PC    'd4   op1   Imm   (rs2=0 since not required)
+    // LOAD                 op1   Imm   (rs2=0 since not required)
+    // STORE                op1   Imm   (both required. op2 is the data)
+    // AUIPC    PC    Imm               (rs1=0, rs2=0 since neither required)
+    // LUI      0 Imm                   (rs1=0, rs2=0 since neither required)
+    /////////////////////////////////////////////////////////////////////////////////
+
+		//instruction following U OR UJ TYPE INSTRUCTION FORMAT	
+		//funct3[2]==1 might not be required as division is not included till now
+		
+		if(t_CJ)	
+			rs1type=PC;
+
+		if(t_CJ)
+      rs2type=Constant2;
+
+    else if(t_IMM)//instruction LUI
+			rs2type=Immediate;
+		
+		//instructions which support word lenght operation in RV64 are to be added in Alu
+		//need to be edit/rded according to the supported instruction
+
+    `ifdef RV64
+  		if(t_ADDIW || t_ARITH_W)//ADDW,SUBW and ADDIW
+      	word32=True;
+    `endif
+
+    Instruction_type inst_type=ALU;
+    if((t_CL)||(t_LWSP)||t_LDSP||t_SWSP||t_SDSP)
+    inst_type=MEMORY;
+    else if(t_CJ)
+    inst_type=JAL;
+    else if(t_J_R)
+    inst_type=JALR;
+    else if(t_BR)
+    inst_type=BRANCH;
+    else
+    inst_type=ALU;
+
+    Bit#(3) funct3=gen_funct3(opcode,inst);
+    if((op_comp==2'b11)||(opcode==5'b00100)||(opcode==5'b00101)||
+    (opcode==5'b10001)||(opcode==5'b10101))
+
+     exception = tagged Exception Illegal_inst;
+
+     if (inst==0)
+		
+     exception = tagged Exception Illegal_inst;
+
+  if(t_CIW||t_ADDI16SP||t_LUI||t_SLLI)
+
+    if(immediate_value==0)
+
+     exception = tagged Exception Illegal_inst;
+    Bit#(4) fn=0;
+		if(t_BR)
+    begin
+				fn={2'b0,1,funct3[0]};
+		end
+//		else if(opcode==`JAL_op || opcode==`JALR_op || opcode==`LOAD_op	|| opcode==`STORE_op ||
+//                                                              opcode==`AUIPC_op || opcode==`LUI_op)
+//			fn=0;
+//immediate operations except LUI and LI
+else if(`ifdef RV64 t_ADDIW||`endif t_SLLI||(t_ADDI)||(opcode=='b01100 && inst[11:10]!='b11))
+begin//SLLI,SRLI,SRAI,ANDI,ADDI 
+			fn=case(funct3)
+				'b010: 'b1100;
+				'b011: 'b1110;
+				'b101: if(inst[10]==1'b1)'b1011; else 'b0101 ;
+				default:{1'b0,funct3};
+			endcase;
+		end
+    //Arithmetic instructions
+		else if(`ifdef RV64 t_ARITH_W ||`endif t_CS||t_ADD  )
+    begin
+			fn=case(funct3)
+				'b000:if (t_ADD)
+                if(inst[1]==1'b0)'b1010;else 'b0000;
+               else 
+                if(inst[5]==1'b0)'b1010;else 'b0000; 				
+        'b011:'b1110;
+				'b101:'b1011;
+				default:{1'b0,funct3};
+			endcase;
+		end
+    
+		//else if(opcode[4:3]=='b10)
+		//	fn=opcode[3:0];
+	//	Bool address_is_valid=address_valid(inst[31:20]);
+	//	Bool access_is_valid=valid_csr_access(inst[31:20],inst[19:15], inst[13:12], prv);
+    if(pc[0]!=0)
+      exception = tagged Exception Inst_addr_misaligned;
+    else if(err)
+      exception = tagged Exception Inst_access_fault;
+ //   else if(inst_type == SYSTEM_INSTR)begin
+ //     if(funct3 == 0)
+ //       case(inst[31:20])
+ //         'h000: exception = tagged Exception ((prv==User)?Ecall_from_user:Ecall_from_machine);
+ //         'h001: exception = tagged Exception Breakpoint;
+ //         'h302: exception = (prv!=Machine)?tagged Exception Illegal_inst:tagged None;
+ //         default: exception = tagged None;
+ //       endcase
+ //    else begin // CSR read write operation
+ // 		  if(!(address_is_valid && access_is_valid))
+ //          exception = tagged Exception Illegal_inst;
+ //      end
+ //    end
+    if(interrupt matches tagged None)
+      interrupt =  exception;
+   
+   `ifdef simulate 
+      Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
+        Bit#(1) `ifdef simulate , Bit#(32) `endif ) type_tuple = tuple8(rs1type, rs2type, inst_type,
+        mem_access, pc, interrupt, epoch,zeroExtend(inst));
+    `else
+      Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
+      Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt, epoch);
+    `endif
+    return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32,
+    funct3, type_tuple);            
+  endfunction
+`endif
 endpackage
