@@ -237,21 +237,6 @@ package decode;
       bit20_30=inst[30:20];
     Bit#(1) bit31=inst[31];
     Bit#(32) immediate_value={bit31, bit20_30, bit12_19, bit11, bit5_10, bit1_4, bit0};
-    
-		//immediate value 
-//		Bit#(32) immediate_value=signExtend(inst[31:20]);
-//    if(opcode==`LUI_op|| opcode==`AUIPC_op) 
-//      immediate_value=signExtend({inst[31:12],12'd0}); 
-//   else if(opcode==`JAL_op) 
-//      immediate_value=signExtend({inst[31], inst[19:12], inst[20], inst[30:21],1'b0}); 
-//   else if(opcode==`JALR_op) 
-//      immediate_value=signExtend({inst[31:21],1'b0}); 
-//		else if(opcode==`BRANCH_op)
-//			immediate_value=signExtend({inst[31],inst[7],inst[30:25],inst[11:8],1'b0}); 
-//		else if	(opcode==`STORE_op)
-//			immediate_value=signExtend({inst[31:25],inst[11:7]});
-//		else if(opcode==`SYSTEM_INSTR_op)//what should be done for systems instruction		
-//			immediate_value[16:12]=inst[19:15];
 
     // Following table describes what the ALU will need for some critical operations. Based on this
     // the next set of logic is implemented. rs1+ rs2 is a XLEN bit adder. rs3+ rs4 is PADDR bit
@@ -515,23 +500,6 @@ package decode;
       imm_value=0;
 
 		Bit#(32) immediate_value=signExtend(imm_value);
-    // Following table describes what the ALU will need for some critical operations. Based on this
-    // the next set of logic is implemented. rs1+ rs2 is a XLEN bit adder. rs3+ rs4 is PADDR bit
-    // adder.
-    //
-    //          rs1   rs2   rs3   rs4
-    // Branch   OP1   OP2   PC    Imm
-    // JAL      PC    'd4   PC    Imm   (rs1=0, rs2=0 since neither required)
-    // JALR     PC    'd4   op1   Imm   (rs2=0 since not required)
-    // LOAD                 op1   Imm   (rs2=0 since not required)
-    // STORE                op1   Imm   (both required. op2 is the data)
-    // AUIPC    PC    Imm               (rs1=0, rs2=0 since neither required)
-    // LUI      0 Imm                   (rs1=0, rs2=0 since neither required)
-    /////////////////////////////////////////////////////////////////////////////////
-
-		//instruction following U OR UJ TYPE INSTRUCTION FORMAT	
-		//funct3[2]==1 might not be required as division is not included till now
-		
 		if(t_CJ || t_J_R)	
 			rs1type=PC;
 
