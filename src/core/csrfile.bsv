@@ -274,7 +274,7 @@ package csrfile;
           if (addr == `MINSTRETH) data= minstreth;
         `endif
         if (addr == `MEPC) data= zeroExtend(rg_mepc);
-        if (addr == `MTVAL) data= signExtend(rg_mtval);//?
+        if (addr == `MTVAL) data= zeroExtend(rg_mtval);//?
         if (addr == `MSCRATCH) data= rg_mscratch;
         if (addr == `MCAUSE) data= {rg_minterrupt, 'd0, rg_mcause};
         if (addr == `MCOUNTEREN) data= zeroExtend(rg_mcounteren);
