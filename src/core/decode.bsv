@@ -376,6 +376,8 @@ package decode;
           exception = tagged Exception Illegal_inst;
       end
     end
+    if(inst_type==SYSTEM_INSTR)
+      immediate_value={'d0,inst[19:15],immediate_value[11:0]};// TODO fix this
     if(interrupt matches tagged None)
       interrupt =  exception;
 
