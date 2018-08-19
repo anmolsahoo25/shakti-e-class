@@ -55,7 +55,7 @@ scall         directed/riscv-tests/isa/rv64mi			  p
 # rv64uc tests
 # ------------------------------------------------------------------------------------
 rvc         directed/riscv-tests/isa/rv64uc        p
-rvc         directed/riscv-tests/isa/rv64uc        v
+#rvc         directed/riscv-tests/isa/rv64uc        v
 
 # ------------------------------------------------------------------------------------
 # rv64ui tests
