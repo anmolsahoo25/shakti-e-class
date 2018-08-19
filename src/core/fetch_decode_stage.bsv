@@ -22,7 +22,7 @@ IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISI
 OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------------------------
 
-Author: Neel Gala, Aditya Mathur
+Author: Neel Gala, Aditya Mathur, Deepa Sarma
 Email id: neelgala@gmail.com
 Details:
 
@@ -189,5 +189,5 @@ package fetch_decode_stage;
     method Action csrs (CSRtoDecode csr);
       wr_csr <= csr;
     endmethod
-	endmodule
-endpackage
+	endmodule:mkfetch_decode_stage
+endpackage:fetch_decode_stage

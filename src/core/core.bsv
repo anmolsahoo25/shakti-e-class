@@ -205,10 +205,12 @@ package core;
     Reg#(TxnState) fetch_state<- mkReg(Request);
     Reg#(TxnState) memory_state<- mkReg(Request);
     Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
+
     `ifdef compressed
       FIFOF#(Bit#(32)) ff_inst <-mkFIFOF;
       FIFOF#(Bit#(1))  ff_epoch <-mkFIFOF;
     `endif
+
     Integer verbosity = `VERBOSITY;
 
     rule handle_fetch_request(fetch_state == Request) ;
@@ -335,10 +337,12 @@ package core;
     Ifc_riscv riscv <- mkriscv();
     Reg#(TxnState) fetch_state<- mkReg(Request);
     Reg#(Bit#(1)) memory_request <- mkReg(0);
+
     `ifdef compressed
     	FIFOF#(Bit#(32)) ff_inst <-mkFIFOF;
     	FIFOF#(Bit#(1))  ff_epoch <-mkFIFOF;
     `endif
+
     Integer verbosity = `VERBOSITY;
 
     rule handle_fetch_request(fetch_state == Request) ;
