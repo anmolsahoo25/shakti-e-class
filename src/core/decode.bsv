@@ -439,7 +439,7 @@ package decode;
 
     if((t_CL)||(t_CB)||(t_CS)||(opcode=='b01100 && inst[11:10]!='b11))//Memory,branch and logical
            rs1={2'b01,inst[9:7]};
-    else if((opcode==5'b01000)||t_ADDIW||t_ADD||t_J_R||t_SLLI)//SLLI,JUMP,ADDI and ADDIW
+    else if((opcode==5'b01000)||t_ADDIW||(t_ADD&&inst[12]==1)||t_J_R||t_SLLI)//SLLI,JUMP,ADDI and ADDIW
            rs1=inst[11:7];
     else if (t_SP_OP)//SP operations
            rs1 =2;
@@ -463,6 +463,8 @@ package decode;
      rd =((inst[15]==1'b1)?5'b0:5'b1);//JR x0,JALR x1
     else if (t_ADDI16SP)
      rd =2;
+    else if( t_J_R)
+     rd =inst[12]==1?'d1:'d0;
     else
     rd =0;
 
@@ -528,10 +530,10 @@ package decode;
 		//instruction following U OR UJ TYPE INSTRUCTION FORMAT	
 		//funct3[2]==1 might not be required as division is not included till now
 		
-		if(t_CJ)	
+		if(t_CJ || t_J_R)	
 			rs1type=PC;
 
-		if(t_CJ)
+		if(t_CJ || t_J_R)
       rs2type=Constant2;
 
     else if(t_IMM)//instruction LUI
