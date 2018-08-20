@@ -197,30 +197,55 @@ package decode;
 		Access_type mem_access=Load;
 		if(opcode[3]=='b1 && opcode[1]==0)
 			mem_access=Store;
+    `ifdef atomic
+      else if(opcode=='b01011)
+        mem_access=Atomic;
+    `endif
 
     // Decoding the immediate values
     Bool stype= (opcode=='b01000);
     Bool btype= (opcode=='b11000);
     Bool utype= (opcode=='b01101 || opcode=='b00101);
     Bool jtype= (opcode=='b11011);
+    Bool atomictype=(opcode=='b01011);
 
     Bit#(1) bit0 = inst[20]; // because of I-type instructions
+    `ifdef atomic
+      if(atomictype)
+        bit0=0;
+      else
+    `endif
     if(stype)
       bit0=inst[7];
     else if(btype || utype || jtype) 
       bit0=0;
 
     Bit#(4) bit1_4=inst[24:21]; // I/J-type instructions
+    `ifdef atomic
+      if(atomictype)
+        bit1_4=0;
+      else
+    `endif
     if(stype || btype) // S/B-Type
       bit1_4=inst[11:8];
     else if(utype) // U type
       bit1_4=0;
 
     Bit#(6) bit5_10=inst[30:25];
+    `ifdef atomic
+      if(atomictype)
+        bit5_10=0;
+      else
+    `endif
     if(utype)
       bit5_10=0;
     
     Bit#(1) bit11 = inst[31]; // I/S type
+    `ifdef atomic
+      if(atomictype)
+        bit11=0;
+      else
+    `endif
     if(btype)
       bit11=inst[7];
     else if(utype)
@@ -229,13 +254,23 @@ package decode;
       bit11=inst[20];
 
     Bit#(8) bit12_19=duplicate(inst[31]); // I/S/B type
+    `ifdef atomic
+      if(atomictype)
+        bit12_19=0;
+      else
+    `endif
     if(utype || jtype)
       bit12_19=inst[19:12];
 
     Bit#(11) bit20_30=duplicate(inst[31]); // I/B/S/J type
+    `ifdef atomic
+      if(atomictype)
+        bit20_30=0;
+      else
+    `endif
     if(utype)
       bit20_30=inst[30:20];
-    Bit#(1) bit31=inst[31];
+    Bit#(1) bit31= `ifdef atomic (atomictype)?0: `endif inst[31];
     Bit#(32) immediate_value={bit31, bit20_30, bit12_19, bit11, bit5_10, bit1_4, bit0};
 
     // Following table describes what the ALU will need for some critical operations. Based on this
