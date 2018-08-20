@@ -120,7 +120,7 @@ package core;
 			if(size!=3)begin			// 8-bit write;
 				write_strobe=write_strobe<<byte_offset;
 			end
-      if(access == Load) begin
+      if(access != Store) begin
         AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: address, aruser: 0, arlen: 0, 
             arsize: zeroExtend(size), arburst:'b01, arid:`Mem_master_num}; //arburst: 00-FIXED 01-INCR 10-WRAP
    	   		memory_xactor.i_rd_addr.enq(read_request);	
@@ -140,7 +140,7 @@ package core;
       end
       memory_state<= Response;
     endrule
-    rule handle_memoryRead_response(memory_state == Response && tpl_2(memory_request) == Load);
+    rule handle_memoryRead_response(memory_state == Response && tpl_2(memory_request) != Store);
       let {address, access, size, sign}=  memory_request;
 			let response <- pop_o (memory_xactor.o_rd_data);	
 			let bus_error = !(response.rresp==AXI4_OKAY);
