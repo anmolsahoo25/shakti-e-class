@@ -350,15 +350,20 @@ package decode;
     else
       exception = tagged Exception Illegal_inst;
 		Bit#(4) fn=0;
+    `ifdef atomic
+    if( opcode==`ATOMIC_op )begin
+      if((inst[27]|inst[28]) == 1)
+        fn={inst[29:27],1'b1};
+      else
+        fn={inst[31:29],inst[27]};
+    end
+    `endif
 		if(opcode==`BRANCH_op )begin
 			if(funct3[2]==0)
 				fn={2'b0,1,funct3[0]};
 			else
 				fn={1'b1,funct3};
 		end
-//		else if(opcode==`JAL_op || opcode==`JALR_op || opcode==`LOAD_op	|| opcode==`STORE_op ||
-//                                                              opcode==`AUIPC_op || opcode==`LUI_op)
-//			fn=0;
 		else if(`ifdef RV64 opcode==`IMM_ARITHW_op || `endif opcode==`IMM_ARITH_op )begin
 			fn=case(funct3)
 				'b010: 'b1100;
