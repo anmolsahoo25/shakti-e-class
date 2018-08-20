@@ -259,7 +259,7 @@ package opfetch_execute_stage;
           `ifdef atomic
             if(committype==MEMORY && mem_access==Atomic)begin
               if(verbosity>1)begin
-                $display($time, "STAGE2: PC:%h Started Load phase of Atomic Op", pc );
+                $display($time, "\tSTAGE2: PC:%h Started Load phase of Atomic Op", pc );
               end
               rg_stall<= True;
               rg_atomic_address<= truncate(effaddr_csrdata);
