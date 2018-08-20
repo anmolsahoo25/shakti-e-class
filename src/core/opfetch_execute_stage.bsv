@@ -312,13 +312,22 @@ package opfetch_execute_stage;
         ff_atomic_response.deq;
         let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
                                         pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
-        ff_memory_request.enq(tuple5(rg_atomic_address, data, Store, funct3[1:0], ~funct3[2]));
-        Commit_type committype=MEMORY;                                         
+        //`ifndef muldiv
+        //  let {committype, op1_reslt, effaddr_csrdata, trap1} = fn_alu(fn, data, rg_op2, 0, 0, 
+        //                                                    insttype, funct3, mem_access, word32);
+        //`endif
+        // TODO use multi-cycle alu if muldiv present
+        $display($time, "\tSTAGE2: Recieved Atomic response: ", fshow(ff_atomic_response.first));
+        Bit#(XLEN) op1_reslt=0;
+        if(rg_atomic_op=='b0000)
+          op1_reslt=data+rg_op2;
+        ff_memory_request.enq(tuple5(rg_atomic_address, op1_reslt, Store, funct3[1:0], ~funct3[2]));
+        Commit_type committype1=MEMORY;                                         
         rx.u.deq;
         `ifdef simulate
-          tx.u.enq(tuple8(committype, ?, {1'b0, rg_atomic_address}, pc, rd, rg_epoch[0], trap, inst));
+          tx.u.enq(tuple8(committype1, data, {1'b0, rg_atomic_address}, pc, rd, rg_epoch[0], trap, inst));
         `else
-          tx.u.enq(tuple7(committype, ?, {1'b0, rg_atomic_address}, pc, rd, rg_epoch[0], trap));
+          tx.u.enq(tuple7(committype1, data, {1'b0, rg_atomic_address}, pc, rd, rg_epoch[0], trap));
         `endif
       endrule
     // interface definition
