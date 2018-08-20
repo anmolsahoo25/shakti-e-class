@@ -209,8 +209,9 @@ package opfetch_execute_stage;
                                                                         funct3[1:0], ~funct3[2]));
           `ifdef atomic
             if(mem_access==Atomic)begin
-              rg_atomic_op<= fn;
+              rg_atomic_op<= imm[11:8]; // TODO should be down to 7
               rg_op2<= op2;
+              rg_atomic_address<= truncate(effaddr_csrdata);
             end
           `endif
 
@@ -218,7 +219,6 @@ package opfetch_execute_stage;
             `ifdef muldiv
               if(committype==MEMORY && mem_access==Atomic)begin
                 done=False;
-                rg_atomic_address<= truncate(effaddr_csrdata);
               end
             `endif
           `endif
@@ -262,7 +262,6 @@ package opfetch_execute_stage;
                 $display($time, "\tSTAGE2: PC:%h Started Load phase of Atomic Op", pc );
               end
               rg_stall<= True;
-              rg_atomic_address<= truncate(effaddr_csrdata);
             end
             else begin
           `endif

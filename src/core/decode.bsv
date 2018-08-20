@@ -203,7 +203,9 @@ package decode;
     `endif
 
     // Decoding the immediate values
-    Bool stype= (opcode=='b01000);
+    // in case of atomic we encode it as a Store type to pass on the atomic op as part of the
+    // immediate field
+    Bool stype= (opcode=='b01000 `ifdef atomic || opcode=='b01011 `endif ); 
     Bool btype= (opcode=='b11000);
     Bool utype= (opcode=='b01101 || opcode=='b00101);
     Bool jtype= (opcode=='b11011);
