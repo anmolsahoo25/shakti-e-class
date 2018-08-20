@@ -386,7 +386,8 @@ package core;
 			if(size!=3)begin			// 8-bit write;
 				write_strobe=write_strobe<<byte_offset;
 			end
-      A_channel_lite#(PADDR, TDiv#(XLEN, 8), 2) lite_request= A_channel_lite{a_opcode: unpack({1'b0,pack(access)}), 
+      A_channel_lite#(PADDR, TDiv#(XLEN, 8), 2) lite_request= A_channel_lite{a_opcode:
+      unpack({1'b0,truncate(pack(access))}), 
           a_size: size,  a_source: `Mem_master_num, a_address : address, a_mask : write_strobe, a_data: data};
    	  dmem_xactor.core_side.master_request.put(lite_request);	
     endrule
