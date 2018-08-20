@@ -1,5 +1,5 @@
-ISA=RV64IM
-MUL=fpga
+ISA=RV64IMC
+MUL=sequential
 PERF=enable
 VERBOSE=disable
 PREFETCH=enable
