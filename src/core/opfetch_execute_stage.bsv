@@ -95,11 +95,13 @@ package opfetch_execute_stage;
     // There does exist mechanism in the last stage to flush pipe on a trap. in case a full flush is
     // required,  that particular method should be excited.
     Reg#(Bool) rg_csr_stall <- mkReg(False);
-
     `ifdef muldiv
       Ifc_alu alu <-mkalu;
       Reg#(Bool) rg_stall <- mkReg(False);
+    `elsif atomic
+      Reg#(Bool) rg_stall <- mkReg(False);
     `endif
+
 
     `ifdef muldiv
       `ifdef atomic
