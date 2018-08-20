@@ -66,7 +66,7 @@ else {
   chomp($to);
 }
 
-my $subject = "[$class-class; $regress; $simulator] Regression report";
+my $subject = "$class-class; $regress; $simulator Regression report";
 my $reportFile = "$shaktiHome/verification/workdir/regress_report.log";
 
 chdir($shaktiHome);

@@ -47,6 +47,8 @@ GetOptions(
           qw(suite=s) => \my $test_suite,
           qw(sim=s)   => \my $test_sim,
           qw(type=s)  => \my $test_type,
+          qw(mxl)     => \my $mxl_run,
+          qw(new-aapg) => \my $new,
           qw(nodebug) => \my $no_debug,
           qw(notrace) => \my $no_trace,
           qw(help)    => \my $help,
@@ -68,6 +70,8 @@ my $testPath = "$shaktiHome/verification/tests";
 
 my @isa = `grep ISA= $shaktiHome/soc_config.inc`;
 my $XLEN=64;
+my $ISA="rv64imafd";
+my $ABI="lp64";
 chomp(@isa);
 if (scalar(@isa) == 1) {
   if ($isa[0] =~ /RV32/) {
@@ -76,6 +80,9 @@ if (scalar(@isa) == 1) {
   else {
     $XLEN=64;
   }
+  if($isa[0] =~ /=(.*)/) {
+    $ISA = lc $1;
+  }
 }
 else {
   doPrint("ERROR: ISA undefined in $shaktiHome/soc_config.inc\n");
@@ -83,6 +90,7 @@ else {
 }
 
 #my $workdir = "$testPath/workdir";
+doDebugPrint("Generating Test Dump Directory ------------\n");
 
 my $testName;
 my $testSuite;
@@ -91,21 +99,7 @@ my $test;
 my $simulator;
 my $testType;
 my $trace;
-
-# Prints command line usage of script
-if ($help) {
-  printHelp();
-  exit(0);
-}
-
-# Clean script generated outputs
-if ($clean) {
-  doClean();
-  exit(0);
-}
-else {
-  checkBins();
-}
+my $mxl;
 
 # Test name
 if (!$test_name) {
@@ -133,7 +127,7 @@ elsif ($test_sim =~ /^ncverilog$/ || $test_sim =~ /^vcs$/ || $test_sim =~ /^blue
   $simulator = $test_sim;
 }
 else {
-  doPrint("ERROR: Invalid simulator $test_sim, --sim=[bluespec|ncverilog|vcs]\n");
+  doPrint("ERROR: Invalid simulator, --sim=[bluespec|ncverilog|vcs]\n");
   exit(1);
 }
 
@@ -148,14 +142,35 @@ else {
   doPrint("ERROR: Invalid test type, --test_type=[p|v]\n");
   exit(1);
 }
+
+# trace
+
 if (!$no_trace) {
-  $trace=1;
+  $trace = 1;
 }
 else {
-  $trace=0;
+  $trace = 0;
 }
 
-doDebugPrint("Generating Test Dump Directory ------------\n");
+# Prints command line usage of script
+if ($help) {
+  printHelp();
+  exit(0);
+}
+
+# Clean script generated outputs
+if ($clean) {
+  doClean();
+  exit(0);
+}
+
+if ($mxl_run) {
+  $mxl = 1;
+}
+else {
+  $mxl = 0;
+}
+checkBins();
 
 my @test = ();
 if ($testSuite =~ /csmith-run/) {
@@ -188,28 +203,38 @@ openLog("$testDir/$testName.log");
 #chdir("$workdir/$test_suite/$testName");
 # Compiling the test
 if ($testType =~ /^v$/) {
-  systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -DENTROPY=0x9629af2 -std=gnu99 -O2 -I$riscvIncludeDir/env/v -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/v/link.ld $riscvIncludeDir/env/v/entry.S $riscvIncludeDir/env/v/*.c $test -o $testName.elf");
+  systemCmd("riscv$XLEN-unknown-elf-gcc -march=$ISA -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -DENTROPY=0x9629af2 -std=gnu99 -O2 -I$riscvIncludeDir/env/v -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/v/link.ld $riscvIncludeDir/env/v/entry.S $riscvIncludeDir/env/v/*.c $test -o $testName.elf");
 }
 elsif ($testType =~ /^p$/) {
   if ($testSuite =~ /csmith-run/) {
     my $csmithInc = "$shaktiHome/verification/tools/csmith_run";
-    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac  -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c -I /tools/csmith/runtime $csmithInc/crt.S -o crt.o");
-    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac  -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf  -c -I /tools/csmith/runtime $csmithInc/syscalls_shakti.c -o syscalls.o");
-    systemCmd("riscv$XLEN-unknown-elf-gcc -w -Os -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf  -c -I /tools/csmith/runtime $shaktiHome/verification/tests/$test_suite/$testName.c  -march=rv$XLEN.imac -o $testName.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=$ISA -mabi=$ABI  -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c -I /tools/csmith/runtime $csmithInc/crt.S -o crt.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=$ISA -mabi=$ABI   -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf  -c -I /tools/csmith/runtime $csmithInc/syscalls_shakti.c -o syscalls.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -w -Os -mcmodel=medany -static -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf  -c -I /tools/csmith/runtime $shaktiHome/verification/tests/$test_suite/$testName.c  -march=$ISA -o $testName.o");
     systemCmd("riscv$XLEN-unknown-elf-gcc -T $csmithInc/link.ld -I /tools/csmith/runtime $testName.o syscalls.o crt.o -static -nostdlib -nostartfiles -lgcc -lm -o $testName.elf");
   }
   elsif ($testSuite =~ /peripherals/) {
     my $periInc = "$shaktiHome/verification/tests/directed/peripherals";
-    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c $periInc/common/crt.S -o crt.o");
-    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rvi$XLEN\imac  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf  -c $periInc/common/syscalls.c -o syscalls.o");
-    systemCmd("riscv$XLEN-unknown-elf-gcc -w -mcmodel=medany -static -std=gnu99 -fno-builtin-printf -I $periInc/i2c/ -I $periInc/qspi/ -I $periInc/dma/ -I $periInc/plic/ -I $periInc/common/ -c $periInc/smoketests/smoke.c -o smoke.o -march=rv$XLEN\imac -lm -lgcc");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=$ISA -mabi=$ABI   -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf -D__ASSEMBLY__=1 -c $periInc/common/crt.S -o crt.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -march=$ISA -mabi=$ABI  -mcmodel=medany -static -std=gnu99 -fno-common -fno-builtin-printf  -c $periInc/common/syscalls.c -o syscalls.o");
+    systemCmd("riscv$XLEN-unknown-elf-gcc -w -mcmodel=medany -static -std=gnu99 -fno-builtin-printf -I $periInc/i2c/ -I $periInc/qspi/ -I $periInc/dma/ -I $periInc/plic/ -I $periInc/common/ -c $periInc/smoketests/smoke.c -o smoke.o -march=$ISA -lm -lgcc");
     systemCmd("riscv$XLEN-unknown-elf-gcc -T $periInc/common/link.ld smoke.o syscalls.o crt.o -o smoke.elf -static -nostartfiles -lm -lgcc");
   }
   elsif ($testSuite =~ /aapg/) {
-    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\g  -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -T$shaktiHome/verification/tools/AAPG/link.ld $test -o $testName.elf");
+    if ($new) {
+      systemCmd("riscv$XLEN-unknown-elf-gcc -march=$ISA -mabi=$ABI   -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I $riscvIncludeDir/env -T$shaktiHome/verification/tools/AAPG/link_new.ld $shaktiHome/verification/tools/AAPG/crt.S $test -o $testName.elf");
+    }
+    else {
+      systemCmd("riscv$XLEN-unknown-elf-gcc -march=$ISA -mabi=$ABI   -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -T$shaktiHome/verification/tools/AAPG/link.ld $test -o $testName.elf");
+    }
   }
   else {
-    systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv$XLEN\imac -mabi=lp64  -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I$riscvIncludeDir/env/p -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/p/link.ld $test -o $testName.elf");
+    if ($mxl == 1) {
+      systemCmd("riscv$XLEN-unknown-elf-gcc -march=rv32imaf -mabi=ilp32  -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I$riscvIncludeDir/env/p -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/p/link.ld $test -o $testName.elf");
+    }
+    else {
+      systemCmd("riscv$XLEN-unknown-elf-gcc -march=$ISA -mabi=$ABI -static -mcmodel=medany -fvisibility=hidden -nostdlib -nostartfiles -I$riscvIncludeDir/env/p -I$riscvIncludeDir/isa/macros/scalar -T$riscvIncludeDir/env/p/link.ld $test -o $testName.elf");
+    }
   }
 }
 
@@ -231,37 +256,49 @@ else {
 
 if ($testSuite !~ /peripherals/) {
   if ($trace) {
-    systemFileCmd("spike -l --isa=RV$XLEN\IMAC $testName.elf 2>&1","$testName\_spike.trace");
+    if ($mxl == 1) {
+      systemFileCmd("spike -l --isa=RV32\imaf $testName.elf 2>&1","$testName\_spike.trace");
+    }
+    else {
+      systemFileCmd("spike -l --isa=$ISA $testName.elf 2>&1","$testName\_spike.trace");
+    }
   }
-  systemCmd("spike -c --isa=RV$XLEN\IMAC $testName.elf");
+  if ($mxl == 1) {
+    systemCmd("spike -c --isa=RV32imaf $testName.elf");
+  }
+  else {
+    systemCmd("spike -c --isa=$ISA $testName.elf");
+  }
 }
+systemCmd("ln -s $shaktiHome/bin/* .");
 #if ($simulator =~ /^bluespec$/) {
 #  systemCmd("ln -s $shaktiHome/bin/out.so    out.so");
 #}
-systemCmd("ln -s $shaktiHome/bin/* .");
-#if (!(-e "$shaktiHome/bin/boot.MSB")) {
-#  systemFileCmd("cut -c1-8 $shaktiHome/verification/dts/boot.hex","$shaktiHome/bin/boot.MSB");
-#  systemFileCmd("cut -c9-16 $shaktiHome/verification/dts/boot.hex","$shaktiHome/bin/boot.LSB");
-#}
+#systemCmd("ln -s $shaktiHome/bin/out       out");
+##if (!(-e "$shaktiHome/bin/boot.MSB")) {
+##  systemFileCmd("cut -c1-8 $shaktiHome/verification/dts/boot.hex","$shaktiHome/bin/boot.MSB");
+##  systemFileCmd("cut -c9-16 $shaktiHome/verification/dts/boot.hex","$shaktiHome/bin/boot.LSB");
+##}
 #systemCmd("ln -s $shaktiHome/bin/boot.MSB    boot.MSB");
 #systemCmd("ln -s $shaktiHome/bin/boot.LSB    boot.LSB");
-#systemCmd("ln -s $shaktiHome/bin/boot.3l   boot.3l");
-#systemCmd("ln -s $shaktiHome/bin/boot.2l   boot.2l");
-#systemCmd("ln -s $shaktiHome/bin/boot.1l   boot.1l");
-#systemCmd("ln -s $shaktiHome/bin/boot.0l   boot.0l");
-#systemCmd("ln -s $shaktiHome/bin/boot.3h   boot.3h");
-#systemCmd("ln -s $shaktiHome/bin/boot.2h   boot.2h");
-#systemCmd("ln -s $shaktiHome/bin/boot.1h   boot.1h");
-#systemCmd("ln -s $shaktiHome/bin/boot.0h   boot.0h");
-if ($simulator =~ /^ncverilog$/) {
-  systemCmd("ln -s $shaktiHome/bin/work work");
-  systemCmd("ln -s $shaktiHome/bin/cds.lib cds.lib");
-  systemCmd("ln -s $shaktiHome/bin/hdl.var hdl.var");
-}
-if ($simulator =~ /^vcs$/) {
-  systemCmd("ln -s /scratch/lavanya/c-class/bin/csrc csrc");
-  systemCmd("ln -s /scratch/lavanya/c-class/bin/out.daidir out.daidir");
-}
+##systemCmd("ln -s $shaktiHome/bin/boot.3l   boot.3l");
+##systemCmd("ln -s $shaktiHome/bin/boot.2l   boot.2l");
+##systemCmd("ln -s $shaktiHome/bin/boot.1l   boot.1l");
+##systemCmd("ln -s $shaktiHome/bin/boot.0l   boot.0l");
+##systemCmd("ln -s $shaktiHome/bin/boot.3h   boot.3h");
+##systemCmd("ln -s $shaktiHome/bin/boot.2h   boot.2h");
+##systemCmd("ln -s $shaktiHome/bin/boot.1h   boot.1h");
+##systemCmd("ln -s $shaktiHome/bin/boot.0h   boot.0h");
+#if ($simulator =~ /^ncverilog$/) {
+#  systemCmd("ln -s $shaktiHome/bin/work work");
+#  systemCmd("ln -s $shaktiHome/verilog/cds.lib cds.lib");
+#  systemCmd("ln -s $shaktiHome/verilog/hdl.var hdl.var");
+#  systemCmd("ln -s $shaktiHome/verilog/include include");
+#}
+#if ($simulator =~ /^vcs$/) {
+#  systemCmd("ln -s $shaktiHome/bin/csrc csrc");
+#  systemCmd("ln -s $shaktiHome/bin/out.daidir out.daidir");
+#}
 
 if ($simulator =~ /^bluespec$/) {
   my $timeout="30m";
@@ -269,12 +306,12 @@ if ($simulator =~ /^bluespec$/) {
     $timeout="5m";
   }
   elsif ($testSuite =~ /riscv-torture/) {
-    $timeout="30m";
+    $timeout="90m";
   }
   systemFileCmd("timeout $timeout ./out -w","log.txt");
 }
-elsif ($testSuite =~ /peripherals.*smoke/ && $simulator =~ /^vcs$/) {
-    systemCmd("echo 53 > i2c.mem");
+elsif ($testSuite =~ /peripherals.*smoke/ && $simulator !~ /^bluespec$/) {
+    systemFileCmd("echo 53","i2c.mem");
     systemFileCmd("timeout 20m ./out -w","log.txt");
 }
 else {
