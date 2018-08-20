@@ -60,6 +60,9 @@ package opfetch_execute_stage;
     method Action flush_from_wb(Bool fl);
     method Action csr_updated (Bool upd);
     method Action interrupt(Bool i);
+    `ifdef atomic
+      interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) atomic_response;
+    `endif
   endinterface:Ifc_opfetch_execute_stage
   
   (*synthesize*)
@@ -77,7 +80,11 @@ package opfetch_execute_stage;
     Reg#(Bit#(1)) rg_epoch[2] <- mkCReg(2,0);
     Reg#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
-
+    `ifdef atomic
+      FIFOF#(Tuple3#(Bit#(XLEN), Bool, Access_type)) ff_atomic_response <- mkSizedFIFOF(2);
+      Reg#(Bit#(PADDR)) rg_atomic_address<- mkReg(0);
+      Reg#(Bit#(4)) rg_atomic_op <- mkReg(0);
+    `endif
     // If a CSR operation is detected then you need to stall fetching operands from the regfile
     // untill the csr instruction has been committed. the forwarding path from the csr operation to
     // the ALU is huge. This way we break the path and neither flush the entire pipe.
@@ -91,6 +98,12 @@ package opfetch_execute_stage;
     `ifdef muldiv
       Ifc_alu alu <-mkalu;
       Reg#(Bool) rg_stall <- mkReg(False);
+    `endif
+
+    `ifdef muldiv
+      `ifdef atomic
+        Reg#(Bool) rg_muldiv_atomic <- mkReg(False); // False=muldiv,  True=atomic
+      `endif
     `endif
   
     function (Tuple4#(Bit#(XLEN),Bit#(XLEN),Bit#(PADDR), Bool)) operand_provider(Bit#(5) rs1_addr, 
@@ -190,6 +203,19 @@ package opfetch_execute_stage;
           if(committype == MEMORY &&& final_trap matches tagged None)
             ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
+          `ifdef atomic
+            if(mem_access==Atomic)
+              rg_atomic_op<= fn;
+          `endif
+
+          `ifdef atomic
+            `ifdef muldiv
+              if(committype==MEMORY && mem_access==Atomic)begin
+                done=False;
+                rg_atomic_address<= truncate(effaddr_csrdata);
+              end
+            `endif
+          `endif
           if(committype==SYSTEM_INSTR)begin
             $display($time, "\tSTAGE2: Making CSR STALL TRUE");
             rg_csr_stall<= True;
@@ -215,20 +241,37 @@ package opfetch_execute_stage;
             if(verbosity>1)
               $display($time, "\tSTAGE2: Setting Stall to True");
             rg_stall<= True;
-          end
-        `else
-          rx.u.deq;
-          if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
-            `ifdef simulate
-              tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
-                  final_trap, inst));
-            `else
-              tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
-                  final_trap));
+            `ifdef atomic
+              if(committype==MEMORY)
+                rg_muldiv_atomic<= True;
+              else
+                rg_muldiv_atomic<= False;
             `endif
           end
-          else
-            rg_wfi<= True;
+        `else
+          `ifdef atomic
+            if(committype==MEMORY && mem_access==Atomic)begin
+              if(verbosity>1)begin
+                $display($time, "STAGE2: PC:%h Started Load phase of Atomic Op", pc );
+              end
+              rg_stall<= True;
+              rg_atomic_address<= truncate(effaddr_csrdata);
+            end
+            else begin
+          `endif
+              rx.u.deq;
+              if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
+                `ifdef simulate
+                  tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
+                      final_trap, inst));
+                `else
+                  tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
+                      final_trap));
+                `endif
+              end
+              else
+                rg_wfi<= True;
+            end
         `endif
         end
       end
@@ -240,21 +283,37 @@ package opfetch_execute_stage;
     endrule
  
     `ifdef muldiv
-      rule capture_stalled_output(rg_stall);
-      let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
-                                        pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
-      let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu.delayed_output;
-      if(epoch==rg_epoch[0])begin
-        `ifdef simulate
-          tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
-        `else
-          tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
-        `endif
-      end
+      rule capture_stalled_output(rg_stall `ifdef atomic && !rg_muldiv_atomic `endif );
+        let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
+                                          pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
+        let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu.delayed_output;
+        if(epoch==rg_epoch[0])begin
+          `ifdef simulate
+            tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
+          `else
+            tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
+          `endif
+        end
         rg_stall<= False;
         rx.u.deq;
       endrule
     `endif
+    `ifdef atomic
+      rule atomic_second_phase(rg_stall `ifdef muldiv && rg_muldiv_atomic `endif );
+        rg_stall<= False;
+        let {data, err, access}=ff_atomic_response.first;
+        ff_atomic_response.deq;
+        let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
+                                        pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
+        ff_memory_request.enq(tuple5(rg_atomic_address, data, Store, funct3[1:0], ~funct3[2]));
+        Commit_type committype=MEMORY;                                         
+        rx.u.deq;
+        `ifdef simulate
+          tx.u.enq(tuple8(committype, ?, {1'b0, rg_atomic_address}, pc, rd, rg_epoch[0], trap, inst));
+        `else
+          tx.u.enq(tuple7(committype, ?, {1'b0, rg_atomic_address}, pc, rd, rg_epoch[0], trap));
+        `endif
+      endrule
     // interface definition
     interface from_fetch_decode_unit=rx.e;
     
@@ -288,6 +347,13 @@ package opfetch_execute_stage;
         return ff_memory_request.first;
       endmethod
     endinterface;
+    `ifdef atomic
+      interface atomic_response=interface Put
+        method Action put(Tuple3#(Bit#(XLEN), Bool, Access_type) resp);
+          ff_atomic_response.enq(resp);
+        endmethod
+      endinterface;
+    `endif
 
     method Action flush_from_wb(Bool fl);
       if(fl)begin
