@@ -84,6 +84,7 @@ package opfetch_execute_stage;
       FIFOF#(Tuple3#(Bit#(XLEN), Bool, Access_type)) ff_atomic_response <- mkSizedFIFOF(2);
       Reg#(Bit#(PADDR)) rg_atomic_address<- mkReg(0);
       Reg#(Bit#(4)) rg_atomic_op <- mkReg(0);
+      Reg#(Bit#(XLEN)) rg_op2 <- mkReg(0);
     `endif
     // If a CSR operation is detected then you need to stall fetching operands from the regfile
     // untill the csr instruction has been committed. the forwarding path from the csr operation to
@@ -204,8 +205,10 @@ package opfetch_execute_stage;
             ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
           `ifdef atomic
-            if(mem_access==Atomic)
+            if(mem_access==Atomic)begin
               rg_atomic_op<= fn;
+              rg_op2<= op2;
+            end
           `endif
 
           `ifdef atomic
