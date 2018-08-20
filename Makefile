@@ -4,7 +4,7 @@
 include ./old_vars
 include soc_config.inc
 
-export SHAKTI_E_HOME=$(PWD)
+SHAKTI_E_HOME=$(PWD)
 export SHAKTI_E_HOME
 
 TOP_MODULE:=mkTbSoC

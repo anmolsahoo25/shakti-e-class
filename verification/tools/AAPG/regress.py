@@ -121,15 +121,15 @@ try:
         break
       count=count+1
   elif makeType=='gen_only':
-    subprocess.call('mkdir -p $SHAKTI_C_HOME/verification/tests/random/aapg/generated_tests/{0}'.format(testType),shell=True)
-    #print ('[regress.py] Generating AAPG tests in directory: $SHAKTI_C_HOME/verification/tests/random/aapg/generated_tests/{0}'.format(testType))
+    subprocess.call('mkdir -p $SHAKTI_E_HOME/verification/tests/random/aapg/generated_tests/{0}'.format(testType),shell=True)
+    #print ('[regress.py] Generating AAPG tests in directory: $SHAKTI_E_HOME/verification/tests/random/aapg/generated_tests/{0}'.format(testType))
     for seed in seeds:
       #print ('\nGenerating Test Case - '+str(count))
       aapg.random.seed(seed.strip())
       stdoutseed=subprocess.getoutput("date +%d%m%Y%s")
       filename = testType + '_' + stdoutseed + '_test' + str(count) + '.S'
       aapg.aapgMain(filename)
-      subprocess.call('mv ./{0} $SHAKTI_C_HOME/verification/tests/random/aapg/generated_tests/{1}'.format(filename,testType),shell=True)
+      subprocess.call('mv ./{0} $SHAKTI_E_HOME/verification/tests/random/aapg/generated_tests/{1}'.format(filename,testType),shell=True)
       print ('[regress.py] {0}'.format(filename))
       if(count==numberOfTests):
         break

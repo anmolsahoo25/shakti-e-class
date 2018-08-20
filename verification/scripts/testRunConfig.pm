@@ -48,7 +48,7 @@ our %testRunConfig = (
                   "CONFIG_TRACE"  => 0,    
                   "CONFIG_FSDB"   => 0,     # should be done at link stage: TODO 
                   "CONFIG_COV"    => 0, # should be done at link stage: TOD0
-                  "CONFIG_SIM"    => 0 # should be done at link stage
+                  "CONFIG_SIM"    => "bluespec" # should be done at link stage
                );
 
 # ------------------------------------------------
@@ -75,7 +75,7 @@ sub setEnvConfig {
     }
     else {
       if ($key =~ /^CONFIG_SIM/) {
-        setConfigValue($key, 0);
+        setConfigValue($key, "bluespec");
       }
       else {
         setConfigValue($key, 1);
@@ -94,7 +94,7 @@ sub checkValid {
   }
   else {
     if ($config =~ /^CONFIG_SIM$/) {
-      if ($value == 2) {
+      if ($value =~ /^bluespec$/ || $value =~ /^ncverilog$/ || $value =~ /^vcs$/) {
         return 1;
       }
       else {

@@ -39,6 +39,8 @@ if (defined $ENV{'SHAKTI_E_HOME'}) {
   if (-e $log) {
     `chmod 755 $log`;
     `scp -P443 $log riseweb\@10.21.226.184:/scratch/c-class/$out[0]\n`;
+    `mkdir -p /scratch/benchmarks/c-class`;
+    `cp $log /scratch/benchmarks/c-class/$out[0]\.log`;
   }
 }
 else {
