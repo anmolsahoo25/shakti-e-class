@@ -78,6 +78,7 @@ package muldiv_asic;
 	module mkmuldiv(Ifc_muldiv);
 
     let xlen = valueOf(XLEN);
+    let verbosity=`VERBOSITY;
 		Wrapper2#(Bit#(73), Bit#(73), Bit#(73))   wrapper_add_1     <- mkUniqueWrapper2( \+ );
 		Wrapper2#(Bit#(9), Bit#(65), Bit#(73))   wrapper_mul_1      <- mkUniqueWrapper2( func_mult );
 		Wrapper2#(Bit#(56), Bit#(4), Bool)   wrapper_is_op_zero <- mkUniqueWrapper2( is_op_zero );
@@ -112,13 +113,13 @@ package muldiv_asic;
 				earlyout<- wrapper_is_op_zero.func(accumulator[63:8],rg_count[1]);
 			else
 				earlyout<- wrapper_is_op_zero.func(accumulator[55:0],rg_count[1]);
-			`ifdef verbose $display($time,"\tAccumulator: %h Multiplicand: %h count: %d isHi: %b word: %b compl: %b sign: %b",x,multiplicand_divisor,rg_count[1],upper_bits, rg_word_flag, rg_signed,temp_multiplier_sign); `endif
-			`ifdef verbose $display($time,"\tx: %h y: %h",x,y); `endif
+			if(verbosity>1) $display($time,"\tAccumulator: %h Multiplicand: %h count: %d isHi: %b word: %b compl: %b sign: %b",x,multiplicand_divisor,rg_count[1],upper_bits, rg_word_flag, rg_signed,temp_multiplier_sign); 
+			if(verbosity>1) $display($time,"\tx: %h y: %h",x,y); 
 			if(rg_count[1]==0 || earlyout)begin
-				`ifdef verbose $display($time,"\tMUL/DIV: Ending Mul/Div operation"); `endif
+				if(verbosity>1) $display($time,"\tMUL/DIV: Ending Mul/Div operation"); 
 				y = unpack(x);
 				x=pack(y>>({2'b0,rg_count[1]}*8));
-				`ifdef verbose $display($time,"\tx: %h y: %h",x,y); `endif
+				if(verbosity>1) $display($time,"\tx: %h y: %h",x,y); 
 				if(rg_word_flag==1)
 					x=signExtend(x[31:0]);
 				if(upper_bits)
@@ -186,7 +187,7 @@ package muldiv_asic;
 		rule first_stage(rg_count[1]==8);
 			ff_input.deq;
 			let {in1,in2,funct3,word_flag,is_mul}=ff_input.first;
-			`ifdef verbose $display($time,"\tMUL/DIV: in1: %h in2: %h funct3: %h word_flag: %h is_mul: %b",in1,in2,funct3,word_flag, is_mul); `endif
+			if(verbosity>1) $display($time,"\tMUL/DIV: in1: %h in2: %h funct3: %h word_flag: %h is_mul: %b",in1,in2,funct3,word_flag, is_mul); 
 			Bit#(1) in2_sign=funct3[1:0]==1?word_flag==1?in2[31]:in2[63]:0;
 			Bit#(1) in1_sign=(funct3[1]^funct3[0]) & ((word_flag==1)?in1[31]:in1[63]);
 

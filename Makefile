@@ -33,21 +33,6 @@ endif
 ifneq (,$(findstring C,$(ISA)))
   define_macros += -D compressed=True
 endif
-ifeq ($(VERBOSE),enable)
-  define_macros += -D verbose=True
-endif
-ifeq ($(PERF),enable)
-  define_macros	+= -D perf=True
-endif
-ifeq ($(JTAG),enable)
-  define_macros	+= -D JTAG=True
-endif
-ifeq ($(DEBUG),enable)
-  define_macros += -D Debug=True
-endif
-ifeq ($(OPENOCD),enable)
-  define_macros += -D Openocd=True
-endif
 ifeq ($(SYNTH),SIM)
   define_macros += -D simulate=True
 endif

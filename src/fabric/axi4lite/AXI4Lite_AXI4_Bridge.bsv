@@ -35,6 +35,7 @@ package AXI4Lite_AXI4_Bridge;
 
 	(*synthesize*)
 	module mkAXI4Lite_AXI4_Bridge#(Clock fast_clock, Reset fast_reset)(Ifc_AXI4Lite_AXI4_Bridge);
+    let verbosity=`VERBOSITY;
 		AXI4_Slave_Xactor_IFC #(`PADDR, `Reg_width, `USERSPACE)  s_xactor <- mkAXI4_Slave_Xactor(clocked_by fast_clock, reset_by fast_reset);
 		AXI4_Lite_Master_Xactor_IFC #(`PADDR,`Reg_width,`USERSPACE) m_xactor <- mkAXI4_Lite_Master_Xactor;
 		Reg#(BridgeState) rd_state <-mkReg(RegularReq,clocked_by fast_clock, reset_by fast_reset);
@@ -106,9 +107,9 @@ package AXI4Lite_AXI4_Bridge;
 			if(wr_addr_req.awlen!=0) begin
 				wr_state<=BurstReq;
 			end
-			`ifdef verbose $display($time,"\tAXIBRIDGE: Write Request"); `endif
-			`ifdef verbose $display($time,"\tAddress Channel :",fshow(wr_addr_req)); `endif
-			`ifdef verbose $display($time,"\tData Channel :",fshow(wr_data_req)); `endif
+			if(verbosity>1) $display($time,"\tAXIBRIDGE: Write Request"); 
+			if(verbosity>1) $display($time,"\tAddress Channel :",fshow(wr_addr_req)); 
+			if(verbosity>1) $display($time,"\tData Channel :",fshow(wr_data_req)); 
 		endrule
 		// In case a write-burst request is received on the fast bus, then the bursts have to broken down into
 		// individual slow-bus write requests. 
@@ -127,9 +128,9 @@ package AXI4Lite_AXI4_Bridge;
 			if(wr_data_req.wlast)begin
 				wr_state<=RegularReq;
 			end
-			`ifdef verbose $display($time,"\tAXIBRIDGE: Burst Write Request"); `endif
-			`ifdef verbose $display($time,"\tAddress Channel :",fshow(rg_write_packet)); `endif
-			`ifdef verbose $display($time,"\tData Channel :",fshow(wr_data_req)); `endif
+			if(verbosity>1) $display($time,"\tAXIBRIDGE: Burst Write Request"); 
+			if(verbosity>1) $display($time,"\tAddress Channel :",fshow(rg_write_packet)); 
+			if(verbosity>1) $display($time,"\tData Channel :",fshow(wr_data_req)); 
 		endrule
 		rule send_write_request_on_slow_bus;
 			let wr_addr_req  = ff_wr_addr.first;

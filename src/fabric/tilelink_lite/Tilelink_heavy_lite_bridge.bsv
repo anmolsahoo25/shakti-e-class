@@ -47,6 +47,7 @@ package Tilelink_heavy_lite_bridge;
 
 	(*synthesize*)
 	module mkTilelink_heavy_lite_bridge#(Clock fast_clock, Reset fast_reset)(Ifc_Tilelink_Heavy_Lite_bridge);
+    let verbosity=`VERBOSITY;
 		Ifc_Slave_link  wr_s_xactor <- mkSlaveXactor(clocked_by fast_clock, reset_by fast_reset, True, True);
         Ifc_Slave_link  rd_s_xactor <- mkSlaveXactor(clocked_by fast_clock, reset_by fast_reset, True, True);
         Ifc_Master_link_lite rd_m_xactor <- mkMasterXactorLite(True, True);
@@ -135,9 +136,9 @@ package Tilelink_heavy_lite_bridge;
 				//sync_rd_burst_value<=burst_counter; //TODO
 				wr_request_counter <= burst_counter;
 			end
-			`ifdef verbose $display($time,"\tAXIBRIDGE: Write Request"); `endif
-			`ifdef verbose $display($time,"\tAddress Channel :",fshow(wr_addr_req)); `endif
-			`ifdef verbose $display($time,"\tData Channel :",fshow(wr_data_req)); `endif
+			if(verbosity>1) $display($time,"\tAXIBRIDGE: Write Request"); 
+			if(verbosity>1) $display($time,"\tAddress Channel :",fshow(wr_addr_req)); 
+			if(verbosity>1) $display($time,"\tData Channel :",fshow(wr_data_req)); 
 		endrule
 		// In case a write-burst request is received on the fast bus, then the bursts have to broken down into
 		// individual slow-bus write requests. 
@@ -158,9 +159,9 @@ package Tilelink_heavy_lite_bridge;
 			end
 			else
 				wr_request_counter<=wr_request_counter-1;
-			`ifdef verbose $display($time,"\tAXIBRIDGE: Burst Write Request"); `endif
-			`ifdef verbose $display($time,"\tAddress Channel :",fshow(rg_write_packet)); `endif
-			`ifdef verbose $display($time,"\tData Channel :",fshow(wr_data_req)); `endif
+			if(verbosity>1) $display($time,"\tAXIBRIDGE: Burst Write Request"); 
+			if(verbosity>1) $display($time,"\tAddress Channel :",fshow(rg_write_packet)); 
+			if(verbosity>1) $display($time,"\tData Channel :",fshow(wr_data_req)); 
 		endrule
 		rule send_write_request_on_slow_bus;
 			let request  = ff_wr_addr.first;

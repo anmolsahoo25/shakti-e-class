@@ -221,6 +221,7 @@ endinterface
 
 module mkMasterFabricLite(Ifc_Master_tilelink_lite#(a, w, z));
 
+  let verbosity=`VERBOSITY;
   Reg#(Maybe#(A_channel_lite#(a, w, z))) rg_a_channel[2] <- mkCReg(2, tagged Invalid);
   Reg#(Maybe#(D_channel_lite#(w, z))) rg_d_channel[2] <- mkCReg(2, tagged Invalid);
 
@@ -228,9 +229,8 @@ module mkMasterFabricLite(Ifc_Master_tilelink_lite#(a, w, z));
 	  interface xactor_request = interface Put
 		  method Action put(A_channel_lite#(a, w, z) req_data);
 			  rg_a_channel[0] <= tagged Valid req_data;
-				`ifdef verbose 
+				if(verbosity>1) 
           $display($time, "\tTILELINK : Request from Xactor data signals", fshow(req_data)); 
-        `endif
 			endmethod
 		endinterface;
 												
@@ -238,9 +238,8 @@ module mkMasterFabricLite(Ifc_Master_tilelink_lite#(a, w, z));
 		  method ActionValue#(D_channel_lite#(w, z)) get if(isValid(rg_d_channel[1]));
 			  let resp = validValue(rg_d_channel[1]);
 				rg_d_channel[1] <= tagged Invalid;
-				`ifdef verbose 
+				if(verbosity>1) 
           $display($time, "\tTILELINK : Response to Xactor data signals", fshow(resp)); 
-        `endif
 				return resp;
 			endmethod
 		endinterface;
@@ -304,7 +303,7 @@ interface Ifc_Slave_tilelink_lite#(numeric type a,  numeric type w,  numeric typ
 endinterface
 
 module mkSlaveFabricLite(Ifc_Slave_tilelink_lite#(a, w, z));
-
+  let verbosity=`VERBOSITY;
   Reg#(Maybe#(A_channel_lite#(a, w, z))) rg_a_channel[3] <- mkCReg(3, tagged Invalid);
   Reg#(Maybe#(D_channel_lite#(w, z))) rg_d_channel[3] <- mkCReg(3, tagged Invalid);
 
@@ -313,18 +312,16 @@ module mkSlaveFabricLite(Ifc_Slave_tilelink_lite#(a, w, z));
 			method ActionValue#(A_channel_lite#(a, w, z)) get if(isValid(rg_a_channel[1]));
 				let req = validValue(rg_a_channel[1]);
 				rg_a_channel[1] <= tagged Invalid;
-				`ifdef verbose 
+				if(verbosity>1) 
           $display($time, "\tTILELINK : Slave side request to Xactor ", fshow(req)); 
-        `endif
 				return req;
 			endmethod
 		endinterface;
 
 		interface xactor_response = interface Put
 			method Action put(D_channel_lite#(w, z) resp) if(!isValid(rg_d_channel[0]));
-				`ifdef verbose 
+				if(verbosity>1) 
           $display($time, "\tTILELINK : Slave side response from Xactor ", fshow(resp)); 
-        `endif
 				rg_d_channel[0] <= tagged Valid resp;
 			endmethod
 		endinterface;

@@ -44,14 +44,14 @@ package TbSoC;
     `else
       Ifc_SoC soc <- mkSoC();
     `endif
-
+    let verbosity=`VERBOSITY;
     Reg#(Bit#(1)) rg_cnt <-mkReg(0);
  	  let dump <- mkReg(InvalidFile) ;
     rule open_file(rg_cnt==0);
       String dumpFile = "rtl.dump" ;
     	File lfh <- $fopen( dumpFile, "w" ) ;
     	if ( lfh == InvalidFile )begin
-    	  `ifdef verbose $display("cannot open %s", dumpFile); `endif
+    	  if(verbosity>1) $display("cannot open %s", dumpFile); 
     	  $finish(0);
     	end
     	dump <= lfh ;

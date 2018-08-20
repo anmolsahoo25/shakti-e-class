@@ -26,6 +26,7 @@ package SlaveWrapper;
 	endinterface
 
 	module mkSlaveWrapper(SlaveWrapper);	
+   let verbosity=`VERBOSITY;
    AXI4_Slave_Xactor_IFC #(`Addr_width, `Reg_width, 0)  s_axi4xactor <- mkAXI4_Slave_Xactor;
    AXI4_Lite_Master_Xactor_IFC #(`Addr_width, `Reg_width, 0)  m_axi4litexactor <- mkAXI4_Lite_Slave_Xactor;
 	 
@@ -54,7 +55,7 @@ package SlaveWrapper;
 			end
 			else
 				rg_writeburst_counter<=rg_writeburst_counter+1;
-			`ifdef verbose $display($time,"\t",module_name,":\t Recieved Write Request for Address: %h data: %h strb: %b awlen: %d rg_writeburst_counter: %d",aw.awaddr,w.wdata,w.wstrb,aw.awlen,rg_writeburst_counter);  `endif
+			if(verbosity>1) $display($time,"\t",module_name,":\t Recieved Write Request for Address: %h data: %h strb: %b awlen: %d rg_writeburst_counter: %d",aw.awaddr,w.wdata,w.wstrb,aw.awlen,rg_writeburst_counter);  
    endrule
 
 	endmodule
