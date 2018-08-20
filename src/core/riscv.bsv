@@ -58,6 +58,9 @@ package riscv;
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
+    `ifdef atomic
+      interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) atomic_response;
+    `endif
   endinterface:Ifc_riscv
 
   (*synthesize*)
@@ -120,6 +123,9 @@ package riscv;
     endmethod
     `ifdef simulate
       interface dump=stage3.dump;
+    `endif
+    `ifdef atomic
+      interface atomic_response=stage2.atomic_response;
     `endif
   endmodule:mkriscv
 endpackage: riscv
