@@ -298,7 +298,8 @@ package decode;
 		if (opcode==`BRANCH_op || opcode[4:1]=='b0100)	
 			rd=0;
 
-		if(opcode==`JAL_op || opcode==`JALR_op|| opcode==`AUIPC_op)	
+		if(opcode==`JAL_op || opcode==`JALR_op|| opcode==`AUIPC_op 
+        `ifdef atomic || opcode=='b01011 `endif )	
 			rs1type=PC;
 
 		if(opcode==`JALR_op || opcode==`JAL_op)
