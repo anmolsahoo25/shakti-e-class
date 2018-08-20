@@ -328,7 +328,8 @@ package decode;
     end
     else if(opcode[4:3]=='b01)begin 
       case (opcode[2:0])  
-         'b000: `ifdef RV32 if(funct3!='b011) `endif inst_type=MEMORY; // STORE
+        'b000 `ifdef atomic ,'b011 `endif : `ifdef RV32 if(funct3!='b011) `endif 
+            inst_type=MEMORY; // STORE + Atomic
          'b101:inst_type=ALU;      // LUI 
          'b100,'b110: begin 
             if(funct7[0]==0)
