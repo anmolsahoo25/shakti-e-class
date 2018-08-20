@@ -152,7 +152,12 @@ package core;
       else if(size==2)
           rdata=sign==1?signExtend(rdata[31:0]):zeroExtend(rdata[31:0]);
       // TODO shift, and perform signextension before sending to core.
-			riscv.memory_response.put(tuple3(rdata, bus_error, access));
+      `ifdef atomic
+        if(access==Atomic)
+          riscv.atomic_response.put(tuple3(rdata, bus_error, access));
+        else
+      `endif
+  			riscv.memory_response.put(tuple3(rdata, bus_error, access));
       if(verbosity!=0)
         $display($time, "\tCORE: Memory Read Response ", fshow(response));
       memory_state<= Request;
