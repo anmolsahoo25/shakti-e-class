@@ -168,8 +168,9 @@ package opfetch_execute_stage;
     rule resume_from_wfi(rg_wfi && wr_interrupt);
       rg_wfi<= False;
     endrule
-  
-    rule fetch_execute_pass(!initialize `ifdef muldiv && !rg_stall `endif && !rg_csr_stall &&
+     
+    rule fetch_execute_pass(!initialize `ifdef muldiv && !rg_stall `elsif atomic && !rg_stall 
+        `endif && !rg_csr_stall &&
     !rg_wfi);
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
@@ -221,6 +222,7 @@ package opfetch_execute_stage;
               end
             `endif
           `endif
+
           if(committype==SYSTEM_INSTR)begin
             $display($time, "\tSTAGE2: Making CSR STALL TRUE");
             rg_csr_stall<= True;
