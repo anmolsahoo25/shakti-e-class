@@ -81,13 +81,16 @@ package csrfile;
     // versa. This is achieved by changing the mxl bit. This is doesn't seem to be happening in the
     // near future. So not integrating it right now.
     Reg#(Bit#(2)) rg_mxl = readOnlyReg(fromInteger(valueOf(XLEN)/32));
-    Bit#(26) temp_misa='h141101;
-	 // temp_misa[8]=1;
-	 // temp_misa[20]=1;
-	 // `ifdef atomic	temp_misa[0]=1; `endif
-	 // `ifdef dpfpu	temp_misa[3]=1; `endif
-	 // `ifdef spfpu	temp_misa[5]=1; `endif
-	 // `ifdef muldiv	temp_misa[12]=1; `endif
+    Bit#(26) temp_misa=0;
+	  temp_misa[8]=1;
+	  temp_misa[20]=1;
+    temp_misa[0]=1;
+    temp_misa[18]=1; // TODO this is for supervisor. Need to get rid of this.
+	  `ifdef atomic	temp_misa[0]=1; `endif
+    `ifdef compressed temp_misa[2]=1; `endif
+	  `ifdef dpfpu	temp_misa[3]=1; `endif
+	  `ifdef spfpu	temp_misa[5]=1; `endif
+	  `ifdef muldiv	temp_misa[12]=1; `endif
 	  Reg#(Bit#(26)) rg_misa	<- mkReg(temp_misa);
      
     //MTVEC trap vector fields
