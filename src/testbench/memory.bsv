@@ -159,7 +159,7 @@ package memory;
       rg_rd_id<= ar.arid;
       if(ar.arlen!=0)
         read_state<=Burst;
-      rg_readburst_counter<= ar.arlen;
+      rg_readburst_counter<=0;
 		  rg_read_packet<=ar;
     endrule
     // incase of burst read,  generate the new address and send it to the dut untill the burst

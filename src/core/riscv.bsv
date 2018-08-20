@@ -42,8 +42,13 @@ package riscv;
   import FIFOF::*;
 
   interface Ifc_riscv;
+	`ifdef compressed
+  	interface Get#(Tuple2#(Bit#(32),Bit#(1))) inst_request;//instruction whose addr is needed
+	  interface Put#(Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1))) inst_response;//addr of the given inst
+	`else
   	interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
 	  interface Put#(Tuple2#(Bit#(32),Bool)) inst_response;//addr of the given inst
+	`endif
     interface Get#(MemoryRequest) memory_request;
     interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) memory_response;
 	  method Action clint_msip(Bit#(1) intrpt);

@@ -114,6 +114,10 @@ package opfetch_execute_stage;
 
       if(rs2_type==Constant4)
         rs2='d4;
+      `ifdef compressed
+      else if (rs2_type==Constant2)
+        rs2 ='d2;
+      `endif
       else if(rs2_type==Immediate)
         rs2=signExtend(imm);
       else if(rs2_addr == rd)
