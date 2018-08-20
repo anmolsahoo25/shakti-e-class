@@ -318,7 +318,6 @@ package opfetch_execute_stage;
           let {committype, op1_reslt, effaddr_csrdata, trap1} = 
                 fn_alu(rg_atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access, word32);
         `endif
-         //TODO use multi-cycle alu if muldiv present
         $display($time, "\tSTAGE2: Recieved Atomic response: ", fshow(ff_atomic_response.first));
         ff_memory_request.enq(tuple5(rg_atomic_address, op1_reslt, Store, funct3[1:0], ~funct3[2]));
         Commit_type committype1=MEMORY;                                         
