@@ -123,6 +123,10 @@ package mem_wb_stage;
             if(!err)begin // no bus error
               if(rd==0)
                 data=0;
+              `ifdef atomic
+                else if(access_type==Store)
+                  data=reslt;
+              `endif
               wr_operand_fwding <= tuple3(rd, True, data);
               wr_commit <= tagged Valid (tuple2(rd, data));
               `ifdef simulate 
