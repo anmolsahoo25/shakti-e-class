@@ -76,7 +76,7 @@ package mem_wb_stage;
     Wire#(Maybe#(Tuple2#(Bit#(5), Bit#(XLEN)))) wr_commit <- mkDWire(tagged Invalid);
 
     // wire which signals the entire pipe to be flushed.
-    Wire#(Tuple2#(Bit#(PADDR), Bool)) wr_flush <- mkDWire(tuple2(?, False));
+    Wire#(Tuple2#(Bit#(PADDR), Bool)) wr_flush <- mkDReg(tuple2(?, False));
 
     // the local epoch register
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);

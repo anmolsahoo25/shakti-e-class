@@ -76,17 +76,19 @@ package riscv;
     mkConnection(stage2.to_mem_wb_unit, pipe2);  // connect stage-2 output to pipe-2
     mkConnection(pipe2,stage3.from_execute);
 
+    let {newpc, fl}=stage3.flush;
+    Bool clear_csr_stall=stage3.csr_updated||fl;
+
     mkConnection(stage3.commit_rd,stage2.commit_rd);
     mkConnection(stage3.operand_fwding, stage2.operand_fwding);
     rule indicate_csr_over;
-      stage2.csr_updated(stage3.csr_updated);
+      stage2.csr_updated(clear_csr_stall);
     endrule
     rule indicate_interrupt_for_wfi;
       stage2.interrupt(stage3.interrupt);
     endrule
 
-    rule flush_from_writeback;
-      let {newpc, fl}=stage3.flush;
+    rule flush_from_writeback(fl);
       stage1.flush_from_wb(newpc, fl);
       stage2.flush_from_wb(fl);
       if(fl)begin

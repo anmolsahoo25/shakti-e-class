@@ -191,7 +191,7 @@ package opfetch_execute_stage;
             ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
           if(committype==SYSTEM_INSTR)begin
-            $display($time, "STAGE2: Making CSR STALL TRUE");
+            $display($time, "\tSTAGE2: Making CSR STALL TRUE");
             rg_csr_stall<= True;
           end
         `ifdef muldiv 
@@ -298,7 +298,7 @@ package opfetch_execute_stage;
     endmethod
     method Action csr_updated (Bool upd) if(rg_csr_stall);
       if(upd) begin
-        $display($time, "STAGE2: Making SCR STALL FALSE");
+        $display($time, "\tSTAGE2: Making SCR STALL FALSE");
         rg_csr_stall<= False;
       end
     endmethod
