@@ -34,6 +34,7 @@ package opfetch_execute_stage;
   import RegFile::*;
   import FIFOF::*;
   import DReg::*;
+  import UniqueWrappers ::*;
 
   // files to be included
   import common_types::*;
@@ -80,6 +81,9 @@ package opfetch_execute_stage;
     Reg#(Bit#(1)) rg_epoch[2] <- mkCReg(2,0);
     Reg#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
+
+    Wrapper2#(ALU_Inputs,Bool,ALU_OUT) alu_wrapper <- mkUniqueWrapper2(fn_alu);
+
     `ifdef atomic
       FIFOF#(Tuple3#(Bit#(XLEN), Bool, Access_type)) ff_atomic_response <- mkSizedFIFOF(2);
       Reg#(Bit#(PADDR)) rg_atomic_address<- mkReg(0);
@@ -191,15 +195,14 @@ package opfetch_execute_stage;
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
       let {op1, op2, op3, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, insttype, imm);
+      ALU_Inputs inp1=tuple8(fn, op1, op2, imm, op3, insttype, funct3,mem_access);
       // Muxing the right value into the operands
-
       if(verbosity!=0)
         $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
             %h,  Type: ", rs1, op1, rs2, op2, op3, fshow(insttype));
 
       `ifndef muldiv
-        let {committype, op1_reslt, effaddr_csrdata, trap1} = fn_alu(fn, op1, op2, imm, op3, 
-                                                            insttype, funct3, mem_access, word32);
+        let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu_wrapper.func(inp1, word32);
       `endif
       if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
@@ -281,7 +284,9 @@ package opfetch_execute_stage;
               end
               else
                 rg_wfi<= True;
+          `ifdef atomic
             end
+          `endif
         `endif
         end
       end
@@ -333,8 +338,9 @@ package opfetch_execute_stage;
             let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- 
                   alu.get_inputs(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access, word32);
           `else
-            let {committype, op1_reslt, effaddr_csrdata, trap1} = 
-                  fn_alu(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access, word32);
+            let {committype, op1_reslt, effaddr_csrdata, trap1} <-
+                alu_wrapper.func(tuple8(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access), 
+                  word32);
           `endif
           if(&atomic_op==1)begin // AMOSWAP
             op1_reslt=rg_op2;

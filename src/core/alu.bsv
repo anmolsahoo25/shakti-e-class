@@ -49,9 +49,11 @@ package alu;
   `include "common_params.bsv"
 
 	(*noinline*)
-	function ALU_OUT fn_alu (Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(PADDR) imm_value, 
-        Bit#(PADDR) op3, Instruction_type inst_type, Funct3 funct3, Access_type memaccess, 
-        Bool word32);
+//	function ALU_OUT fn_alu (Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(PADDR) imm_value, 
+//        Bit#(PADDR) op3, Instruction_type inst_type, Funct3 funct3, Access_type memaccess, 
+//        Bool word32);
+    function ALU_OUT fn_alu(ALU_Inputs inp, Bool word32);
+    let {fn, op1, op2, imm_value, op3, inst_type, funct3, memaccess}=inp;
 
 	  /*========= Perform all the arithmetic ===== */
 	  // ADD* ADDI* SUB* 

@@ -50,6 +50,8 @@ package common_types;
   typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq, Bits, FShow);
   typedef enum {Machine=3, User=0} Privilege_mode deriving(Eq, Bits, FShow);
 
+  typedef Tuple8#(Bit#(4), Bit#(XLEN), Bit#(XLEN), Bit#(PADDR), Bit#(PADDR), Instruction_type, Funct3,
+        Access_type)  ALU_Inputs;
   // define all tuples here
   `ifdef simulate
     typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
