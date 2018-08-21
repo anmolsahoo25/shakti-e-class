@@ -174,18 +174,18 @@ package decode;
 	endfunction
 
   `ifdef atomic
-  function Bit#(4) fn_atomic(Bit#(5) op);
-    Bit#(4) fn=0;
+  function Bit#(5) fn_atomic(Bit#(5) op);
+    Bit#(5) fn=0;
       fn= case(op)
-        'b00001:'b1111;// AMOSWAP
-        'b00000:'b0000;// AMOADD
-        'b00100:'b0100; //AMOXOR
-        'b01100:'b0111;// AMOAND
-        'b01000:'b0110;// AMOOR
-        'b10000:'b1100;// AMOMAX
-        'b10100:'b1100;// AMOMIN
-        'b11000:'b1110;// AMOMINU
-        'b11100:'b1110;// AMOMAXU
+        'b00001:'b11110;// AMOSWAP
+        'b00000:'b00000;// AMOADD
+        'b00100:'b01000; //AMOXOR
+        'b01100:'b01110;// AMOAND
+        'b01000:'b01100;// AMOOR
+        'b10000:'b11000;// AMOMIN
+        'b10100:'b11001;// AMOMAX
+        'b11000:'b11100;// AMOMINU
+        'b11100:'b11101;// AMOMAXU
         default:0;
       endcase;
     return fn;
@@ -421,16 +421,17 @@ package decode;
       interrupt =  exception;
 
     `ifdef atomic
-      Bit#(4) atomic_op = fn_atomic(inst[31:27]);
+      Bit#(5) atomic_op = fn_atomic(inst[31:27]);
     `endif
     `ifdef simulate 
       Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
-        `ifdef atomic Bit#(5) `else Bit#(1) `endif `ifdef simulate , Bit#(32) `endif ) 
+        `ifdef atomic Bit#(6) `else Bit#(1) `endif `ifdef simulate , Bit#(32) `endif ) 
         type_tuple = tuple8(rs1type, rs2type, inst_type, mem_access, pc, interrupt, 
           `ifdef atomic {atomic_op,epoch} `else epoch `endif , inst);
     `else
       Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
-          Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt,  
+          `ifdef atomic Bit#(6) `else Bit#(1) `endif ) type_tuple = 
+          tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt,  
           `ifdef atomic {atomic_op,epoch} `else epoch `endif );
     `endif
     return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
