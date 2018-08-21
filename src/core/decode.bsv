@@ -173,6 +173,25 @@ package decode;
 		return ret;
 	endfunction
 
+  `ifdef atomic
+  function Bit#(4) fn_atomic(Bit#(5) op);
+    Bit#(4) fn=0;
+      fn= case(op)
+        'b00001:?;// AMOSWAP
+        'b00000:'h0;// AMOADD
+        'b00100:'b0100; //AMOXOR
+        'b01100:'b0111;// AMOAND
+        'b01000:'b0110;// AMOOR
+        'b10000:'b1100;// AMOMAX
+        'b10100:'b1100;// AMOMIN
+        'b11000:'b1110;// AMOMINU
+        'b11100:'b1110;// AMOMAXU
+        default:0;
+      endcase;
+    return fn;
+  endfunction
+  `endif
+
   (*noinline*)
   function PIPE1_DS decoder_func(Bit#(32) inst, Bit#(PADDR) pc, Bit#(1) epoch, Bool err, 
                                                                                CSRtoDecode csrs);
@@ -203,9 +222,7 @@ package decode;
     `endif
 
     // Decoding the immediate values
-    // in case of atomic we encode it as a Store type to pass on the atomic op as part of the
-    // immediate field
-    Bool stype= (opcode=='b01000 `ifdef atomic || opcode=='b01011 `endif ); 
+    Bool stype= (opcode=='b01000); 
     Bool btype= (opcode=='b11000);
     Bool utype= (opcode=='b01101 || opcode=='b00101);
     Bool jtype= (opcode=='b11011);
@@ -403,13 +420,18 @@ package decode;
     if(interrupt matches tagged None)
       interrupt =  exception;
 
+    `ifdef atomic
+      Bit#(4) atomic_op = fn_atomic(inst[31:27]);
+    `endif
     `ifdef simulate 
       Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
-        Bit#(1) `ifdef simulate , Bit#(32) `endif ) type_tuple = tuple8(rs1type, rs2type, inst_type, 
-          mem_access, pc, interrupt, epoch, inst);
+        `ifdef atomic Bit#(5) `else Bit#(1) `endif `ifdef simulate , Bit#(32) `endif ) 
+        type_tuple = tuple8(rs1type, rs2type, inst_type, mem_access, pc, interrupt, 
+          `ifdef atomic {atomic_op,epoch} `else epoch `endif , inst);
     `else
       Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
-      Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt, epoch);
+          Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt,  
+          `ifdef atomic {atomic_op,epoch} `else epoch `endif );
     `endif
     return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
   endfunction
