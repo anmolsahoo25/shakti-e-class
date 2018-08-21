@@ -184,7 +184,7 @@ package opfetch_execute_stage;
         $display($time, "\t        fn: %b rs1: %d rs2: %d rd: %d imm: %h", fn, rs1, rs2, rd, imm);
         $display($time, "\t        rs1type: ", fshow(rs1_type), " rs2type: ", fshow(rs2_type),
             " insttype: ", fshow(insttype), " word32: ", word32);
-        `ifdef atomic $display($time, "\t        atomicop:",epoch_atomicop[4:1]); `endif
+        `ifdef atomic $display($time, "\t        atomicop:",epoch_atomicop[5:1]); `endif
         $display($time, "\t        funt3: %b epoch: %b ", funct3, epoch, " mem_access: ", 
             fshow(mem_access), " trap ", fshow(trap));
       end
@@ -298,7 +298,6 @@ package opfetch_execute_stage;
                  pc, trap, `ifdef atomic epoch_atomicop `else epoch `endif 
                  `ifdef simulate , inst `endif }=rx.u.first;
         `ifdef atomic
-          Bit#(4) atomic_op=epoch_atomicop[4:1];
           Bit#(1) epoch=epoch_atomicop[0];
         `else
           Bit#(1) epoch=epoch_atomicop;
@@ -324,7 +323,8 @@ package opfetch_execute_stage;
                  pc, trap, `ifdef atomic epoch_atomicop `else epoch `endif 
                  `ifdef simulate , inst `endif }=rx.u.first;
         `ifdef atomic
-          Bit#(4) atomic_op=epoch_atomicop[4:1];
+          Bit#(4) atomic_op=epoch_atomicop[5:2];
+          Bit#(1) maxop=epoch_atomicop[1];
           Bit#(1) epoch=epoch_atomicop[0];
         `endif
         rx.u.deq;
@@ -338,6 +338,9 @@ package opfetch_execute_stage;
           `endif
           if(&atomic_op==1)begin // AMOSWAP
             op1_reslt=rg_op2;
+          end
+          if(atomic_op == 'b1100 || atomic_op == 'b1110)begin // AMOMAX[U], AMOMIN[U]
+            op1_reslt=(op1_reslt[0]^maxop)==1?data:rg_op2;
           end
           $display($time, "\tSTAGE2: Recieved Atomic response: ", fshow(ff_atomic_response.first));
           ff_memory_request.enq(tuple5(rg_atomic_address, op1_reslt, Store, funct3[1:0], ~funct3[2]));
