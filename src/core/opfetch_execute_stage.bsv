@@ -329,7 +329,6 @@ package opfetch_execute_stage;
         `else
           Bit#(1) epoch=epoch_atomicop;
         `endif
-
         rx.u.deq;
         if(epoch==rg_epoch[0])begin
           `ifdef muldiv
@@ -339,6 +338,9 @@ package opfetch_execute_stage;
             let {committype, op1_reslt, effaddr_csrdata, trap1} = 
                   fn_alu(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access, word32);
           `endif
+          if(&atomic_op==1)begin // AMOSWAP
+            op1_reslt=rg_op2;
+          end
           $display($time, "\tSTAGE2: Recieved Atomic response: ", fshow(ff_atomic_response.first));
           ff_memory_request.enq(tuple5(rg_atomic_address, op1_reslt, Store, funct3[1:0], ~funct3[2]));
           Commit_type committype1=MEMORY;                                         

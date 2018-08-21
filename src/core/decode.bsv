@@ -177,8 +177,8 @@ package decode;
   function Bit#(4) fn_atomic(Bit#(5) op);
     Bit#(4) fn=0;
       fn= case(op)
-        'b00001:?;// AMOSWAP
-        'b00000:'h0;// AMOADD
+        'b00001:'b1111;// AMOSWAP
+        'b00000:'b0000;// AMOADD
         'b00100:'b0100; //AMOXOR
         'b01100:'b0111;// AMOAND
         'b01000:'b0110;// AMOOR
