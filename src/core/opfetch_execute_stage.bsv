@@ -326,8 +326,6 @@ package opfetch_execute_stage;
         `ifdef atomic
           Bit#(4) atomic_op=epoch_atomicop[4:1];
           Bit#(1) epoch=epoch_atomicop[0];
-        `else
-          Bit#(1) epoch=epoch_atomicop;
         `endif
         rx.u.deq;
         if(epoch==rg_epoch[0])begin
