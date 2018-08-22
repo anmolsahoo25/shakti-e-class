@@ -143,24 +143,21 @@ package alu;
 
 `ifdef muldiv
   interface Ifc_alu;
-    method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs( Bit#(4) fn, Bit#(XLEN) op1, 
-        Bit#(XLEN) op2, Bit#(PADDR) imm_value, Bit#(PADDR) op3, Instruction_type inst_type, 
-        Funct3 funct3, Access_type memaccess, Bool word32);
+    method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(ALU_Inputs inp, Bool word32);
 		method ActionValue#(ALU_OUT) delayed_output;
   endinterface:Ifc_alu
 
   (*synthesize*)
   module mkalu(Ifc_alu);
     Ifc_muldiv muldiv <- mkmuldiv;
-    method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs( Bit#(4) fn, Bit#(XLEN) op1, 
-      Bit#(XLEN) op2, Bit#(PADDR) imm_value, Bit#(PADDR) op3, Instruction_type inst_type, 
-      Funct3 funct3, Access_type memaccess,  Bool word32);
+    method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(ALU_Inputs inp, Bool word32);
+      let {fn, op1, op2, imm_value, op3, inst_type, funct3, memaccess}=inp;
       if(inst_type==MULDIV)begin
         let product <- muldiv.get_inputs(op1, op2, funct3, word32);
         return product;
       end
       else
-        return tuple2(True, fn_alu(fn, op1, op2, imm_value, op3, inst_type, funct3, memaccess, word32));
+        return tuple2(True, fn_alu(inp, word32));
     endmethod
 		method delayed_output=muldiv.delayed_output;
   endmodule
