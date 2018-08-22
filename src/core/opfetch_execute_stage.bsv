@@ -208,8 +208,7 @@ package opfetch_execute_stage;
         //passing the result to next stage via fifo
         if(available)begin
           `ifdef muldiv
-            let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- alu.get_inputs(fn, op1, op2, imm,
-                                                       op3, insttype, funct3, mem_access, word32);
+            let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- alu.get_inputs(inp1,word32);
           `endif
           Trap_type final_trap=trap matches tagged None?trap1:trap;
           if(committype == MEMORY &&& final_trap matches tagged None)
@@ -336,7 +335,8 @@ package opfetch_execute_stage;
         if(epoch==rg_epoch[0])begin
           `ifdef muldiv
             let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- 
-                  alu.get_inputs(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access, word32);
+                  alu.get_inputs(tuple8(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access), 
+                      word32);
           `else
             let {committype, op1_reslt, effaddr_csrdata, trap1} <-
                 alu_wrapper.func(tuple8(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access), 
