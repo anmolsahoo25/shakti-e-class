@@ -91,11 +91,12 @@ package mem_wb_stage;
     rule instruction_commit;
       let {committype, reslt, effaddr_csrdata, pc, rd, epoch, trap `ifdef simulate , inst `endif } = 
                                                                                         rx.u.first;
-      if(verbosity!=0)
+      if(verbosity!=0)begin
         $display($time, "\tSTAGE3: PC: %h committype: ", pc, fshow(committype), " result: %h",
             reslt);
         $display($time, "\t        csr_data: %h", effaddr_csrdata, " rd: %d", rd, " epoch: %b", 
             epoch, " trap: ", fshow(trap));
+      end
       Bit#(PADDR) jump_address=truncate(effaddr_csrdata);
       Flush_type fl = unpack(effaddr_csrdata[valueOf(PADDR)]);
       // continue commit only if epochs match. Else deque the ex fifo
@@ -165,7 +166,8 @@ package mem_wb_stage;
         end
         else begin
           // in case of regular instruction simply update RF and forward the data.
-          $display($time, "\tSTAGE3: Commiting PC: %h", pc);
+          if(verbosity!=0)
+            $display($time, "\tSTAGE3: Commiting PC: %h", pc);
           if(rd==0)
             reslt=0;
           wr_operand_fwding <= tuple3(rd, True, reslt);

@@ -115,7 +115,6 @@ package core;
       else if(size==2)
         data=duplicate(data[31:0]);
 			Bit#(TDiv#(XLEN, 8)) write_strobe=size==0?'b1:size==1?'b11:size==2?'hf:'1;
-      $display($time, "WRSRTB: %b", write_strobe);
       Bit#(TAdd#(1, TDiv#(XLEN, 32))) byte_offset = truncate(address);
 			if(size!=3)begin			// 8-bit write;
 				write_strobe=write_strobe<<byte_offset;

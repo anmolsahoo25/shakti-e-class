@@ -230,7 +230,6 @@ package opfetch_execute_stage;
           `endif
 
           if(committype==SYSTEM_INSTR)begin
-            $display($time, "\tSTAGE2: Making CSR STALL TRUE");
             rg_csr_stall<= True;
           end
         `ifdef muldiv 
@@ -409,7 +408,6 @@ package opfetch_execute_stage;
     endmethod
     method Action csr_updated (Bool upd) if(rg_csr_stall);
       if(upd) begin
-        $display($time, "\tSTAGE2: Making SCR STALL FALSE");
         rg_csr_stall<= False;
       end
     endmethod

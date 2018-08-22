@@ -148,7 +148,6 @@ package fetch_decode_stage;
 		  interface inst_response= interface Put
 		  	method Action put (Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1)) resp);
           ff_response_from_memory.enq(resp);
-            $display($time,"Enqueuing response on to the Stage1 for inst %h",resp);
 		  	endmethod
 		  endinterface;
     `else 
