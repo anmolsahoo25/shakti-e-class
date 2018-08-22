@@ -31,24 +31,24 @@ scall         directed/riscv-tests/isa/rv64mi			  p
 ## ------------------------------------------------------------------------------------
 ## rv64ua tests						
 ## ------------------------------------------------------------------------------------
-#amoadd_d      directed/riscv-tests/isa/rv64ua    	  p								
-#amoand_d	    directed/riscv-tests/isa/rv64ua			  p					
-#amomax_d	    directed/riscv-tests/isa/rv64ua			  p					
-#amomaxu_d	    directed/riscv-tests/isa/rv64ua			  p					
-#amomin_d	    directed/riscv-tests/isa/rv64ua			  p					
-#amominu_d	    directed/riscv-tests/isa/rv64ua			  p					
-#amoor_d		    directed/riscv-tests/isa/rv64ua			  p				
-#amoxor_d	    directed/riscv-tests/isa/rv64ua			  p					
-#amoswap_d     directed/riscv-tests/isa/rv64ua			  p						
-#amoadd_w	    directed/riscv-tests/isa/rv64ua			  p					
-#amoand_w	    directed/riscv-tests/isa/rv64ua			  p					
-#amomax_w	    directed/riscv-tests/isa/rv64ua			  p					
-#amomaxu_w	    directed/riscv-tests/isa/rv64ua			  p					
-#amomin_w	    directed/riscv-tests/isa/rv64ua			  p					
-#amominu_w	    directed/riscv-tests/isa/rv64ua			  p					
-#amoor_w		    directed/riscv-tests/isa/rv64ua			  p				
-#amoxor_w	    directed/riscv-tests/isa/rv64ua			  p					
-#amoswap_w     directed/riscv-tests/isa/rv64ua			  p						
+amoadd_d      directed/riscv-tests/isa/rv64ua    	  p								
+amoand_d	    directed/riscv-tests/isa/rv64ua			  p					
+amomax_d	    directed/riscv-tests/isa/rv64ua			  p					
+amomaxu_d	    directed/riscv-tests/isa/rv64ua			  p					
+amomin_d	    directed/riscv-tests/isa/rv64ua			  p					
+amominu_d	    directed/riscv-tests/isa/rv64ua			  p					
+amoor_d		    directed/riscv-tests/isa/rv64ua			  p				
+amoxor_d	    directed/riscv-tests/isa/rv64ua			  p					
+amoswap_d     directed/riscv-tests/isa/rv64ua			  p						
+amoadd_w	    directed/riscv-tests/isa/rv64ua			  p					
+amoand_w	    directed/riscv-tests/isa/rv64ua			  p					
+amomax_w	    directed/riscv-tests/isa/rv64ua			  p					
+amomaxu_w	    directed/riscv-tests/isa/rv64ua			  p					
+amomin_w	    directed/riscv-tests/isa/rv64ua			  p					
+amominu_w	    directed/riscv-tests/isa/rv64ua			  p					
+amoor_w		    directed/riscv-tests/isa/rv64ua			  p				
+amoxor_w	    directed/riscv-tests/isa/rv64ua			  p					
+amoswap_w     directed/riscv-tests/isa/rv64ua			  p						
 #lrsc 			    directed/riscv-tests/isa/rv64ua			  p			
 #
 # ------------------------------------------------------------------------------------
