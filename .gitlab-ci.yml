@@ -4,7 +4,8 @@ stages:
 build64:
     stage: build64
     script:
-        - /home/rise/runner_setup.sh
+        - source /tools/setup.sh
+        - export XILINX_VIVADO=/tools/Vivado/Vivado/2016.1/
         - make restore 
         - make compile_bluesim ISA=RV64IMAC MULSTAGES=8 DIVSTAGES=64
         - make link_bluesim generate_boot_files
