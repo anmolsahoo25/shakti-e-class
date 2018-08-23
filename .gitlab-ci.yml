@@ -1,5 +1,4 @@
 build64:
-    stage: build64
     script:
         - source /tools/setup.sh
         - export XILINX_VIVADO=/tools/Vivado/Vivado/2016.1/
@@ -12,7 +11,6 @@ build64:
         - master
         
 build32:
-    stage: build32
     script:
         - source /tools/setup.sh
         - export XILINX_VIVADO=/tools/Vivado/Vivado/2016.1/
