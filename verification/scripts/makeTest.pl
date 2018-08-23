@@ -76,6 +76,7 @@ chomp(@isa);
 if (scalar(@isa) == 1) {
   if ($isa[0] =~ /RV32/) {
     $XLEN=32;
+    $ABI="ilp32"
   }
   else {
     $XLEN=64;
