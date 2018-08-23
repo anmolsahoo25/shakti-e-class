@@ -1,0 +1,39 @@
+stages:
+    - build64
+    - test64
+    - build32
+    - test32
+    
+build64:
+    stage: build64
+    script:
+        - make restore 
+        - make compile_bluesim ISA=RV64IMAC MULSTAGES=8 DIVSTAGES=64
+        - make link_bluesim generate_boot_files
+    only:
+        - master
+        
+test64:
+    stage: test64
+    script:
+        - make regress opts='--filter=rv64 --parallel=50 --sub'
+        - make regress opts='--filter=rv64 --final'
+    only:
+        - master
+
+build32:
+    stage: build32
+    script:
+        - make restore 
+        - make generate_verilog ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
+        - make link_vcs generate_boot_files
+    only:
+        - master
+        
+test32:
+    stage: test32
+    script:
+        - make regress opts='--filter=rv32 --parallel=2 --sub'
+        - make regress opts='--filter=rv32 --final'
+    only:
+        - master
