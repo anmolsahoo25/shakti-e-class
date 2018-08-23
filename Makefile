@@ -123,10 +123,12 @@ generate_verilog: check-restore check-env
 	@cp ${BLUESPECDIR}/Verilog/FIFOL1.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/SyncFIFO.v ./verilog/
 ifeq ($(SYNTH), SIM)
+  ifneq (,$(findstring M,$(ISA)))
 		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/multiplier_sim_netlist.v\
   	./verilog/multiplier.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
 #		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/divider/divider_sim_netlist.v\
   	./verilog/divider.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
+  endif
 endif
 	@echo Compilation finished
 
@@ -220,9 +222,10 @@ not create IP project"; exit 1)
 
 .PHONY: vivado_build
 vivado_build: 
-	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/create_project.tcl -tclargs $(SYNTHTOP) $(FPGA) || (echo "Could \
-not create core project"; exit 1)
-	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/run.tcl || (echo "ERROR: While running synthesis")
+	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/create_project.tcl -tclargs \
+  $(SYNTHTOP) $(FPGA) $(ISA) || (echo "Could not create core project"; exit 1)
+	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/run.tcl || (echo "ERROR: While\
+  running synthesis")
 
 .PHONY: regress 
 regress:  

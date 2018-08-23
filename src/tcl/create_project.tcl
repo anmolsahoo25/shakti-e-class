@@ -1,14 +1,16 @@
-if { $argc != 2 } {
+if { $argc != 3 } {
   puts "Please pass the top module name that needs to be synthesized along with the fpga part"
-  puts " -tclargs <mkTbSoc> <xc7a100tcsg324-1>"
+  puts " -tclargs <mkTbSoc> <xc7a100tcsg324-1> <isa>"
   exit 2
 } else {
-  puts "Synthesizing with Top Module: [lindex $argv 0] "
+  puts "Synthesizing with Top Module: [lindex $argv 0] for ISA: [lindex $argv 2] "
 }
 
 
 set curdir [ file dirname [ file normalize [ info script ] ] ]
 source $curdir/env.tcl
+
+set isa [lindex $argv 2]
 
 # create folders
 file mkdir $fpga_dir
@@ -28,8 +30,10 @@ if {[string equal [get_filesets -quiet sources_1] ""]} {
 
 # Set 'sources_1' fileset object
 add_files -norecurse -fileset [get_filesets sources_1] $home_dir/verilog/
-remove_files -fileset sources_1 multiplier.v
-remove_files -fileset sources_1 divider.v
+if {[string first "M" $isa] != -1} {
+  remove_files -fileset sources_1 multiplier.v
+  remove_files -fileset sources_1 divider.v
+}
 
 # add include path
 set_property include_dirs $home_dir/verilog/ [get_filesets sources_1]
@@ -50,9 +54,11 @@ set obj [get_filesets constrs_1]
 #set file_added [add_files -norecurse -fileset $obj $file]
 
 # generate all IP source code
-import_ip $ip_project_dir/manage_ip.srcs/sources_1/ip/multiplier/multiplier.xci
-#import_ip $ip_project_dir/manage_ip.srcs/sources_1/ip/divider/divider.xci
-generate_target all [get_ips]
+if {[string first "M" $isa] != -1} {
+  import_ip $ip_project_dir/manage_ip.srcs/sources_1/ip/multiplier/multiplier.xci
+  #import_ip $ip_project_dir/manage_ip.srcs/sources_1/ip/divider/divider.xci
+  generate_target all [get_ips]
+}
 
 # force create the synth_1 path (need to make soft link in Makefile)
 if {[string equal [get_runs -quiet core_synth_1] ""]} {
