@@ -348,7 +348,10 @@ package opfetch_execute_stage;
             op1_reslt=(op1_reslt[0]^maxop)==1?data:rg_op2;
           end
           $display($time, "\tSTAGE2: Recieved Atomic response: ", fshow(ff_atomic_response.first));
-          ff_memory_request.enq(tuple5(rg_atomic_address, op1_reslt, Store, funct3[1:0], ~funct3[2]));
+          if(err)
+            trap = tagged Exception Store_access_fault;
+          else
+            ff_memory_request.enq(tuple5(rg_atomic_address, op1_reslt, Store, funct3[1:0], ~funct3[2]));
           Commit_type committype1=MEMORY;                                         
           `ifdef simulate
             tx.u.enq(tuple8(committype1, data, {1'b0, rg_atomic_address}, pc, rd, rg_epoch[0], trap, inst));
