@@ -4,7 +4,7 @@ stages:
 build64:
     stage: build64
     script:
-        - source /tools/setup.sh
+        - bash
         - make restore 
         - make compile_bluesim ISA=RV64IMAC MULSTAGES=8 DIVSTAGES=64
         - make link_bluesim generate_boot_files
