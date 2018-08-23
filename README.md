@@ -1,3 +1,4 @@
+[![pipeline status](https://gitlab.com/shaktiproject/cores/e-class/badges/master/pipeline.svg)](https://gitlab.com/shaktiproject/cores/e-class/commits/master)
 # SHAKTI E-CLASS #
 
 This is the E-class core of the SHAKTI Processor family. The core has been completely developed using BSV (Bluespec System Verilog). This is the embedded class processor, built around a 3-stage in-order core. It is aimed at low-power and low compute applications and is capable of running basic RTOSs like FreeRTOS (Zephyr and eChronos are also being ported and will be released soon). Typical market segments include: smart-cards, IoT sensors, motor-controls and robotic platforms
