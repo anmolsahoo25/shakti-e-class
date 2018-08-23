@@ -88,6 +88,7 @@ package opfetch_execute_stage;
       FIFOF#(Tuple3#(Bit#(XLEN), Bool, Access_type)) ff_atomic_response <- mkSizedFIFOF(2);
       Reg#(Bit#(PADDR)) rg_atomic_address<- mkReg(0);
       Reg#(Bit#(XLEN)) rg_op2 <- mkReg(0);
+      Reg#(Bit#(PADDR)) rg_loadreserved_addr <- mkReg(0);
     `endif
     // If a CSR operation is detected then you need to stall fetching operands from the regfile
     // untill the csr instruction has been committed. the forwarding path from the csr operation to
@@ -180,6 +181,7 @@ package opfetch_execute_stage;
                              pc, trap, epoch_atomicop `ifdef simulate , inst `endif }=rx.u.first;
       `ifdef atomic
         Bit#(1) epoch=epoch_atomicop[0];
+        Bit#(4) atomic_op=epoch_atomicop[5:2];
       `else
         Bit#(1) epoch=epoch_atomicop;
       `endif
@@ -196,7 +198,6 @@ package opfetch_execute_stage;
       // parameters reqiured by the alu function will be passed
       let {op1, op2, op3, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, insttype, imm);
       ALU_Inputs inp1=tuple8(fn, op1, op2, imm, op3, insttype, funct3,mem_access);
-      // Muxing the right value into the operands
       if(verbosity!=0)
         $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
             %h,  Type: ", rs1, op1, rs2, op2, op3, fshow(insttype));
@@ -207,20 +208,46 @@ package opfetch_execute_stage;
       if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
         if(available)begin
+          
           `ifdef muldiv
             let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- alu.get_inputs(inp1,word32);
           `endif
-          Trap_type final_trap=trap matches tagged None?trap1:trap;
-          if(committype == MEMORY &&& final_trap matches tagged None)
-            ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
-                                                                        funct3[1:0], ~funct3[2]));
+          
           `ifdef atomic
             if(mem_access==Atomic)begin
               rg_op2<= op2;
               rg_atomic_address<= truncate(effaddr_csrdata);
             end
+            if(committype==MEMORY)
+              rg_loadreserved_addr<=truncate(effaddr_csrdata);
+            $display($time,"\tSTAGE2: ReservedAddr: %h AccessAddr: %h", rg_loadreserved_addr, 
+                                                                            effaddr_csrdata[31:0]);
+            Bool perform_memory=True;
+            $display($time,"\tSTAGE2: committype: ",fshow(committype)," mem_access\
+            ",fshow(mem_access), " atomic_op: %b",atomic_op);
+            if(committype==MEMORY && mem_access==Atomic && epoch_atomicop[5:1]=='b00011)begin
+              if(truncate(effaddr_csrdata)!=rg_loadreserved_addr)begin
+                $display($time,"\tSTAGE2: StoreConditional Failed");
+                perform_memory=False;
+                op1_reslt=1;
+                committype=REGULAR;
+              end
+              else
+                op1_reslt=0;
+            end
+            if(insttype==MEMORY && mem_access==Atomic)begin
+              if(epoch_atomicop[5:1]=='b00010)
+                mem_access=Load;
+              else if(epoch_atomicop[5:1]=='b00011)
+                mem_access=Store;
+            end
           `endif
 
+          Trap_type final_trap=trap matches tagged None?trap1:trap;
+          if(committype == MEMORY &&& final_trap matches tagged None `ifdef atomic &&&
+                                                                            perform_memory `endif )
+            ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
+                                                                        funct3[1:0], ~funct3[2]));
           `ifdef atomic
             `ifdef muldiv
               if(committype==MEMORY && mem_access==Atomic)begin

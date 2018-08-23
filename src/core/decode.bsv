@@ -186,7 +186,7 @@ package decode;
         'b10100:'b11001;// AMOMAX
         'b11000:'b11100;// AMOMINU
         'b11100:'b11101;// AMOMAXU
-        default:0;
+        default:op;
       endcase;
     return fn;
   endfunction
