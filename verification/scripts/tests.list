@@ -17,16 +17,6 @@ scall         directed/riscv-tests/isa/rv64mi			  p
 #sbreak        directed/riscv-tests/isa/rv64mi			  p			
 #breakpoint    directed/riscv-tests/isa/rv64mi			  p			
 #illegal       directed/riscv-tests/isa/rv64mi			  p			
-
-## ------------------------------------------------------------------------------------
-## rv64si tests						
-## ------------------------------------------------------------------------------------
-#csr           directed/riscv-tests/isa/rv64si			  p			
-##dirty         directed/riscv-tests/isa/rv64si			  p			# TODO: commented for compile issue	
-##ma_fetch      directed/riscv-tests/isa/rv64si			  p			# Commented for JIRA #17
-#scall         directed/riscv-tests/isa/rv64si			  p			
-##wfi           directed/riscv-tests/isa/rv64si			  p			
-##sbreak        directed/riscv-tests/isa/rv64si			  p			
  					
 ## ------------------------------------------------------------------------------------
 ## rv64ua tests						
@@ -49,13 +39,12 @@ amominu_w	    directed/riscv-tests/isa/rv64ua			  p
 amoor_w		    directed/riscv-tests/isa/rv64ua			  p				
 amoxor_w	    directed/riscv-tests/isa/rv64ua			  p					
 amoswap_w     directed/riscv-tests/isa/rv64ua			  p						
-#lrsc 			    directed/riscv-tests/isa/rv64ua			  p			
+lrsc 			    directed/riscv-tests/isa/rv64ua			  p			
 #
 # ------------------------------------------------------------------------------------
 # rv64uc tests
 # ------------------------------------------------------------------------------------
 rvc         directed/riscv-tests/isa/rv64uc        p
-#rvc         directed/riscv-tests/isa/rv64uc        v
 
 # ------------------------------------------------------------------------------------
 # rv64ui tests
@@ -132,57 +121,87 @@ remw          directed/riscv-tests/isa/rv64um         p
 # ------------------------------------------------------------------------------------
 # rv32ui tests
 # ------------------------------------------------------------------------------------
-#
-#add       directed/riscv-tests/isa/rv32ui         p  											
-#addi      directed/riscv-tests/isa/rv32ui         p									
-#and       directed/riscv-tests/isa/rv32ui         p									
-#andi      directed/riscv-tests/isa/rv32ui         p									
-#auipc     directed/riscv-tests/isa/rv32ui         p								
-#beq       directed/riscv-tests/isa/rv32ui         p									
-#bge       directed/riscv-tests/isa/rv32ui         p										
-#bgeu      directed/riscv-tests/isa/rv32ui         p								
-#blt       directed/riscv-tests/isa/rv32ui         p								
-#bltu      directed/riscv-tests/isa/rv32ui         p									
-#bne       directed/riscv-tests/isa/rv32ui         p								
-#fence_i   directed/riscv-tests/isa/rv32ui         p									
-#jal       directed/riscv-tests/isa/rv32ui         p									
-#jalr      directed/riscv-tests/isa/rv32ui         p										
-#lb        directed/riscv-tests/isa/rv32ui         p											
-#lbu       directed/riscv-tests/isa/rv32ui         p
-#lh        directed/riscv-tests/isa/rv32ui         p											
-#lhu       directed/riscv-tests/isa/rv32ui         p								
-#lui       directed/riscv-tests/isa/rv32ui         p								
-#lw        directed/riscv-tests/isa/rv32ui         p								
-#or        directed/riscv-tests/isa/rv32ui         p								
-#ori       directed/riscv-tests/isa/rv32ui         p								
-#sb        directed/riscv-tests/isa/rv32ui         p								
-#sh        directed/riscv-tests/isa/rv32ui         p								
-#simple    directed/riscv-tests/isa/rv32ui         p									
-#sll       directed/riscv-tests/isa/rv32ui         p								
-#slli      directed/riscv-tests/isa/rv32ui         p									
-#slt       directed/riscv-tests/isa/rv32ui         p								
-#slti      directed/riscv-tests/isa/rv32ui         p								
-#sltiu     directed/riscv-tests/isa/rv32ui         p								
-#sltu      directed/riscv-tests/isa/rv32ui         p								
-#sra       directed/riscv-tests/isa/rv32ui         p								
-#srai      directed/riscv-tests/isa/rv32ui         p									
-#srl       directed/riscv-tests/isa/rv32ui         p									
-#srli      directed/riscv-tests/isa/rv32ui         p									
-#sub       directed/riscv-tests/isa/rv32ui         p								
-#sw        directed/riscv-tests/isa/rv32ui         p									
-#xor       directed/riscv-tests/isa/rv32ui         p									
-#xori      directed/riscv-tests/isa/rv32ui         p									
-#
+
+add       directed/riscv-tests/isa/rv32ui         p  											
+addi      directed/riscv-tests/isa/rv32ui         p									
+and       directed/riscv-tests/isa/rv32ui         p									
+andi      directed/riscv-tests/isa/rv32ui         p									
+auipc     directed/riscv-tests/isa/rv32ui         p								
+beq       directed/riscv-tests/isa/rv32ui         p									
+bge       directed/riscv-tests/isa/rv32ui         p										
+bgeu      directed/riscv-tests/isa/rv32ui         p								
+blt       directed/riscv-tests/isa/rv32ui         p								
+bltu      directed/riscv-tests/isa/rv32ui         p									
+bne       directed/riscv-tests/isa/rv32ui         p								
+fence_i   directed/riscv-tests/isa/rv32ui         p									
+jal       directed/riscv-tests/isa/rv32ui         p									
+jalr      directed/riscv-tests/isa/rv32ui         p										
+lb        directed/riscv-tests/isa/rv32ui         p											
+lbu       directed/riscv-tests/isa/rv32ui         p
+lh        directed/riscv-tests/isa/rv32ui         p											
+lhu       directed/riscv-tests/isa/rv32ui         p								
+lui       directed/riscv-tests/isa/rv32ui         p								
+lw        directed/riscv-tests/isa/rv32ui         p								
+or        directed/riscv-tests/isa/rv32ui         p								
+ori       directed/riscv-tests/isa/rv32ui         p								
+sb        directed/riscv-tests/isa/rv32ui         p								
+sh        directed/riscv-tests/isa/rv32ui         p								
+simple    directed/riscv-tests/isa/rv32ui         p									
+sll       directed/riscv-tests/isa/rv32ui         p								
+slli      directed/riscv-tests/isa/rv32ui         p									
+slt       directed/riscv-tests/isa/rv32ui         p								
+slti      directed/riscv-tests/isa/rv32ui         p								
+sltiu     directed/riscv-tests/isa/rv32ui         p								
+sltu      directed/riscv-tests/isa/rv32ui         p								
+sra       directed/riscv-tests/isa/rv32ui         p								
+srai      directed/riscv-tests/isa/rv32ui         p									
+srl       directed/riscv-tests/isa/rv32ui         p									
+srli      directed/riscv-tests/isa/rv32ui         p									
+sub       directed/riscv-tests/isa/rv32ui         p								
+sw        directed/riscv-tests/isa/rv32ui         p									
+xor       directed/riscv-tests/isa/rv32ui         p									
+xori      directed/riscv-tests/isa/rv32ui         p									
+
+# ------------------------------------------------------------------------------------
+# rv32um tests
+# ------------------------------------------------------------------------------------
+
+div       directed/riscv-tests/isa/rv32um         p
+divu      directed/riscv-tests/isa/rv32um         p
+rem       directed/riscv-tests/isa/rv32um         p
+remu      directed/riscv-tests/isa/rv32um         p
+mul       directed/riscv-tests/isa/rv32um         p	
+mulh      directed/riscv-tests/isa/rv32um         p	
+mulhsu    directed/riscv-tests/isa/rv32um         p	
+mulhu     directed/riscv-tests/isa/rv32um         p	
+
+# ------------------------------------------------------------------------------------
+# rv32uc tests
+# ------------------------------------------------------------------------------------
+rvc         directed/riscv-tests/isa/rv32uc        p
+
+# ------------------------------------------------------------------------------------
+# rv32mi tests						
+# ------------------------------------------------------------------------------------
+csr           directed/riscv-tests/isa/rv32mi        p       						
+mcsr          directed/riscv-tests/isa/rv32mi			  p			
+#ma_fetch      directed/riscv-tests/isa/rv32mi			  p			# Commented for JIRA #17
+ma_addr       directed/riscv-tests/isa/rv32mi			  p			
+scall         directed/riscv-tests/isa/rv32mi			  p			
+#sbreak        directed/riscv-tests/isa/rv32mi			  p			
+#breakpoint    directed/riscv-tests/isa/rv32mi			  p			
+#illegal       directed/riscv-tests/isa/rv32mi			  p			
+
 ## ------------------------------------------------------------------------------------
-## rv32um tests
+## rv32ua tests						
 ## ------------------------------------------------------------------------------------
-#
-#div       directed/riscv-tests/isa/rv32um         p
-#divu      directed/riscv-tests/isa/rv32um         p
-#rem       directed/riscv-tests/isa/rv32um         p
-#remu      directed/riscv-tests/isa/rv32um         p
-#mul       directed/riscv-tests/isa/rv32um         p	
-#mulh      directed/riscv-tests/isa/rv32um         p	
-#mulhsu    directed/riscv-tests/isa/rv32um         p	
-#mulhu     directed/riscv-tests/isa/rv32um         p	
-#
+amoadd_w	    directed/riscv-tests/isa/rv32ua			  p					
+amoand_w	    directed/riscv-tests/isa/rv32ua			  p					
+amomax_w	    directed/riscv-tests/isa/rv32ua			  p					
+amomaxu_w	    directed/riscv-tests/isa/rv32ua			  p					
+amomin_w	    directed/riscv-tests/isa/rv32ua			  p					
+amominu_w	    directed/riscv-tests/isa/rv32ua			  p					
+amoor_w		    directed/riscv-tests/isa/rv32ua			  p				
+amoxor_w	    directed/riscv-tests/isa/rv32ua			  p					
+amoswap_w     directed/riscv-tests/isa/rv32ua			  p						
+lrsc 			    directed/riscv-tests/isa/rv32ua			  p			
