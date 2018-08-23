@@ -40,7 +40,7 @@ The soc_config.inc file is used to configure the specs of the core and the Soc t
 
 | Feature  | Valid Values | Description |
 |----------|--------------|-------------|
-| __ISA__  | RV64IM, RV64IMC,</br> RV32IM, RV32IMC | The ISA support you want the core to provide. Unsuported instructions will be treated as illegal |
+| __ISA__  | RV64/RV32[I][M][A][C] | The ISA support you want the core to provide. Unsuported instructions will be treated as illegal |
 | __MUL__  | fpga, sequential, parallel | FPGA, uses a DSP based wrapperfor Xilinx FGPAs, Sequential chooses a variable cycle multiplier with early-out mechanism. Parallel, simply implements a combinational multiplier. |
 |__SYNTH__ |  FPGA,SIM    |  When compiling BSV for simulation set to SIM|
 |__MAINMEM__  | BRAM,DDR| BRAM will implement main-mem module made of BRAMs. DDR setting will simply instantiate a bus-master which can be connected directly to the DDR ip.|
