@@ -10,15 +10,15 @@ build64:
     only:
         - master
         
-# build32:
-#     script:
-#         - source /tools/setup.sh
-#         - export XILINX_VIVADO=/tools/Vivado/Vivado/2016.1/
-#         - make restore 
-#         - make ip_build MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
-#         - make generate_verilog MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
-#         - make link_vcs generate_boot_files MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
-#         - make regress opts='--filter=rv32 --sub'
-#         - make regress opts='--filter=rv32 --final'
-#     only:
-#         - master
+build32:
+    script:
+        - source /tools/setup.sh
+        - export XILINX_VIVADO=/tools/Vivado/Vivado/2016.1/
+        - make restore 
+        - make ip_build MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
+        - make generate_verilog MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
+        - make link_vcs generate_boot_files MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
+        - make regress opts='--filter=rv32 --sub' CONFIG_ISA=RV32IMAC
+        - make regress opts='--filter=rv32 --final'
+    only:
+        - master

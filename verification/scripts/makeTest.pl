@@ -68,26 +68,27 @@ else {
 my $riscvIncludeDir = "$shaktiHome/verification/tests/directed/riscv-tests";
 my $testPath = "$shaktiHome/verification/tests";
 
-my @isa = `grep ISA= $shaktiHome/soc_config.inc`;
-my $XLEN=64;
-my $ISA="rv64imafd";
-my $ABI="lp64";
-chomp(@isa);
-if (scalar(@isa) == 1) {
-  if ($isa[0] =~ /RV32/) {
-    $XLEN=32;
-    $ABI="ilp32"
-  }
-  else {
-    $XLEN=64;
-  }
+my $XLEN;
+my $ISA;
+my $ABI;
+if (defined $ENV{'CONFIG_ISA'}) {
+  $ISA = lc $ENV{'CONFIG_ISA'};
+}
+else {
+  my @isa = `grep ISA= $shaktiHome/soc_config.inc`;
+  chomp(@isa);
   if($isa[0] =~ /=(.*)/) {
     $ISA = lc $1;
   }
 }
+
+if ($ISA =~ /32/) {
+  $XLEN=32;
+  $ABI="ilp32";
+}
 else {
-  doPrint("ERROR: ISA undefined in $shaktiHome/soc_config.inc\n");
-  exit(1);
+  $XLEN=64;
+  $ABI="lp64";
 }
 
 #my $workdir = "$testPath/workdir";
@@ -300,30 +301,27 @@ systemCmd("ln -s $shaktiHome/bin/* .");
 #  systemCmd("ln -s $shaktiHome/bin/csrc csrc");
 #  systemCmd("ln -s $shaktiHome/bin/out.daidir out.daidir");
 #}
-
+my $timeout="5m";
 if ($simulator =~ /^bluespec$/) {
-  my $timeout="30m";
+  $timeout="30m";
   if ($testSuite =~ /riscv-tests/) {
     $timeout="5m";
   }
   elsif ($testSuite =~ /riscv-torture/) {
     $timeout="90m";
   }
-  systemFileCmd("timeout $timeout ./out -w","log.txt");
 }
 elsif ($testSuite =~ /peripherals.*smoke/ && $simulator !~ /^bluespec$/) {
     systemFileCmd("echo 53","i2c.mem");
-    systemFileCmd("timeout 20m ./out -w","log.txt");
+    $timeout="20m";
 }
-else {
-  systemFileCmd("./out","log.txt");
-  if ($simulator =~ /^ncverilog$/) {
-    if (-d "cov_work/scope/test") {
-      my $name = join("_",$test_suite, $testType, $testName);
-      $name =~ s/\//\_/g ;
-      systemCmd("mkdir -p $shaktiHome/bin/cov_work/scope/$name");
-      systemCmd("mv cov_work/scope/test/*  $shaktiHome/bin/cov_work/scope/$name");
-    }
+systemFileCmd("timeout $timeout ./out -w","log.txt");
+if ($simulator =~ /^ncverilog$/) {
+  if (-d "cov_work/scope/test") {
+    my $name = join("_",$test_suite, $testType, $testName);
+    $name =~ s/\//\_/g ;
+    systemCmd("mkdir -p $shaktiHome/bin/cov_work/scope/$name");
+    systemCmd("mv cov_work/scope/test/*  $shaktiHome/bin/cov_work/scope/$name");
   }
 }
 my $result;

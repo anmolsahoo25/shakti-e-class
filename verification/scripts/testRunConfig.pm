@@ -48,7 +48,8 @@ our %testRunConfig = (
                   "CONFIG_TRACE"  => 0,    
                   "CONFIG_FSDB"   => 0,     # should be done at link stage: TODO 
                   "CONFIG_COV"    => 0, # should be done at link stage: TOD0
-                  "CONFIG_SIM"    => "bluespec" # should be done at link stage
+                  "CONFIG_SIM"    => "bluespec", # should be done at link stage
+                  "CONFIG_ISA"    => "RV64IMAFD" # should be done at link stage
                );
 
 # ------------------------------------------------
@@ -101,6 +102,14 @@ sub checkValid {
         return 0;
       }
     }
+    if ($config =~ /^CONFIG_ISA$/) {
+      if ($value =~ /^RV/) {
+        return 1;
+      }
+      else {
+        return 0;
+      }
+    }
     else {
       return 0;
     }
@@ -123,7 +132,7 @@ sub getConfig {
 sub setConfigAll {
   foreach my $key (keys %testRunConfig) {
     # simulatorConfig will only be set using setConfigValue method 
-    if ($key !~ /^CONFIG_SIM$/) {
+    if ($key !~ /^CONFIG_SIM$/ && $key !~ /^CONFIG_ISA$/) {
       $testRunConfig{$key} = 1;
     }
   }
