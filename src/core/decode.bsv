@@ -173,6 +173,25 @@ package decode;
 		return ret;
 	endfunction
 
+  `ifdef atomic
+  function Bit#(5) fn_atomic(Bit#(5) op);
+    Bit#(5) fn=0;
+      fn= case(op)
+        'b00001:'b11110;// AMOSWAP
+        'b00000:'b00000;// AMOADD
+        'b00100:'b01000; //AMOXOR
+        'b01100:'b01110;// AMOAND
+        'b01000:'b01100;// AMOOR
+        'b10000:'b11000;// AMOMIN
+        'b10100:'b11001;// AMOMAX
+        'b11000:'b11100;// AMOMINU
+        'b11100:'b11101;// AMOMAXU
+        default:op;
+      endcase;
+    return fn;
+  endfunction
+  `endif
+
   (*noinline*)
   function PIPE1_DS decoder_func(Bit#(32) inst, Bit#(PADDR) pc, Bit#(1) epoch, Bool err, 
                                                                                CSRtoDecode csrs);
@@ -197,30 +216,55 @@ package decode;
 		Access_type mem_access=Load;
 		if(opcode[3]=='b1 && opcode[1]==0)
 			mem_access=Store;
+    `ifdef atomic
+      else if(opcode=='b01011)
+        mem_access=Atomic;
+    `endif
 
     // Decoding the immediate values
-    Bool stype= (opcode=='b01000);
+    Bool stype= (opcode=='b01000); 
     Bool btype= (opcode=='b11000);
     Bool utype= (opcode=='b01101 || opcode=='b00101);
     Bool jtype= (opcode=='b11011);
+    Bool atomictype=(opcode=='b01011);
 
     Bit#(1) bit0 = inst[20]; // because of I-type instructions
+    `ifdef atomic
+      if(atomictype)
+        bit0=0;
+      else
+    `endif
     if(stype)
       bit0=inst[7];
     else if(btype || utype || jtype) 
       bit0=0;
 
     Bit#(4) bit1_4=inst[24:21]; // I/J-type instructions
+    `ifdef atomic
+      if(atomictype)
+        bit1_4=0;
+      else
+    `endif
     if(stype || btype) // S/B-Type
       bit1_4=inst[11:8];
     else if(utype) // U type
       bit1_4=0;
 
     Bit#(6) bit5_10=inst[30:25];
+    `ifdef atomic
+      if(atomictype)
+        bit5_10=0;
+      else
+    `endif
     if(utype)
       bit5_10=0;
     
     Bit#(1) bit11 = inst[31]; // I/S type
+    `ifdef atomic
+      if(atomictype)
+        bit11=0;
+      else
+    `endif
     if(btype)
       bit11=inst[7];
     else if(utype)
@@ -229,13 +273,23 @@ package decode;
       bit11=inst[20];
 
     Bit#(8) bit12_19=duplicate(inst[31]); // I/S/B type
+    `ifdef atomic
+      if(atomictype)
+        bit12_19=0;
+      else
+    `endif
     if(utype || jtype)
       bit12_19=inst[19:12];
 
     Bit#(11) bit20_30=duplicate(inst[31]); // I/B/S/J type
+    `ifdef atomic
+      if(atomictype)
+        bit20_30=0;
+      else
+    `endif
     if(utype)
       bit20_30=inst[30:20];
-    Bit#(1) bit31=inst[31];
+    Bit#(1) bit31= `ifdef atomic (atomictype)?0: `endif inst[31];
     Bit#(32) immediate_value={bit31, bit20_30, bit12_19, bit11, bit5_10, bit1_4, bit0};
 
     // Following table describes what the ALU will need for some critical operations. Based on this
@@ -263,7 +317,8 @@ package decode;
 		if (opcode==`BRANCH_op || opcode[4:1]=='b0100)	
 			rd=0;
 
-		if(opcode==`JAL_op || opcode==`JALR_op|| opcode==`AUIPC_op)	
+		if(opcode==`JAL_op || opcode==`JALR_op|| opcode==`AUIPC_op 
+        `ifdef atomic || opcode=='b01011 `endif )	
 			rs1type=PC;
 
 		if(opcode==`JALR_op || opcode==`JAL_op)
@@ -292,7 +347,8 @@ package decode;
     end
     else if(opcode[4:3]=='b01)begin 
       case (opcode[2:0])  
-         'b000: `ifdef RV32 if(funct3!='b011) `endif inst_type=MEMORY; // STORE
+        'b000 `ifdef atomic ,'b011 `endif : `ifdef RV32 if(funct3!='b011) `endif 
+            inst_type=MEMORY; // STORE + Atomic
          'b101:inst_type=ALU;      // LUI 
          'b100,'b110: begin 
             if(funct7[0]==0)
@@ -319,9 +375,6 @@ package decode;
 			else
 				fn={1'b1,funct3};
 		end
-//		else if(opcode==`JAL_op || opcode==`JALR_op || opcode==`LOAD_op	|| opcode==`STORE_op ||
-//                                                              opcode==`AUIPC_op || opcode==`LUI_op)
-//			fn=0;
 		else if(`ifdef RV64 opcode==`IMM_ARITHW_op || `endif opcode==`IMM_ARITH_op )begin
 			fn=case(funct3)
 				'b010: 'b1100;
@@ -363,16 +416,23 @@ package decode;
     end
     if(inst_type==SYSTEM_INSTR)
       immediate_value={'d0,inst[19:15],immediate_value[11:0]};// TODO fix this
+
     if(interrupt matches tagged None)
       interrupt =  exception;
 
+    `ifdef atomic
+      Bit#(5) atomic_op = fn_atomic(inst[31:27]);
+    `endif
     `ifdef simulate 
       Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
-        Bit#(1) `ifdef simulate , Bit#(32) `endif ) type_tuple = tuple8(rs1type, rs2type, inst_type, 
-          mem_access, pc, interrupt, epoch, inst);
+        `ifdef atomic Bit#(6) `else Bit#(1) `endif `ifdef simulate , Bit#(32) `endif ) 
+        type_tuple = tuple8(rs1type, rs2type, inst_type, mem_access, pc, interrupt, 
+          `ifdef atomic {atomic_op,epoch} `else epoch `endif , inst);
     `else
       Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
-      Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt, epoch);
+          `ifdef atomic Bit#(6) `else Bit#(1) `endif ) type_tuple = 
+          tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt,  
+          `ifdef atomic {atomic_op,epoch} `else epoch `endif );
     `endif
     return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
   endfunction
@@ -572,13 +632,16 @@ package decode;
     if(interrupt matches tagged None)
       interrupt =  exception;
    
-   `ifdef simulate 
+    `ifdef simulate 
       Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
-        Bit#(1) `ifdef simulate , Bit#(32) `endif ) type_tuple = tuple8(rs1type, rs2type, inst_type,
-        mem_access, pc, interrupt, epoch,zeroExtend(inst));
+        `ifdef atomic Bit#(6) `else Bit#(1) `endif `ifdef simulate , Bit#(32) `endif ) 
+        type_tuple = tuple8(rs1type, rs2type, inst_type, mem_access, pc, interrupt, 
+          `ifdef atomic {0,epoch} `else epoch `endif , zeroExtend(inst));
     `else
       Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
-      Bit#(1)) type_tuple = tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt, epoch);
+          `ifdef atomic Bit#(6) `else Bit#(1) `endif ) type_tuple = 
+          tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt,  
+          `ifdef atomic {atomic_op,epoch} `else epoch `endif );
     `endif
     return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
   endfunction

@@ -70,7 +70,8 @@ package TbSoC;
 
     `ifdef simulate
       rule display_eol;
-        $display("\n");
+        if(verbosity!=0)
+          $display("\n");
       endrule
     `endif
   endmodule

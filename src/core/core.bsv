@@ -115,12 +115,11 @@ package core;
       else if(size==2)
         data=duplicate(data[31:0]);
 			Bit#(TDiv#(XLEN, 8)) write_strobe=size==0?'b1:size==1?'b11:size==2?'hf:'1;
-      $display($time, "WRSRTB: %b", write_strobe);
       Bit#(TAdd#(1, TDiv#(XLEN, 32))) byte_offset = truncate(address);
 			if(size!=3)begin			// 8-bit write;
 				write_strobe=write_strobe<<byte_offset;
 			end
-      if(access == Load) begin
+      if(access != Store) begin
         AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: address, aruser: 0, arlen: 0, 
             arsize: zeroExtend(size), arburst:'b01, arid:`Mem_master_num}; //arburst: 00-FIXED 01-INCR 10-WRAP
    	   		memory_xactor.i_rd_addr.enq(read_request);	
@@ -140,7 +139,7 @@ package core;
       end
       memory_state<= Response;
     endrule
-    rule handle_memoryRead_response(memory_state == Response && tpl_2(memory_request) == Load);
+    rule handle_memoryRead_response(memory_state == Response && tpl_2(memory_request) != Store);
       let {address, access, size, sign}=  memory_request;
 			let response <- pop_o (memory_xactor.o_rd_data);	
 			let bus_error = !(response.rresp==AXI4_OKAY);
@@ -152,7 +151,12 @@ package core;
       else if(size==2)
           rdata=sign==1?signExtend(rdata[31:0]):zeroExtend(rdata[31:0]);
       // TODO shift, and perform signextension before sending to core.
-			riscv.memory_response.put(tuple3(rdata, bus_error, access));
+      `ifdef atomic
+        if(access==Atomic)
+          riscv.atomic_response.put(tuple3(rdata, bus_error, access));
+        else
+      `endif
+  			riscv.memory_response.put(tuple3(rdata, bus_error, access));
       if(verbosity!=0)
         $display($time, "\tCORE: Memory Read Response ", fshow(response));
       memory_state<= Request;
@@ -386,7 +390,8 @@ package core;
 			if(size!=3)begin			// 8-bit write;
 				write_strobe=write_strobe<<byte_offset;
 			end
-      A_channel_lite#(PADDR, TDiv#(XLEN, 8), 2) lite_request= A_channel_lite{a_opcode: unpack({1'b0,pack(access)}), 
+      A_channel_lite#(PADDR, TDiv#(XLEN, 8), 2) lite_request= A_channel_lite{a_opcode:
+      unpack({1'b0,truncate(pack(access))}), 
           a_size: size,  a_source: `Mem_master_num, a_address : address, a_mask : write_strobe, a_data: data};
    	  dmem_xactor.core_side.master_request.put(lite_request);	
     endrule

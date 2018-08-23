@@ -85,8 +85,8 @@ compile_bluesim: check-restore check-env
 	@mkdir -p $(BSVBUILDDIR) 
 	@echo "old_define_macros = $(define_macros)" > old_vars
 	bsc -u -sim -simdir $(BSVBUILDDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR) $(define_macros)\
-  $(BSVCOMPILEOPTS) -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE) 2>&1 | tee\
-  bsv_compile.log || (echo "ERROR: BSC COMPILE ERROR"; exit 1)
+  $(BSVCOMPILEOPTS) -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE)\
+	|| (echo "ERROR: BSC COMPILE ERROR"; exit 1)
 	@echo "Compilation finished"
 
 .PHONY: link_bluesim

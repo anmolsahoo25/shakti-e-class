@@ -34,6 +34,7 @@ package opfetch_execute_stage;
   import RegFile::*;
   import FIFOF::*;
   import DReg::*;
+  import UniqueWrappers ::*;
 
   // files to be included
   import common_types::*;
@@ -60,6 +61,9 @@ package opfetch_execute_stage;
     method Action flush_from_wb(Bool fl);
     method Action csr_updated (Bool upd);
     method Action interrupt(Bool i);
+    `ifdef atomic
+      interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) atomic_response;
+    `endif
   endinterface:Ifc_opfetch_execute_stage
   
   (*synthesize*)
@@ -78,6 +82,14 @@ package opfetch_execute_stage;
     Reg#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
 
+    Wrapper2#(ALU_Inputs,Bool,ALU_OUT) alu_wrapper <- mkUniqueWrapper2(fn_alu);
+
+    `ifdef atomic
+      FIFOF#(Tuple3#(Bit#(XLEN), Bool, Access_type)) ff_atomic_response <- mkSizedFIFOF(2);
+      Reg#(Bit#(PADDR)) rg_atomic_address<- mkReg(0);
+      Reg#(Bit#(XLEN)) rg_op2 <- mkReg(0);
+      Reg#(Bit#(PADDR)) rg_loadreserved_addr <- mkReg(0);
+    `endif
     // If a CSR operation is detected then you need to stall fetching operands from the regfile
     // untill the csr instruction has been committed. the forwarding path from the csr operation to
     // the ALU is huge. This way we break the path and neither flush the entire pipe.
@@ -87,10 +99,18 @@ package opfetch_execute_stage;
     // There does exist mechanism in the last stage to flush pipe on a trap. in case a full flush is
     // required,  that particular method should be excited.
     Reg#(Bool) rg_csr_stall <- mkReg(False);
-
     `ifdef muldiv
       Ifc_alu alu <-mkalu;
       Reg#(Bool) rg_stall <- mkReg(False);
+    `elsif atomic
+      Reg#(Bool) rg_stall <- mkReg(False);
+    `endif
+
+
+    `ifdef muldiv
+      `ifdef atomic
+        Reg#(Bool) rg_muldiv_atomic <- mkReg(False); // False=muldiv,  True=atomic
+      `endif
     `endif
   
     function (Tuple4#(Bit#(XLEN),Bit#(XLEN),Bit#(PADDR), Bool)) operand_provider(Bit#(5) rs1_addr, 
@@ -152,46 +172,91 @@ package opfetch_execute_stage;
     rule resume_from_wfi(rg_wfi && wr_interrupt);
       rg_wfi<= False;
     endrule
-  
-    rule fetch_execute_pass(!initialize `ifdef muldiv && !rg_stall `endif && !rg_csr_stall &&
+     
+    rule fetch_execute_pass(!initialize `ifdef muldiv && !rg_stall `elsif atomic && !rg_stall 
+        `endif && !rg_csr_stall &&
     !rg_wfi);
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
-                                        pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
+                             pc, trap, epoch_atomicop `ifdef simulate , inst `endif }=rx.u.first;
+      `ifdef atomic
+        Bit#(1) epoch=epoch_atomicop[0];
+        Bit#(4) atomic_op=epoch_atomicop[5:2];
+      `else
+        Bit#(1) epoch=epoch_atomicop;
+      `endif
       if(verbosity!=0)begin
         $display($time, "\tSTAGE2: PC: %h", pc `ifdef simulate ," Inst: %h", inst `endif );
         $display($time, "\t        fn: %b rs1: %d rs2: %d rd: %d imm: %h", fn, rs1, rs2, rd, imm);
         $display($time, "\t        rs1type: ", fshow(rs1_type), " rs2type: ", fshow(rs2_type),
             " insttype: ", fshow(insttype), " word32: ", word32);
+        `ifdef atomic $display($time, "\t        atomicop:",epoch_atomicop[5:1]); `endif
         $display($time, "\t        funt3: %b epoch: %b ", funct3, epoch, " mem_access: ", 
             fshow(mem_access), " trap ", fshow(trap));
       end
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
       let {op1, op2, op3, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, insttype, imm);
-      // Muxing the right value into the operands
-
+      ALU_Inputs inp1=tuple8(fn, op1, op2, imm, op3, insttype, funct3,mem_access);
       if(verbosity!=0)
         $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
             %h,  Type: ", rs1, op1, rs2, op2, op3, fshow(insttype));
 
       `ifndef muldiv
-        let {committype, op1_reslt, effaddr_csrdata, trap1} = fn_alu(fn, op1, op2, imm, op3, 
-                                                            insttype, funct3, mem_access, word32);
+        let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu_wrapper.func(inp1, word32);
       `endif
       if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
         if(available)begin
+          
           `ifdef muldiv
-            let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- alu.get_inputs(fn, op1, op2, imm,
-                                                       op3, insttype, funct3, mem_access, word32);
+            let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- alu.get_inputs(inp1,word32);
           `endif
+          
+          `ifdef atomic
+            if(mem_access==Atomic)begin
+              rg_op2<= op2;
+              rg_atomic_address<= truncate(effaddr_csrdata);
+            end
+            if(committype==MEMORY)
+              rg_loadreserved_addr<=truncate(effaddr_csrdata);
+            $display($time,"\tSTAGE2: ReservedAddr: %h AccessAddr: %h", rg_loadreserved_addr, 
+                                                                            effaddr_csrdata[31:0]);
+            Bool perform_memory=True;
+            $display($time,"\tSTAGE2: committype: ",fshow(committype)," mem_access\
+            ",fshow(mem_access), " atomic_op: %b",atomic_op);
+            if(committype==MEMORY && mem_access==Atomic && epoch_atomicop[5:1]=='b00011)begin
+              if(truncate(effaddr_csrdata)!=rg_loadreserved_addr)begin
+                $display($time,"\tSTAGE2: StoreConditional Failed");
+                perform_memory=False;
+                op1_reslt=1;
+                committype=REGULAR;
+              end
+              else
+                op1_reslt=0;
+            end
+            if(insttype==MEMORY && mem_access==Atomic)begin
+              if(epoch_atomicop[5:1]=='b00010)
+                mem_access=Load;
+              else if(epoch_atomicop[5:1]=='b00011)
+                mem_access=Store;
+            end
+          `endif
+
           Trap_type final_trap=trap matches tagged None?trap1:trap;
-          if(committype == MEMORY &&& final_trap matches tagged None)
+          if(committype == MEMORY &&& final_trap matches tagged None `ifdef atomic &&&
+                                                                            perform_memory `endif )
             ff_memory_request.enq(tuple5(truncate(effaddr_csrdata), op2, mem_access,
                                                                         funct3[1:0], ~funct3[2]));
+          `ifdef atomic
+            `ifdef muldiv
+              if(committype==MEMORY && mem_access==Atomic)begin
+                done=False;
+              end
+            `endif
+          `endif
+
           if(committype==SYSTEM_INSTR)begin
-            $display($time, "\tSTAGE2: Making CSR STALL TRUE");
             rg_csr_stall<= True;
           end
         `ifdef muldiv 
@@ -215,20 +280,38 @@ package opfetch_execute_stage;
             if(verbosity>1)
               $display($time, "\tSTAGE2: Setting Stall to True");
             rg_stall<= True;
-          end
-        `else
-          rx.u.deq;
-          if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
-            `ifdef simulate
-              tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
-                  final_trap, inst));
-            `else
-              tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
-                  final_trap));
+            `ifdef atomic
+              if(committype==MEMORY)
+                rg_muldiv_atomic<= True;
+              else
+                rg_muldiv_atomic<= False;
             `endif
           end
-          else
-            rg_wfi<= True;
+        `else
+          `ifdef atomic
+            if(committype==MEMORY && mem_access==Atomic)begin
+              if(verbosity>1)begin
+                $display($time, "\tSTAGE2: PC:%h Started Load phase of Atomic Op", pc );
+              end
+              rg_stall<= True;
+            end
+            else begin
+          `endif
+              rx.u.deq;
+              if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
+                `ifdef simulate
+                  tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
+                      final_trap, inst));
+                `else
+                  tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
+                      final_trap));
+                `endif
+              end
+              else
+                rg_wfi<= True;
+          `ifdef atomic
+            end
+          `endif
         `endif
         end
       end
@@ -240,19 +323,69 @@ package opfetch_execute_stage;
     endrule
  
     `ifdef muldiv
-      rule capture_stalled_output(rg_stall);
-      let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
-                                        pc, trap, epoch `ifdef simulate , inst `endif }=rx.u.first;
-      let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu.delayed_output;
-      if(epoch==rg_epoch[0])begin
-        `ifdef simulate
-          tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
+      rule capture_stalled_output(rg_stall `ifdef atomic && !rg_muldiv_atomic `endif );
+        let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
+                 pc, trap, `ifdef atomic epoch_atomicop `else epoch `endif 
+                 `ifdef simulate , inst `endif }=rx.u.first;
+        `ifdef atomic
+          Bit#(1) epoch=epoch_atomicop[0];
         `else
-          tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
+          Bit#(1) epoch=epoch_atomicop;
         `endif
-      end
+        let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu.delayed_output;
+        if(epoch==rg_epoch[0])begin
+          `ifdef simulate
+            tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
+          `else
+            tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
+          `endif
+        end
         rg_stall<= False;
         rx.u.deq;
+      endrule
+    `endif
+    `ifdef atomic
+      rule atomic_second_phase(rg_stall `ifdef muldiv && rg_muldiv_atomic `endif );
+        rg_stall<= False;
+        let {data, err, access}=ff_atomic_response.first;
+        ff_atomic_response.deq;
+        let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
+                 pc, trap, `ifdef atomic epoch_atomicop `else epoch `endif 
+                 `ifdef simulate , inst `endif }=rx.u.first;
+        `ifdef atomic
+          Bit#(4) atomic_op=epoch_atomicop[5:2];
+          Bit#(1) maxop=epoch_atomicop[1];
+          Bit#(1) epoch=epoch_atomicop[0];
+        `endif
+        rx.u.deq;
+        if(epoch==rg_epoch[0])begin
+          `ifdef muldiv
+            let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- 
+                  alu.get_inputs(tuple8(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access), 
+                      word32);
+          `else
+            let {committype, op1_reslt, effaddr_csrdata, trap1} <-
+                alu_wrapper.func(tuple8(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access), 
+                  word32);
+          `endif
+          if(&atomic_op==1)begin // AMOSWAP
+            op1_reslt=rg_op2;
+          end
+          if(atomic_op == 'b1100 || atomic_op == 'b1110)begin // AMOMAX[U], AMOMIN[U]
+            op1_reslt=(op1_reslt[0]^maxop)==1?data:rg_op2;
+          end
+          $display($time, "\tSTAGE2: Recieved Atomic response: ", fshow(ff_atomic_response.first));
+          if(err)
+            trap = tagged Exception Store_access_fault;
+          else
+            ff_memory_request.enq(tuple5(rg_atomic_address, op1_reslt, Store, funct3[1:0], ~funct3[2]));
+          Commit_type committype1=MEMORY;                                         
+          `ifdef simulate
+            tx.u.enq(tuple8(committype1, data, {1'b0, rg_atomic_address}, pc, rd, rg_epoch[0], trap, inst));
+          `else
+            tx.u.enq(tuple7(committype1, data, {1'b0, rg_atomic_address}, pc, rd, rg_epoch[0], trap));
+          `endif
+        end
       endrule
     `endif
     // interface definition
@@ -288,6 +421,13 @@ package opfetch_execute_stage;
         return ff_memory_request.first;
       endmethod
     endinterface;
+    `ifdef atomic
+      interface atomic_response=interface Put
+        method Action put(Tuple3#(Bit#(XLEN), Bool, Access_type) resp);
+          ff_atomic_response.enq(resp);
+        endmethod
+      endinterface;
+    `endif
 
     method Action flush_from_wb(Bool fl);
       if(fl)begin
@@ -298,7 +438,6 @@ package opfetch_execute_stage;
     endmethod
     method Action csr_updated (Bool upd) if(rg_csr_stall);
       if(upd) begin
-        $display($time, "\tSTAGE2: Making SCR STALL FALSE");
         rg_csr_stall<= False;
       end
     endmethod

@@ -43,25 +43,27 @@ package common_types;
   // Define all enums here 
 	typedef enum {ALU, MEMORY, BRANCH, JAL, JALR, SYSTEM_INSTR, WFI `ifdef muldiv , MULDIV `endif }
       Instruction_type deriving(Bits, Eq, FShow); // the type of the decoded instruction.
-	typedef enum {Load=0, Store=1} Access_type deriving (Bits, Eq, FShow);
+	typedef enum {Load=0, Store=1 `ifdef atomic ,Atomic=2 `endif } Access_type deriving (Bits, Eq, FShow);
 	typedef enum {Flush= 1, None= 0} Flush_type deriving (Bits, Eq, FShow);
 	typedef enum {IntegerRF, PC} Operand1_type deriving(Bits, Eq, FShow);
 	typedef enum {IntegerRF, Immediate, Constant4 `ifdef compressed ,Constant2 `endif } Operand2_type deriving(Bits, Eq, FShow);
   typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq, Bits, FShow);
   typedef enum {Machine=3, User=0} Privilege_mode deriving(Eq, Bits, FShow);
 
+  typedef Tuple8#(Bit#(4), Bit#(XLEN), Bit#(XLEN), Bit#(PADDR), Bit#(PADDR), Instruction_type, Funct3,
+        Access_type)  ALU_Inputs;
   // define all tuples here
   `ifdef simulate
     typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
               Tuple8#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
-                Trap_type, Bit#(1), Bit#(32))) PIPE1_DS;
+                Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif , Bit#(32))) PIPE1_DS;
 
     typedef Tuple8#(Commit_type, Bit#(XLEN), Bit#(TAdd#(PADDR, 1)), Bit#(PADDR), Bit#(5), Bit#(1), 
                     Trap_type, Bit#(32)) PIPE2_DS;
   `else
     typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
               Tuple7#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
-                Trap_type, Bit#(1))) PIPE1_DS;
+                Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif )) PIPE1_DS;
 
     typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(TAdd#(PADDR, 1)), Bit#(PADDR), Bit#(5), Bit#(1), 
                     Trap_type) PIPE2_DS;
