@@ -13,3 +13,17 @@ build64:
         - make regress opts='--filter=rv64 --final'
     only:
         - master
+        
+build32:
+    stage: build32
+    script:
+        - source /tools/setup.sh
+        - export XILINX_VIVADO=/tools/Vivado/Vivado/2016.1/
+        - make restore 
+        - make ip_build ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
+        - make generate_verilog ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
+        - make link_vcs generate_boot_files
+        - make regress opts='--filter=rv32 --parallel=2 --sub'
+        - make regress opts='--filter=rv32 --final'
+    only:
+        - master
