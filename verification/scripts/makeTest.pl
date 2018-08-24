@@ -246,12 +246,12 @@ systemFileCmd("riscv$XLEN-unknown-elf-objdump --disassemble-all --disassemble-ze
 # Generating hex
 
 if ($XLEN==64) {
-  systemFileCmd("elf2hex  8  524288 $testName.elf 2147483648","code.mem");
+  systemFileCmd("elf2hex  8  32768 $testName.elf 2147483648","code.mem");
   systemFileCmd("cut -c1-8 code.mem", "code.mem.MSB");
   systemFileCmd("cut -c9-16 code.mem", "code.mem.LSB");
 }
 else {
-  systemFileCmd("elf2hex  4  524288 $testName.elf 2147483648","code.mem");
+  systemFileCmd("elf2hex  4  32768 $testName.elf 2147483648","code.mem");
   systemFileCmd("cut -c1-8 code.mem", "code.mem.MSB");
   systemFileCmd("cp code.mem code.mem.LSB")
 }
