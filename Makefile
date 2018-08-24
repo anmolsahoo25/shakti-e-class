@@ -51,7 +51,7 @@ TESTBENCH:=./src/testbench/
 PERIPHERALS:=./src/peripherals/bootrom:./src/peripherals/pwm
 WRAPPERS:=./src/wrappers/
 LIB:=./src/lib/
-VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS -static --x-assign fast --x-initial fast --noassert --cc --bbox-sys -Wno-STMTDLY -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY -Wno-INFINITELOOP
+VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS "-static" --x-assign fast --x-initial fast --noassert --cc $(TOP_MODULE).v sim_main.cpp --bbox-sys -Wno-STMTDLY -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY --autoflush
 BSVINCDIR:=.:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB):$(FABRIC):$(UNCORE):$(TESTBENCH):$(PERIPHERALS):$(WRAPPERS)
 default: compile_bluesim link_bluesim generate_boot_files
 
@@ -123,11 +123,13 @@ generate_verilog: check-restore check-env
 	@cp ${BLUESPECDIR}/Verilog/FIFOL1.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/SyncFIFO.v ./verilog/
 ifeq ($(SYNTH), SIM)
-  ifneq (,$(findstring M,$(ISA)))
-		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/multiplier_sim_netlist.v\
-  	./verilog/multiplier.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
-#		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/divider/divider_sim_netlist.v\
-  	./verilog/divider.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
+  ifeq ($(MUL), fpga)
+    ifneq (,$(findstring M,$(ISA)))
+		  @cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/multiplier_sim_netlist.v\
+    	./verilog/multiplier.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
+  #		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/divider/divider_sim_netlist.v\
+    	./verilog/divider.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
+    endif
   endif
 endif
 	@echo Compilation finished
@@ -198,9 +200,11 @@ link_msim:
 .PHONY: link_verilator
 link_verilator: 
 	@echo "Linking $(TOP_MODULE) using verilator"
-	@mkdir -p bin
-	@verilator $(VERILATOR_FLAGS) -I$(VERILOGDIR) -y $(VERILOGDIR) -DBSV_TIMESCAL=1na/1ps -DTOP=$(TOP_MODULE) ${BLUESPECDIR}/Verilog/main.v -o out
-	@mv out bin/
+	@mkdir -p bin obj_dir
+	@verilator $(VERILATOR_FLAGS) -y $(VERILOGDIR) --exe --trace 
+	@ln -f -s ../src/testbench/sim_main.cpp obj_dir/sim_main.cpp
+	@make -j8 -C obj_dir -f V$(TOP_MODULE).mk
+	@cp obj_dir/V$(TOP_MODULE) bin/out
 
 .PHONY: link_iverilog
 link_iverilog: 
@@ -256,7 +260,7 @@ generate_boot_files:
 
 .PHONY: clean
 clean:
-	rm -rf $(BSVBUILDDIR) *.log $(BSVOUTDIR)
+	rm -rf $(BSVBUILDDIR) *.log $(BSVOUTDIR) obj_dir
 	rm -f *.jou rm *.log
 	rm -rf verification/workdir/*
 
@@ -267,6 +271,5 @@ clean_verilog: clean
 	rm -rf work
 	rm -f ./ncvlog.*
 	rm -f irun.*
-
 
 restore: clean_verilog

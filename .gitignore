@@ -26,3 +26,5 @@ verification/dts/Makefile\.inc
 verification/dts/shakti\.dts
 
 old_vars
+
+obj_dir/
