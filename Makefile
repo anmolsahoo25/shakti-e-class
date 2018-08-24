@@ -260,7 +260,7 @@ generate_boot_files:
 
 .PHONY: clean
 clean:
-	rm -rf $(BSVBUILDDIR) *.log $(BSVOUTDIR)
+	rm -rf $(BSVBUILDDIR) *.log $(BSVOUTDIR) obj_dir
 	rm -f *.jou rm *.log
 	rm -rf verification/workdir/*
 
@@ -271,6 +271,5 @@ clean_verilog: clean
 	rm -rf work
 	rm -f ./ncvlog.*
 	rm -f irun.*
-
 
 restore: clean_verilog
