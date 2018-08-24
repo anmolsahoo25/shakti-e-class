@@ -27,7 +27,11 @@ author name: Neel Gala
 Email id: neelgala@gmail.com
 */
 package muldiv_fpga;
+  `ifdef simulate
+    import muldiv_fpga_sim::*;
+  `else
   import multiplier::*;
+  `endif
   import restoring_div::*;
   import common_types::*;
   `include "common_params.bsv"
