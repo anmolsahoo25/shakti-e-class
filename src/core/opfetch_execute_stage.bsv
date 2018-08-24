@@ -220,11 +220,8 @@ package opfetch_execute_stage;
             end
             if(committype==MEMORY)
               rg_loadreserved_addr<=truncate(effaddr_csrdata);
-            $display($time,"\tSTAGE2: ReservedAddr: %h AccessAddr: %h", rg_loadreserved_addr, 
-                                                                            effaddr_csrdata[31:0]);
             Bool perform_memory=True;
-            $display($time,"\tSTAGE2: committype: ",fshow(committype)," mem_access\
-            ",fshow(mem_access), " atomic_op: %b",atomic_op);
+            
             if(committype==MEMORY && mem_access==Atomic && epoch_atomicop[5:1]=='b00011)begin
               if(truncate(effaddr_csrdata)!=rg_loadreserved_addr)begin
                 $display($time,"\tSTAGE2: StoreConditional Failed");
