@@ -45,6 +45,7 @@ endif
 define_macros += -D VERBOSITY=$(VERBOSITY) -D USERTRAPS=$(USERTRAPS) -D CORE_$(COREFABRIC)=True\
 -D MULSTAGES=$(MULSTAGES) -D DIVSTAGES=$(DIVSTAGES) -D Counters=$(COUNTERS) -D $(MAINMEM)=True
 CORE:=./src/core/
+M_EXT:=./src/core/m_ext/
 FABRIC:=./src/fabric/axi4:./src/fabric/axi4lite:./src/fabric/tilelink_lite
 UNCORE:=./src/uncore
 TESTBENCH:=./src/testbench/
@@ -52,7 +53,7 @@ PERIPHERALS:=./src/peripherals/bootrom:./src/peripherals/pwm
 WRAPPERS:=./src/wrappers/
 LIB:=./src/lib/
 VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS "-static" --x-assign fast --x-initial fast --noassert --cc $(TOP_MODULE).v sim_main.cpp --bbox-sys -Wno-STMTDLY -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY --autoflush
-BSVINCDIR:=.:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB):$(FABRIC):$(UNCORE):$(TESTBENCH):$(PERIPHERALS):$(WRAPPERS)
+BSVINCDIR:=.:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB):$(FABRIC):$(UNCORE):$(TESTBENCH):$(PERIPHERALS):$(WRAPPERS):$(M_EXT)
 default: compile_bluesim link_bluesim generate_boot_files
 
 check-env:
@@ -122,16 +123,16 @@ generate_verilog: check-restore check-env
 	@cp ${BLUESPECDIR}/Verilog/FIFO20.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFOL1.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/SyncFIFO.v ./verilog/
-ifeq ($(SYNTH), SIM)
-  ifeq ($(MUL), fpga)
-    ifneq (,$(findstring M,$(ISA)))
-		  @cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/multiplier_sim_netlist.v\
-    	./verilog/multiplier.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
-  #		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/divider/divider_sim_netlist.v\
-    	./verilog/divider.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
-    endif
-  endif
-endif
+#ifeq ($(SYNTH), SIM)
+#  ifeq ($(MUL), fpga)
+#    ifneq (,$(findstring M,$(ISA)))
+#		  @cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/multiplier/multiplier_sim_netlist.v\
+#    	./verilog/multiplier.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
+#  #		@cp fpga/manage_ip/manage_ip.srcs/sources_1/ip/divider/divider_sim_netlist.v\
+#    	./verilog/divider.v || (echo "ERROR: PLEASE BUILD VIVADO IP FIRST"; exit 1)
+#    endif
+#  endif
+#endif
 	@echo Compilation finished
 
 .PHONY: link_vcs
