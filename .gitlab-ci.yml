@@ -3,7 +3,7 @@ build64:
         - source /tools/setup.sh
         - export XILINX_VIVADO=/tools/Vivado/Vivado/2016.1/
         - make restore 
-        - make generate_verilog MUL=sequential ISA=RV64IMAC MULSTAGES=8 DIVSTAGES=64
+        - make generate_verilog SYNTH=SIM MUL=fpga ISA=RV64IMAC MULSTAGES=8 DIVSTAGES=64
         - make link_verilator generate_boot_files
         - make regress opts='--filter=rv64 --parallel=90 --sub'
         - make regress opts='--filter=rv64 --final'
@@ -16,8 +16,8 @@ build32:
         - export XILINX_VIVADO=/tools/Vivado/Vivado/2016.1/
         - make restore 
         - make ip_build MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
-        - make generate_verilog MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
-        - make link_vcs generate_boot_files MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
+        - make generate_verilog SYNTH=SIM MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
+        - make link_verilator generate_boot_files MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
         - make regress opts='--filter=rv32 --sub' CONFIG_ISA=RV32IMAC
         - make regress opts='--filter=rv32 --final'
     only:
