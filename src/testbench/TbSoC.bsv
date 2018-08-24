@@ -63,8 +63,10 @@ package TbSoC;
         let {prv, pc, instruction, rd, data}<- soc.dump.get;
         if(instruction=='h00006f||instruction =='h00a001)
           $finish(0);
-		  	$fwrite(dump, prv, " 0x%16h", pc, " (0x%8h", instruction, ")"); 
-		  	$fwrite(dump, " x%d", rd, " 0x%16h", data, "\n"); 
+        else begin
+  		  	$fwrite(dump, prv, " 0x%16h", pc, " (0x%8h", instruction, ")"); 
+	  	  	$fwrite(dump, " x%d", rd, " 0x%16h", data, "\n"); 
+        end
       endrule
     `endif
 
