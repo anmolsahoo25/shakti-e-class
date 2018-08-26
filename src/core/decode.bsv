@@ -206,7 +206,9 @@ package decode;
 		Bit#(5) opcode= inst[6:2];
 		Bit#(3) funct3= inst[14:12];
     Bit#(7) funct7 = inst[31:25]; 
-		Bool word32 =False;
+    `ifdef RV64
+  		Bool word32 =False;
+    `endif
     
 		//operand types
 		Operand1_type rs1type=IntegerRF;
@@ -434,7 +436,11 @@ package decode;
           tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt,  
           `ifdef atomic {atomic_op,epoch} `else epoch `endif );
     `endif
-    return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
+    `ifdef RV64
+      return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
+    `else
+      return tuple7(fn, rs1, rs2, rd, signExtend(immediate_value), funct3, type_tuple);            
+    `endif
   endfunction
 
 `ifdef compressed
@@ -516,7 +522,7 @@ package decode;
     rd =0;
 
   //  Bit#(7) funct7=inst[31:25]; 
-		Bool word32 =False;
+		`ifdef RV64 Bool word32 =False; `endif
 		Bit#(PADDR) pc=shadow_pc;
     
 		//operand types
@@ -643,7 +649,11 @@ package decode;
           tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt,  
           `ifdef atomic {atomic_op,epoch} `else epoch `endif );
     `endif
-    return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
+    `ifdef RV64 
+      return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
+    `else
+      return tuple7(fn, rs1, rs2, rd, signExtend(immediate_value), funct3, type_tuple);            
+    `endif
   endfunction
 `endif
 endpackage

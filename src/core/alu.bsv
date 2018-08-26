@@ -49,10 +49,7 @@ package alu;
   `include "common_params.bsv"
 
 	(*noinline*)
-//	function ALU_OUT fn_alu (Bit#(4) fn, Bit#(XLEN) op1, Bit#(XLEN) op2, Bit#(PADDR) imm_value, 
-//        Bit#(PADDR) op3, Instruction_type inst_type, Funct3 funct3, Access_type memaccess, 
-//        Bool word32);
-    function ALU_OUT fn_alu(ALU_Inputs inp, Bool word32);
+    function ALU_OUT fn_alu(ALU_Inputs inp `ifdef RV64 , Bool word32 `endif );
     let {fn, op1, op2, imm_value, op3, inst_type, funct3, memaccess}=inp;
 
 	  /*========= Perform all the arithmetic ===== */
@@ -70,10 +67,10 @@ package alu;
 						(fn[1]==1)?op2[valueOf(XLEN)-1]:op1[valueOf(XLEN)-1]);
 	  // SLL SRL SRA
     //word32 is bool, shift_amt is used to describe the amount of shift
-	  Bit#(6) shift_amt={((!word32)?op2[5]:0), op2[4:0]};
+	  Bit#(6) shift_amt={( `ifdef RV64 (!word32)?op2[5]: `endif 0), op2[4:0]};
 
 	  `ifdef RV64
-	  	Bit#(TDiv#(XLEN, 2)) upper_bits=word32?signExtend(fn[3]&op1[31]):op1[63:32];
+	  	Bit#(TDiv#(XLEN, 2)) upper_bits=`ifdef RV64 word32?signExtend(fn[3]&op1[31]): `endif op1[63:32];
 	  	Bit#(XLEN) shift_inright={upper_bits, op1[31:0]};//size of 64 bit
 	  `else
 	  	Bit#(XLEN) shift_inright=zeroExtend(op1[31:0]);//size of 32bit
@@ -143,21 +140,23 @@ package alu;
 
 `ifdef muldiv
   interface Ifc_alu;
-    method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(ALU_Inputs inp, Bool word32);
+    method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(ALU_Inputs inp 
+        `ifdef RV64 , Bool word32 `endif );
 		method ActionValue#(ALU_OUT) delayed_output;
   endinterface:Ifc_alu
 
   (*synthesize*)
   module mkalu(Ifc_alu);
     Ifc_muldiv muldiv <- mkmuldiv;
-    method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(ALU_Inputs inp, Bool word32);
+    method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(ALU_Inputs inp 
+        `ifdef RV64 , Bool word32 `endif );
       let {fn, op1, op2, imm_value, op3, inst_type, funct3, memaccess}=inp;
       if(inst_type==MULDIV)begin
-        let product <- muldiv.get_inputs(op1, op2, funct3, word32);
+        let product <- muldiv.get_inputs(op1, op2, funct3 `ifdef RV64 , word32 `endif );
         return product;
       end
       else
-        return tuple2(True, fn_alu(inp, word32));
+        return tuple2(True, fn_alu(inp `ifdef RV64 , word32 `endif ));
     endmethod
 		method delayed_output=muldiv.delayed_output;
   endmodule
