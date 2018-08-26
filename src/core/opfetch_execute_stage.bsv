@@ -82,7 +82,11 @@ package opfetch_execute_stage;
     Reg#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
 
-    Wrapper2#(ALU_Inputs,Bool,ALU_OUT) alu_wrapper <- mkUniqueWrapper2(fn_alu);
+    `ifdef RV64
+      Wrapper2#(ALU_Inputs,Bool,ALU_OUT) alu_wrapper <- mkUniqueWrapper2(fn_alu);
+    `else
+      Wrapper#(ALU_Inputs,ALU_OUT) alu_wrapper <- mkUniqueWrapper(fn_alu);
+    `endif
 
     `ifdef atomic
       FIFOF#(Tuple3#(Bit#(XLEN), Bool, Access_type)) ff_atomic_response <- mkSizedFIFOF(2);
@@ -177,8 +181,8 @@ package opfetch_execute_stage;
         `endif && !rg_csr_stall &&
     !rg_wfi);
       // receiving the decoded data from the previous stage
-      let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
-                             pc, trap, epoch_atomicop `ifdef simulate , inst `endif }=rx.u.first;
+      let {fn, rs1, rs2, rd, imm `ifdef RV64, word32 `endif , funct3, rs1_type, rs2_type, 
+          insttype, mem_access, pc, trap, epoch_atomicop `ifdef simulate , inst `endif }=rx.u.first;
       `ifdef atomic
         Bit#(1) epoch=epoch_atomicop[0];
         Bit#(4) atomic_op=epoch_atomicop[5:2];
@@ -189,7 +193,7 @@ package opfetch_execute_stage;
         $display($time, "\tSTAGE2: PC: %h", pc `ifdef simulate ," Inst: %h", inst `endif );
         $display($time, "\t        fn: %b rs1: %d rs2: %d rd: %d imm: %h", fn, rs1, rs2, rd, imm);
         $display($time, "\t        rs1type: ", fshow(rs1_type), " rs2type: ", fshow(rs2_type),
-            " insttype: ", fshow(insttype), " word32: ", word32);
+            " insttype: ", fshow(insttype) `ifdef RV64 , " word32: ", word32 `endif );
         `ifdef atomic $display($time, "\t        atomicop:",epoch_atomicop[5:1]); `endif
         $display($time, "\t        funt3: %b epoch: %b ", funct3, epoch, " mem_access: ", 
             fshow(mem_access), " trap ", fshow(trap));
@@ -203,14 +207,16 @@ package opfetch_execute_stage;
             %h,  Type: ", rs1, op1, rs2, op2, op3, fshow(insttype));
 
       `ifndef muldiv
-        let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu_wrapper.func(inp1, word32);
+        let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu_wrapper.func(inp1 
+            `ifdef RV64, word32 `endif );
       `endif
       if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
         if(available)begin
           
           `ifdef muldiv
-            let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- alu.get_inputs(inp1,word32);
+            let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- alu.get_inputs(inp1
+              `ifdef RV64 ,word32 `endif );
           `endif
           
           `ifdef atomic
@@ -321,8 +327,8 @@ package opfetch_execute_stage;
  
     `ifdef muldiv
       rule capture_stalled_output(rg_stall `ifdef atomic && !rg_muldiv_atomic `endif );
-        let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
-                 pc, trap, `ifdef atomic epoch_atomicop `else epoch `endif 
+        let {fn, rs1, rs2, rd, imm `ifdef RV64 , word32 `endif , funct3, rs1_type, 
+        rs2_type, insttype, mem_access, pc, trap, `ifdef atomic epoch_atomicop `else epoch `endif 
                  `ifdef simulate , inst `endif }=rx.u.first;
         `ifdef atomic
           Bit#(1) epoch=epoch_atomicop[0];
@@ -346,8 +352,8 @@ package opfetch_execute_stage;
         rg_stall<= False;
         let {data, err, access}=ff_atomic_response.first;
         ff_atomic_response.deq;
-        let {fn, rs1, rs2, rd, imm, word32, funct3, rs1_type, rs2_type, insttype, mem_access, 
-                 pc, trap, `ifdef atomic epoch_atomicop `else epoch `endif 
+        let {fn, rs1, rs2, rd, imm `ifdef RV64 , word32 `endif ,funct3, rs1_type, rs2_type, 
+            insttype, mem_access, pc, trap, `ifdef atomic epoch_atomicop `else epoch `endif 
                  `ifdef simulate , inst `endif }=rx.u.first;
         `ifdef atomic
           Bit#(4) atomic_op=epoch_atomicop[5:2];
@@ -358,12 +364,12 @@ package opfetch_execute_stage;
         if(epoch==rg_epoch[0])begin
           `ifdef muldiv
             let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- 
-                  alu.get_inputs(tuple8(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access), 
-                      word32);
+                  alu.get_inputs(tuple8(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access) 
+                      `ifdef RV64 , word32 `endif );
           `else
             let {committype, op1_reslt, effaddr_csrdata, trap1} <-
-                alu_wrapper.func(tuple8(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access), 
-                  word32);
+                alu_wrapper.func(tuple8(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access)
+                  `ifdef RV64 , word32 `endif );
           `endif
           if(&atomic_op==1)begin // AMOSWAP
             op1_reslt=rg_op2;
