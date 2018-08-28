@@ -264,6 +264,7 @@ clean:
 	rm -rf $(BSVBUILDDIR) *.log $(BSVOUTDIR) obj_dir
 	rm -f *.jou rm *.log
 	rm -rf verification/workdir/*
+	rm nohup.out
 
 clean_verilog: clean 
 	rm -rf verilog/
