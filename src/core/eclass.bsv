@@ -28,9 +28,9 @@ Details:
 
 --------------------------------------------------------------------------------------------------
 */
-package core;
+package eclass;
 
-  //=================== Interface and module for a core- master on the AXI4 fabric ============= //
+  //=================== Interface and module for a eclass- master on the AXI4 fabric ============= //
   // project related imports
 	import Semi_FIFOF:: *;
   import AXI4_Lite_Types::*;
@@ -50,7 +50,7 @@ package core;
   import BUtils::*;
   
   typedef enum {Request, Response} TxnState deriving(Bits, Eq, FShow);
-  interface Ifc_core_AXI4;
+  interface Ifc_eclass_AXI4;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) fetch_master;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
 		method Action clint_msip(Bit#(1) intrpt);
@@ -60,10 +60,10 @@ package core;
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
-  endinterface: Ifc_core_AXI4
+  endinterface: Ifc_eclass_AXI4
 
   (*synthesize*)
-  module mkcore_AXI4(Ifc_core_AXI4);
+  module mkeclass_AXI4(Ifc_eclass_AXI4);
     Ifc_riscv riscv <- mkriscv();
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
@@ -150,7 +150,7 @@ package core;
           rdata=sign==1?signExtend(rdata[15:0]):zeroExtend(rdata[15:0]);
       else if(size==2)
           rdata=sign==1?signExtend(rdata[31:0]):zeroExtend(rdata[31:0]);
-      // TODO shift, and perform signextension before sending to core.
+      // TODO shift, and perform signextension before sending to eclass.
       `ifdef atomic
         if(access==Atomic)
           riscv.atomic_response.put(tuple3(rdata, bus_error, access));
@@ -187,9 +187,9 @@ package core;
     `ifdef simulate
       interface dump=riscv.dump;
     `endif
-  endmodule: mkcore_AXI4
-  //=================== Interface and module for a core- master on the AXI4 fabric ============= //
-  interface Ifc_core_AXI4Lite;
+  endmodule: mkeclass_AXI4
+  //=================== Interface and module for a eclass- master on the AXI4 fabric ============= //
+  interface Ifc_eclass_AXI4Lite;
 		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) fetch_master;
 		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
 		method Action clint_msip(Bit#(1) intrpt);
@@ -199,10 +199,10 @@ package core;
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
-  endinterface: Ifc_core_AXI4Lite
+  endinterface: Ifc_eclass_AXI4Lite
 
   (*synthesize*)
-  module mkcore_AXI4Lite(Ifc_core_AXI4Lite);
+  module mkeclass_AXI4Lite(Ifc_eclass_AXI4Lite);
     Ifc_riscv riscv <- mkriscv();
 		AXI4_Lite_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) fetch_xactor<- mkAXI4_Lite_Master_Xactor;
 		AXI4_Lite_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) memory_xactor<- mkAXI4_Lite_Master_Xactor;
@@ -289,7 +289,7 @@ package core;
           rdata=sign==1?signExtend(rdata[15:0]):zeroExtend(rdata[15:0]);
       else if(size==2)
           rdata=sign==1?signExtend(rdata[31:0]):zeroExtend(rdata[31:0]);
-      // TODO shift, and perform signextension before sending to core.
+      // TODO shift, and perform signextension before sending to eclass.
 			riscv.memory_response.put(tuple3(rdata, bus_error, access));
       if(verbosity!=0)
         $display($time, "\tCORE: Memory Read Response ", fshow(response));
@@ -321,9 +321,9 @@ package core;
     `ifdef simulate
       interface dump=riscv.dump;
     `endif
-  endmodule: mkcore_AXI4Lite
+  endmodule: mkeclass_AXI4Lite
 
-  interface Ifc_core_TLU;
+  interface Ifc_eclass_TLU;
 		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(XLEN, 8), 2) fetch_master;
 		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(XLEN, 8), 2) mem_master;
 		method Action clint_msip(Bit#(1) intrpt);
@@ -333,9 +333,9 @@ package core;
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
-  endinterface: Ifc_core_TLU
+  endinterface: Ifc_eclass_TLU
   (*synthesize*)
-  module mkcore_TLU(Ifc_core_TLU);
+  module mkeclass_TLU(Ifc_eclass_TLU);
     Ifc_Master_link_lite#(PADDR, TDiv#(XLEN, 8), 2)  fetch_xactor <- mkMasterXactorLite(True, True);
     Ifc_Master_link_lite#(PADDR, TDiv#(XLEN, 8), 2)  dmem_xactor <- mkMasterXactorLite(True, True);
     Ifc_riscv riscv <- mkriscv();
