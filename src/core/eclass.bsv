@@ -48,11 +48,17 @@ package eclass;
 	import Connectable 				:: *;
   import GetPut:: *;
   import BUtils::*;
+
+  export Ifc_eclass_axi4    (..);
+  export Ifc_eclass_axi4lite  (..);
+  export mkeclass_axi4;
+  export mkeclass_axi4lite;
+  export DumpType (..);
   
   typedef enum {Request, Response} TxnState deriving(Bits, Eq, FShow);
-  interface Ifc_eclass_AXI4;
-		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) fetch_master;
-		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
+  interface Ifc_eclass_axi4;
+		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master_d;
+		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master_i;
 		method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
@@ -60,10 +66,10 @@ package eclass;
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
-  endinterface: Ifc_eclass_AXI4
+  endinterface: Ifc_eclass_axi4
 
   (*synthesize*)
-  module mkeclass_AXI4(Ifc_eclass_AXI4);
+  module mkeclass_axi4(Ifc_eclass_axi4);
     Ifc_riscv riscv <- mkriscv();
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
@@ -182,16 +188,16 @@ package eclass;
     method Action externalinterrupt(Bit#(1) intrpt);
       riscv.externalinterrupt(intrpt);
     endmethod
-		interface fetch_master= fetch_xactor.axi_side;
-		interface mem_master= memory_xactor.axi_side;
+		interface master_i= fetch_xactor.axi_side;
+		interface master_d= memory_xactor.axi_side;
     `ifdef simulate
       interface dump=riscv.dump;
     `endif
-  endmodule: mkeclass_AXI4
+  endmodule: mkeclass_axi4
   //=================== Interface and module for a eclass- master on the AXI4 fabric ============= //
-  interface Ifc_eclass_AXI4Lite;
-		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) fetch_master;
-		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
+  interface Ifc_eclass_axi4lite;
+		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) master_i;
+		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) master_d;
 		method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
@@ -199,10 +205,10 @@ package eclass;
     `ifdef simulate
       interface Get#(DumpType) dump;
     `endif
-  endinterface: Ifc_eclass_AXI4Lite
+  endinterface: Ifc_eclass_axi4lite
 
   (*synthesize*)
-  module mkeclass_AXI4Lite(Ifc_eclass_AXI4Lite);
+  module mkeclass_axi4lite(Ifc_eclass_axi4lite);
     Ifc_riscv riscv <- mkriscv();
 		AXI4_Lite_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) fetch_xactor<- mkAXI4_Lite_Master_Xactor;
 		AXI4_Lite_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) memory_xactor<- mkAXI4_Lite_Master_Xactor;
@@ -316,12 +322,12 @@ package eclass;
     method Action externalinterrupt(Bit#(1) intrpt);
       riscv.externalinterrupt(intrpt);
     endmethod
-		interface fetch_master= fetch_xactor.axi_side;
-		interface mem_master= memory_xactor.axi_side;
+		interface master_i= fetch_xactor.axi_side;
+		interface master_d= memory_xactor.axi_side;
     `ifdef simulate
       interface dump=riscv.dump;
     `endif
-  endmodule: mkeclass_AXI4Lite
+  endmodule: mkeclass_axi4lite
 
   interface Ifc_eclass_TLU;
 		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(XLEN, 8), 2) fetch_master;
