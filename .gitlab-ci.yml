@@ -1,5 +1,4 @@
 build64:
-    image: iitmshakti/ubuntu-ci:0.1.0
     script:
         - source /tools/setup.sh
         - make restore 
@@ -13,7 +12,6 @@ build64:
         - e-class-build-regression
         
 build32:
-    image: iitmshakti/ubuntu-ci:0.1.0
     script:
         - source /tools/setup.sh
         - make restore 
