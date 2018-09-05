@@ -9,6 +9,8 @@ build64:
         - make regress opts='--filter=rv64 --final'
     only:
         - master
+    tags:
+        - e-class-build-regression
         
 build32:
     image: iitmshakti/ubuntu-ci:0.1.0
@@ -21,3 +23,5 @@ build32:
         - make regress opts='--filter=rv32 --final'
     only:
         - master
+    tags:
+        - e-class-build-regression
