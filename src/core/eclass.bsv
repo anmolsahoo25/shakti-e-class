@@ -42,7 +42,9 @@ package eclass;
   import common_types:: * ;
   import FIFOF::*;
   `include "common_params.bsv"
-  `include "SoC.defines"
+
+  `define Mem_master_num 0
+  `define Fetch_master_num 1
 
   // package imports
 	import Connectable 				:: *;
