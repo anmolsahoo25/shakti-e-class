@@ -105,7 +105,7 @@ package SoC;
 `ifdef CORE_AXI4
   (*synthesize*)
   module mkSoC `ifdef EXTERNAL #(Clock exmem_clk, Reset exmem_rst) `endif (Ifc_SoC);
-    Ifc_eclass_AXI4 eclass <- mkeclass_AXI4();
+    Ifc_eclass_axi4 eclass <- mkeclass_axi4();
     AXI4_Fabric_IFC #(`Num_Masters, `Num_Slaves, PADDR, XLEN, USERSPACE) 
                                                     fabric <- mkAXI4_Fabric(fn_slave_map);
     `ifdef BRAM
@@ -120,8 +120,8 @@ package SoC;
 			Ifc_bootrom_AXI4#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_AXI4(`BootRomBase);
 		`endif
 
-   	mkConnection(eclass.mem_master,	fabric.v_from_masters[`Mem_master_num]);
-   	mkConnection(eclass.fetch_master, fabric.v_from_masters[`Fetch_master_num]);
+   	mkConnection(eclass.master_d,	fabric.v_from_masters[`Mem_master_num]);
+   	mkConnection(eclass.master_i, fabric.v_from_masters[`Fetch_master_num]);
 
     `ifdef EXTERNAL
   		mkConnection(fabric.v_to_slaves[`Memory_slave_num],external_memory.slave);
@@ -144,7 +144,7 @@ package SoC;
 `ifdef CORE_AXI4Lite
   (*synthesize*)
   module mkSoC(Ifc_SoC);
-    Ifc_eclass_AXI4Lite eclass <- mkeclass_AXI4Lite();
+    Ifc_eclass_axi4lite eclass <- mkeclass_axi4lite();
     AXI4_Lite_Fabric_IFC #(`Num_Masters, `Num_Slaves, PADDR, XLEN, USERSPACE) 
                                                     fabric <- mkAXI4_Lite_Fabric(fn_slave_map);
 		Ifc_memory_AXI4Lite#(PADDR, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4Lite(
@@ -153,8 +153,8 @@ package SoC;
 			Ifc_bootrom_AXI4Lite#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_AXI4Lite(`BootRomBase);
 		`endif
 
-   	mkConnection(eclass.mem_master,	fabric.v_from_masters[`Mem_master_num]);
-   	mkConnection(eclass.fetch_master, fabric.v_from_masters[`Fetch_master_num]);
+   	mkConnection(eclass.master_d,	fabric.v_from_masters[`Mem_master_num]);
+   	mkConnection(eclass.master_i, fabric.v_from_masters[`Fetch_master_num]);
 
 		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.slave);
 		`ifdef BOOTROM
