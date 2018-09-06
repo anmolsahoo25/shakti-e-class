@@ -50,6 +50,36 @@ parameters:
         isa:
             type: string
             regex: ^(rv64imac|rv32imac|rv64imc|rv32imc|rv64im|rv32im|rv64ic|rv32ic)$
+macros:
+    type: dict
+    schema:
+        ISA:
+            type: string
+            regex:  ^(RV64IMAC|RV32IMAC|RV64IMC|RV32IMC|RV64IM|RV32IM|RV64IC|RV32IC)$
+        MUL:
+            type: string
+            regex: ^(sequential|fpga)$
+        SYNTH: 
+            type: string
+            regex: ^(SIM|FPGA|ASIC)
+        VERBOSITY:
+            type: integer
+            min: 0
+            max: 3
+        USERTRAPS:
+            type: boolean
+        MULSTAGES:
+            type: integer
+            allowed: [1, 2, 4, 8]
+        DIVSTAGES:
+            type: integer
+            allowed: [32, 64]
+        FPGA:
+            type: string
+        Counters:
+            type: integer
+            min: 0
+            max: 8
 schema-end
 --------------------------------------------------------------------------------------------------
 */
