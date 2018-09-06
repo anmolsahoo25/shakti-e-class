@@ -201,7 +201,7 @@ package muldiv_asic;
 			let {in1,in2,funct3, `ifdef RV64 word_flag, `endif is_mul}=ff_input.first;
 			if(verbosity>1) $display($time,"\tMUL/DIV: in1: %h in2: %h funct3: %h is_mul: %b",in1,in2,funct3, is_mul); 
 			Bit#(1) in2_sign=funct3[1:0]==1? `ifdef RV64 word_flag==1?in2[31]: `endif in2[63]:0;
-			Bit#(1) in1_sign=(funct3[1]^funct3[0]) & `ifdef RV64 ((word_flag==1)?in1[31]: `endif in1[63]);
+			Bit#(1) in1_sign=(funct3[1]^funct3[0]) & (`ifdef RV64 (word_flag==1)?in1[31]: `endif in1[63]);
 
 			Bit#(TAdd#(XLEN,1)) op1;
 			Bit#(TAdd#(XLEN,1)) op2;
