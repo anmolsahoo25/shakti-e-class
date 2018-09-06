@@ -66,7 +66,7 @@ package eclass;
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     `ifdef simulate
-      interface Get#(DumpType) dump;
+      interface Get#(DumpType) io_dump;
     `endif
   endinterface: Ifc_eclass_axi4
 
@@ -193,7 +193,7 @@ package eclass;
 		interface master_i= fetch_xactor.axi_side;
 		interface master_d= memory_xactor.axi_side;
     `ifdef simulate
-      interface dump=riscv.dump;
+      interface io_dump=riscv.dump;
     `endif
   endmodule: mkeclass_axi4
   //=================== Interface and module for a eclass- master on the AXI4 fabric ============= //
@@ -205,7 +205,7 @@ package eclass;
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     `ifdef simulate
-      interface Get#(DumpType) dump;
+      interface Get#(DumpType) io_dump;
     `endif
   endinterface: Ifc_eclass_axi4lite
 
@@ -327,7 +327,7 @@ package eclass;
 		interface master_i= fetch_xactor.axi_side;
 		interface master_d= memory_xactor.axi_side;
     `ifdef simulate
-      interface dump=riscv.dump;
+      interface io_dump=riscv.dump;
     `endif
   endmodule: mkeclass_axi4lite
 
@@ -339,7 +339,7 @@ package eclass;
 		method Action clint_mtime(Bit#(XLEN) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     `ifdef simulate
-      interface Get#(DumpType) dump;
+      interface Get#(DumpType) io_dump;
     `endif
   endinterface: Ifc_eclass_TLU
   (*synthesize*)
@@ -436,7 +436,7 @@ package eclass;
       riscv.externalinterrupt(intrpt);
     endmethod
     `ifdef simulate
-      interface dump=riscv.dump;
+      interface io_dump=riscv.dump;
     `endif
   endmodule
 
