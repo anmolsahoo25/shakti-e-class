@@ -60,7 +60,7 @@ package TbSoC;
 
     `ifdef simulate
       rule write_dump_file(rg_cnt!=0);
-        let {prv, pc, instruction, rd, data}<- soc.dump.get;
+        let {prv, pc, instruction, rd, data}<- soc.io_dump.get;
         if(instruction=='h00006f||instruction =='h00a001)
           $finish(0);
         else begin

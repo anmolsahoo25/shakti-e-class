@@ -95,7 +95,7 @@ package SoC;
 
   interface Ifc_SoC;
     `ifdef simulate
-      interface Get#(DumpType) dump;
+      interface Get#(DumpType) io_dump;
     `endif
     `ifdef EXTERNAL
       interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
@@ -134,7 +134,7 @@ package SoC;
 		`endif
 
     `ifdef simulate
-      interface dump= eclass.dump;
+      interface io_dump= eclass.io_dump;
     `endif
     `ifdef EXTERNAL
       interface mem_master=external_memory.master;
@@ -162,7 +162,7 @@ package SoC;
 		`endif
 
     `ifdef simulate
-      interface dump= eclass.dump;
+      interface io_dump= eclass.io_dump;
     `endif
   endmodule: mkSoC
 `endif
@@ -195,7 +195,7 @@ package SoC;
 		`endif
 
     `ifdef simulate
-      interface dump= eclass.dump;
+      interface dump= eclass.io_dump;
     `endif
   endmodule: mkSoC
 `endif
