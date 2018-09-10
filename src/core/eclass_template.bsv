@@ -80,6 +80,15 @@ macros:
             type: integer
             min: 0
             max: 8
+sideband:
+    type: dict
+    schema:
+        clint_mtime:
+          type: string
+        clint_msip:
+          type: string
+        clint_mtip:
+          type: string
 schema-end
 --------------------------------------------------------------------------------------------------
 */
