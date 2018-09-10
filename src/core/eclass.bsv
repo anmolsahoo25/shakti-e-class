@@ -61,9 +61,9 @@ package eclass;
   interface Ifc_eclass_axi4;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master_d;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master_i;
-		method Action clint_msip(Bit#(1) intrpt);
-		method Action clint_mtip(Bit#(1) intrpt);
-		method Action clint_mtime(Bit#(XLEN) c_mtime);
+    interface Put#(Bit#(1)) clint_msip;
+    interface Put#(Bit#(1)) clint_mtip;
+    interface Put#(Bit#(64)) clint_mtime;
     method Action externalinterrupt(Bit#(1) intrpt);
     `ifdef simulate
       interface Get#(DumpType) io_dump;
@@ -178,15 +178,21 @@ package eclass;
         $display($time, "\tCORE: Memory Write Response ", fshow(response));
       memory_state<= Request;
     endrule
-	  method Action clint_msip(Bit#(1) intrpt);
-      riscv.clint_msip(intrpt);
-    endmethod
-		method Action clint_mtip(Bit#(1) intrpt);
-      riscv.clint_mtip(intrpt);
-    endmethod
-		method Action clint_mtime(Bit#(XLEN) c_mtime);
-      riscv.clint_mtime(c_mtime);
-    endmethod
+    interface clint_msip = interface Put
+  	  method Action put(Bit#(1) intrpt);
+        riscv.clint_msip(intrpt);
+      endmethod
+    endinterface;
+    interface clint_mtip= interface Put
+      method Action put(Bit#(1) intrpt);
+        riscv.clint_mtip(intrpt);
+      endmethod
+    endinterface;
+    interface clint_mtime= interface Put
+  		method Action put (Bit#(XLEN) c_mtime);
+        riscv.clint_mtime(c_mtime);
+      endmethod
+    endinterface;
     method Action externalinterrupt(Bit#(1) intrpt);
       riscv.externalinterrupt(intrpt);
     endmethod
@@ -200,9 +206,9 @@ package eclass;
   interface Ifc_eclass_axi4lite;
 		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) master_i;
 		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) master_d;
-		method Action clint_msip(Bit#(1) intrpt);
-		method Action clint_mtip(Bit#(1) intrpt);
-		method Action clint_mtime(Bit#(XLEN) c_mtime);
+    interface Put#(Bit#(1)) clint_msip;
+    interface Put#(Bit#(1)) clint_mtip;
+    interface Put#(Bit#(64)) clint_mtime;
     method Action externalinterrupt(Bit#(1) intrpt);
     `ifdef simulate
       interface Get#(DumpType) io_dump;
@@ -312,15 +318,21 @@ package eclass;
         $display($time, "\tCORE: Memory Write Response ", fshow(response));
       memory_state<= Request;
     endrule
-	  method Action clint_msip(Bit#(1) intrpt);
-      riscv.clint_msip(intrpt);
-    endmethod
-		method Action clint_mtip(Bit#(1) intrpt);
-      riscv.clint_mtip(intrpt);
-    endmethod
-		method Action clint_mtime(Bit#(XLEN) c_mtime);
-      riscv.clint_mtime(c_mtime);
-    endmethod
+    interface clint_msip = interface Put
+  	  method Action put(Bit#(1) intrpt);
+        riscv.clint_msip(intrpt);
+      endmethod
+    endinterface;
+    interface clint_mtip= interface Put
+      method Action put(Bit#(1) intrpt);
+        riscv.clint_mtip(intrpt);
+      endmethod
+    endinterface;
+    interface clint_mtime= interface Put
+  		method Action put (Bit#(XLEN) c_mtime);
+        riscv.clint_mtime(c_mtime);
+      endmethod
+    endinterface;
     method Action externalinterrupt(Bit#(1) intrpt);
       riscv.externalinterrupt(intrpt);
     endmethod
@@ -334,9 +346,9 @@ package eclass;
   interface Ifc_eclass_TLU;
 		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(XLEN, 8), 2) fetch_master;
 		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(XLEN, 8), 2) mem_master;
-		method Action clint_msip(Bit#(1) intrpt);
-		method Action clint_mtip(Bit#(1) intrpt);
-		method Action clint_mtime(Bit#(XLEN) c_mtime);
+    interface Put#(Bit#(1)) clint_msip;
+    interface Put#(Bit#(1)) clint_mtip;
+    interface Put#(Bit#(64)) clint_mtime;
     method Action externalinterrupt(Bit#(1) intrpt);
     `ifdef simulate
       interface Get#(DumpType) io_dump;
@@ -423,15 +435,21 @@ package eclass;
     endrule
     interface fetch_master = fetch_xactor.fabric_side;
     interface mem_master = dmem_xactor.fabric_side;
-	  method Action clint_msip(Bit#(1) intrpt);
-      riscv.clint_msip(intrpt);
-    endmethod
-		method Action clint_mtip(Bit#(1) intrpt);
-      riscv.clint_mtip(intrpt);
-    endmethod
-		method Action clint_mtime(Bit#(XLEN) c_mtime);
-      riscv.clint_mtime(c_mtime);
-    endmethod
+    interface clint_msip = interface Put
+  	  method Action put(Bit#(1) intrpt);
+        riscv.clint_msip(intrpt);
+      endmethod
+    endinterface;
+    interface clint_mtip= interface Put
+      method Action put(Bit#(1) intrpt);
+        riscv.clint_mtip(intrpt);
+      endmethod
+    endinterface;
+    interface clint_mtime= interface Put
+  		method Action put (Bit#(XLEN) c_mtime);
+        riscv.clint_mtime(c_mtime);
+      endmethod
+    endinterface;
     method Action externalinterrupt(Bit#(1) intrpt);
       riscv.externalinterrupt(intrpt);
     endmethod
