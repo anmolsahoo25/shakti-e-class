@@ -50,7 +50,7 @@ package mem_wb_stage;
     method CSRtoDecode csrs_to_decode;
 	  method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
-		method Action clint_mtime(Bit#(XLEN) c_mtime);
+		method Action clint_mtime(Bit#(64) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     method Bool csr_updated;
     method Bool interrupt;
@@ -228,7 +228,7 @@ package mem_wb_stage;
 		method Action clint_mtip(Bit#(1) intrpt);
       csr.clint_mtip(intrpt);
     endmethod
-		method Action clint_mtime(Bit#(XLEN) c_mtime);
+		method Action clint_mtime(Bit#(64) c_mtime);
       csr.clint_mtime(c_mtime);
     endmethod
 		method Action externalinterrupt(Bit#(1) intrpt);

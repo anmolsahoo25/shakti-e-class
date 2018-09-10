@@ -189,7 +189,7 @@ package eclass;
       endmethod
     endinterface;
     interface clint_mtime= interface Put
-  		method Action put (Bit#(XLEN) c_mtime);
+  		method Action put (Bit#(64) c_mtime);
         riscv.clint_mtime(c_mtime);
       endmethod
     endinterface;
@@ -329,7 +329,7 @@ package eclass;
       endmethod
     endinterface;
     interface clint_mtime= interface Put
-  		method Action put (Bit#(XLEN) c_mtime);
+  		method Action put (Bit#(64) c_mtime);
         riscv.clint_mtime(c_mtime);
       endmethod
     endinterface;
@@ -446,7 +446,7 @@ package eclass;
       endmethod
     endinterface;
     interface clint_mtime= interface Put
-  		method Action put (Bit#(XLEN) c_mtime);
+  		method Action put (Bit#(64) c_mtime);
         riscv.clint_mtime(c_mtime);
       endmethod
     endinterface;

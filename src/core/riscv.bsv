@@ -53,7 +53,7 @@ package riscv;
     interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) memory_response;
 	  method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
-		method Action clint_mtime(Bit#(XLEN) c_mtime);
+		method Action clint_mtime(Bit#(64) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     `ifdef simulate
       interface Get#(DumpType) dump;
@@ -115,7 +115,7 @@ package riscv;
 	  method Action clint_mtip(Bit#(1) intrpt);
       stage3.clint_mtip(intrpt);
     endmethod
-		method Action clint_mtime(Bit#(XLEN) c_mtime);
+		method Action clint_mtime(Bit#(64) c_mtime);
       stage3.clint_mtime(c_mtime);
     endmethod
     method Action externalinterrupt(Bit#(1) intrpt);

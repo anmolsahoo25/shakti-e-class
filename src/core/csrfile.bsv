@@ -41,7 +41,7 @@ package csrfile;
     method CSRtoDecode csrs_to_decode;
 	  method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
-		method Action clint_mtime(Bit#(XLEN) c_mtime);
+		method Action clint_mtime(Bit#(64) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     method ActionValue#(Bit#(PADDR)) upd_on_ret ( `ifdef USERTRAPS Privilege_mode prv `endif ) ;
     method ActionValue#(Bit#(PADDR)) upd_on_trap(`ifdef USERTRAPS Privilege_mode prv, `endif 
@@ -206,7 +206,7 @@ package csrfile;
 	  Reg#(Bit#(5)) rg_mcause   <- mkReg(0);
     
 	  Reg#(Bit#(3)) rg_mcounteren<-mkReg(0);
-	  Reg#(Bit#(XLEN)) rg_clint_mtime <-mkReg(0);
+	  Reg#(Bit#(64)) rg_clint_mtime <-mkReg(0);
 	  //////////////////////////////////////////////////////////////////////////////////////////
 	  //////////////////////////////// USER LEVEL CSRs ////////////////////////////////////////
 	  Reg#(Bit#(XLEN)) rg_uscratch <- mkReg(0);
@@ -281,7 +281,8 @@ package csrfile;
         if (addr == `MSCRATCH) data= rg_mscratch;
         if (addr == `MCAUSE) data= {rg_minterrupt, 'd0, rg_mcause};
         if (addr == `MCOUNTEREN) data= zeroExtend(rg_mcounteren);
-        if (addr == `MTIME) data= rg_clint_mtime;
+        if (addr == `MTIME) data= truncate(rg_clint_mtime);
+        // TODO MTIMEH
         // =============== User level CSRs ================//
         if (addr == `USTATUS)
           `ifdef RV64 
@@ -310,7 +311,7 @@ package csrfile;
           if (addr == `UCAUSE) data= {rg_uinterrupt, 'd0, rg_ucause};
         `endif
         if (addr == `USCRATCH) data= rg_uscratch;
-        if (addr == `UTIME) data= rg_clint_mtime;
+        if (addr == `UTIME) data= truncate(rg_clint_mtime);
         return data;
     endmethod
 
@@ -418,7 +419,7 @@ package csrfile;
   	method Action clint_mtip(Bit#(1) intrpt);
   		rg_mtip<=intrpt;
   	endmethod
-  	method Action clint_mtime(Bit#(XLEN) c_mtime);
+  	method Action clint_mtime(Bit#(64) c_mtime);
   		rg_clint_mtime<=c_mtime;
   	endmethod
     method Action externalinterrupt(Bit#(1) intrpt);

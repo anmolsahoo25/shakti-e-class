@@ -47,7 +47,7 @@ package csr;
     method ActionValue#(Bit#(PADDR)) take_trap(Trap_type trap, Bit#(PADDR) pc, Bit#(PADDR) badaddr);
 	  method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
-		method Action clint_mtime(Bit#(XLEN) c_mtime);
+		method Action clint_mtime(Bit#(64) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     method Action incr_minstret;
     method Bool interrupt;
@@ -123,7 +123,7 @@ package csr;
 	  method Action clint_mtip(Bit#(1) intrpt);
 	  	csrfile.clint_mtip(intrpt);
 	  endmethod
-	  method Action clint_mtime(Bit#(XLEN) c_mtime);
+	  method Action clint_mtime(Bit#(64) c_mtime);
 	  	csrfile.clint_mtime(c_mtime);
 	  endmethod
     method Action externalinterrupt(Bit#(1) intrpt);
