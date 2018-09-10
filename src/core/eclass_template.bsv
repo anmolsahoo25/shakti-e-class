@@ -83,11 +83,11 @@ macros:
 sideband:
     type: dict
     schema:
-        clint_mtime:
+        sb_clint_mtime:
           type: string
-        clint_msip:
+        sb_clint_msip:
           type: string
-        clint_mtip:
+        sb_clint_mtip:
           type: string
 schema-end
 --------------------------------------------------------------------------------------------------

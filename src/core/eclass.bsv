@@ -61,10 +61,10 @@ package eclass;
   interface Ifc_eclass_axi4;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master_d;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master_i;
-    interface Put#(Bit#(1)) clint_msip;
-    interface Put#(Bit#(1)) clint_mtip;
-    interface Put#(Bit#(64)) clint_mtime;
-    method Action externalinterrupt(Bit#(1) intrpt);
+    interface Put#(Bit#(1)) sb_clint_msip;
+    interface Put#(Bit#(1)) sb_clint_mtip;
+    interface Put#(Bit#(64)) sb_clint_mtime;
+    interface Put#(Bit#(1)) sb_externalinterrupt;
     `ifdef simulate
       interface Get#(DumpType) io_dump;
     `endif
@@ -178,24 +178,26 @@ package eclass;
         $display($time, "\tCORE: Memory Write Response ", fshow(response));
       memory_state<= Request;
     endrule
-    interface clint_msip = interface Put
+    interface sb_clint_msip = interface Put
   	  method Action put(Bit#(1) intrpt);
         riscv.clint_msip(intrpt);
       endmethod
     endinterface;
-    interface clint_mtip= interface Put
+    interface sb_clint_mtip= interface Put
       method Action put(Bit#(1) intrpt);
         riscv.clint_mtip(intrpt);
       endmethod
     endinterface;
-    interface clint_mtime= interface Put
+    interface sb_clint_mtime= interface Put
   		method Action put (Bit#(64) c_mtime);
         riscv.clint_mtime(c_mtime);
       endmethod
     endinterface;
-    method Action externalinterrupt(Bit#(1) intrpt);
-      riscv.externalinterrupt(intrpt);
-    endmethod
+    interface sb_externalinterrupt = interface Put
+      method Action put(Bit#(1) intrpt);
+        riscv.externalinterrupt(intrpt);
+      endmethod
+    endinterface;
 		interface master_i= fetch_xactor.axi_side;
 		interface master_d= memory_xactor.axi_side;
     `ifdef simulate
@@ -206,10 +208,10 @@ package eclass;
   interface Ifc_eclass_axi4lite;
 		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) master_i;
 		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) master_d;
-    interface Put#(Bit#(1)) clint_msip;
-    interface Put#(Bit#(1)) clint_mtip;
-    interface Put#(Bit#(64)) clint_mtime;
-    method Action externalinterrupt(Bit#(1) intrpt);
+    interface Put#(Bit#(1)) sb_clint_msip;
+    interface Put#(Bit#(1)) sb_clint_mtip;
+    interface Put#(Bit#(64)) sb_clint_mtime;
+    interface Put#(Bit#(1)) sb_externalinterrupt;
     `ifdef simulate
       interface Get#(DumpType) io_dump;
     `endif
@@ -318,24 +320,26 @@ package eclass;
         $display($time, "\tCORE: Memory Write Response ", fshow(response));
       memory_state<= Request;
     endrule
-    interface clint_msip = interface Put
+    interface sb_clint_msip = interface Put
   	  method Action put(Bit#(1) intrpt);
         riscv.clint_msip(intrpt);
       endmethod
     endinterface;
-    interface clint_mtip= interface Put
+    interface sb_clint_mtip= interface Put
       method Action put(Bit#(1) intrpt);
         riscv.clint_mtip(intrpt);
       endmethod
     endinterface;
-    interface clint_mtime= interface Put
+    interface sb_clint_mtime= interface Put
   		method Action put (Bit#(64) c_mtime);
         riscv.clint_mtime(c_mtime);
       endmethod
     endinterface;
-    method Action externalinterrupt(Bit#(1) intrpt);
-      riscv.externalinterrupt(intrpt);
-    endmethod
+    interface sb_externalinterrupt = interface Put
+      method Action put (Bit#(1) intrpt);
+        riscv.externalinterrupt(intrpt);
+      endmethod
+    endinterface;
 		interface master_i= fetch_xactor.axi_side;
 		interface master_d= memory_xactor.axi_side;
     `ifdef simulate
@@ -346,10 +350,10 @@ package eclass;
   interface Ifc_eclass_TLU;
 		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(XLEN, 8), 2) fetch_master;
 		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(XLEN, 8), 2) mem_master;
-    interface Put#(Bit#(1)) clint_msip;
-    interface Put#(Bit#(1)) clint_mtip;
-    interface Put#(Bit#(64)) clint_mtime;
-    method Action externalinterrupt(Bit#(1) intrpt);
+    interface Put#(Bit#(1)) sb_clint_msip;
+    interface Put#(Bit#(1)) sb_clint_mtip;
+    interface Put#(Bit#(64)) sb_clint_mtime;
+    interface Put#(Bit#(1)) sb_externalinterrupt;
     `ifdef simulate
       interface Get#(DumpType) io_dump;
     `endif
@@ -435,24 +439,26 @@ package eclass;
     endrule
     interface fetch_master = fetch_xactor.fabric_side;
     interface mem_master = dmem_xactor.fabric_side;
-    interface clint_msip = interface Put
+    interface sb_clint_msip = interface Put
   	  method Action put(Bit#(1) intrpt);
         riscv.clint_msip(intrpt);
       endmethod
     endinterface;
-    interface clint_mtip= interface Put
+    interface sb_clint_mtip= interface Put
       method Action put(Bit#(1) intrpt);
         riscv.clint_mtip(intrpt);
       endmethod
     endinterface;
-    interface clint_mtime= interface Put
+    interface sb_clint_mtime= interface Put
   		method Action put (Bit#(64) c_mtime);
         riscv.clint_mtime(c_mtime);
       endmethod
     endinterface;
-    method Action externalinterrupt(Bit#(1) intrpt);
-      riscv.externalinterrupt(intrpt);
-    endmethod
+    interface sb_externalinterrupt = interface Put
+      method Action put(Bit#(1) intrpt);
+        riscv.externalinterrupt(intrpt);
+      endmethod
+    endinterface;
     `ifdef simulate
       interface io_dump=riscv.dump;
     `endif
