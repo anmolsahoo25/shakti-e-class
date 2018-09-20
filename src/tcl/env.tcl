@@ -5,7 +5,7 @@ global core_project_dir
 global ip_project
 
 # set different directories as variables
-set home_dir $::env(SHAKTI_E_HOME)
+set home_dir $::env(SHAKTI_HOME)
 set fpga_dir $home_dir/fpga
 set ip_project_dir $fpga_dir/manage_ip
 set core_project_dir $fpga_dir/e-class

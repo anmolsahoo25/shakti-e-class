@@ -4,8 +4,8 @@
 include ./old_vars
 include soc_config.inc
 
-SHAKTI_E_HOME=$(PWD)
-export SHAKTI_E_HOME
+SHAKTI_HOME=$(PWD)
+export SHAKTI_HOME
 
 TOP_MODULE:=mkTbSoC
 TOP_FILE:=TbSoC.bsv
@@ -58,7 +58,7 @@ default: compile_bluesim link_bluesim generate_boot_files
 
 check-env:
 	@if test -z "$$BLUESPECDIR"; then echo "BLUESPECDIR variable not set"; exit 1; fi;
-	@if test -z "$$SHAKTI_E_HOME"; then echo "SHAKTI_E_HOME variable not set"; exit 1; fi;
+	@if test -z "$$SHAKTI_HOME"; then echo "SHAKTI_HOME variable not set"; exit 1; fi;
 
 check-py:
 	@if ! [ -a /usr/bin/python3 ] ; then echo "Python3 is required in /usr/bin to run AAPG" ; exit 1; fi;
@@ -78,7 +78,7 @@ check-restore: update_xlen
 
 .PHONY: update_xlen
 update_xlen:
-	@echo "XLEN=$(XLEN)" > verification/dts/Makefile.inc
+	@echo "XLEN=$(XLEN)" > verif/dts/Makefile.inc
 
 .PHONY:  compile_bluesim
 compile_bluesim: check-restore check-env
@@ -216,46 +216,46 @@ link_iverilog:
 
 .PHONY: ip_build
 ip_build: 
-	vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_ip_project.tcl -tclargs $(FPGA) || (echo "Could \
+	vivado -mode tcl -notrace -source $(SHAKTI_HOME)/src/tcl/create_ip_project.tcl -tclargs $(FPGA) || (echo "Could \
 not create IP project"; exit 1)
-	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES) ||\
+	@vivado -mode tcl -notrace -source $(SHAKTI_HOME)/src/tcl/create_multiplier.tcl -tclargs $(XLEN) $(MULSTAGES) ||\
 (echo "Could not create Multiplier IP"; exit 1)
-#	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_nexys4_mig.tcl ||\
+#	@vivado -mode tcl -notrace -source $(SHAKTI_HOME)/src/tcl/create_nexys4_mig.tcl ||\
 (echo "Could not create NEXYS4DDR-MIG  IP"; exit 1)
-#	@vivado -mode tcl -notrace -source $(SHAKTI_E_HOME)/src/tcl/create_divider.tcl -tclargs $(XLEN) $(DIVSTAGES) ||\
+#	@vivado -mode tcl -notrace -source $(SHAKTI_HOME)/src/tcl/create_divider.tcl -tclargs $(XLEN) $(DIVSTAGES) ||\
 (echo "Could not create Divider IP"; exit 1)
 
 .PHONY: vivado_build
 vivado_build: 
-	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/create_project.tcl -tclargs \
+	@vivado -mode tcl -source $(SHAKTI_HOME)/src/tcl/create_project.tcl -tclargs \
   $(SYNTHTOP) $(FPGA) $(ISA) || (echo "Could not create core project"; exit 1)
-	@vivado -mode tcl -source $(SHAKTI_E_HOME)/src/tcl/run.tcl || (echo "ERROR: While\
+	@vivado -mode tcl -source $(SHAKTI_HOME)/src/tcl/run.tcl || (echo "ERROR: While\
   running synthesis")
 
 .PHONY: regress 
 regress:  
-	SHAKTI_E_HOME=$$PWD perl -I$(SHAKTI_E_HOME)/verification/scripts $(SHAKTI_E_HOME)/verification/scripts/makeRegress.pl $(opts)
+	@SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verif/verif-scripts $(SHAKTI_HOME)/verif/verif-scripts/makeRegress.pl $(opts)
 	
 .PHONY: test
 test:  
-	SHAKTI_E_HOME=$$PWD perl -I$(SHAKTI_E_HOME)/verification/scripts $(SHAKTI_E_HOME)/verification/scripts/makeTest.pl $(opts)
+	@SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verif/verif-scripts $(SHAKTI_HOME)/verif/verif-scripts/makeTest.pl $(opts)
 
 .PHONY: torture
 torture:  
-	SHAKTI_E_HOME=$$PWD perl -I$(SHAKTI_E_HOME)/verification/scripts $(SHAKTI_E_HOME)/verification/scripts/makeTorture.pl $(opts)
+	@SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verif/verif-scripts $(SHAKTI_HOME)/verif/verif-scripts/makeTorture.pl $(opts)
 
 .PHONY: aapg
 aapg:  
-	SHAKTI_E_HOME=$$PWD perl -I$(SHAKTI_E_HOME)/verification/scripts $(SHAKTI_E_HOME)/verification/scripts/makeAapg.pl $(opts)
+	@SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verif/verif-scripts $(SHAKTI_HOME)/verif/verif-scripts/makeAapg.pl $(opts)
 
 
 .PHONY: generate_boot_files
 generate_boot_files:
 	@mkdir -p bin
-	@cd verification/dts/; make;
-	@cut -c1-8 verification/dts/boot.hex > bin/boot.MSB
+	@cd verif/dts/; make;
+	@cut -c1-8 verif/dts/boot.hex > bin/boot.MSB
 	@if [ "$(XLEN)" = "64" ]; then\
-	  cut -c9-16 verification/dts/boot.hex > bin/boot.LSB;\
+	  cut -c9-16 verif/dts/boot.hex > bin/boot.LSB;\
     else cp bin/boot.MSB bin/boot.LSB;\
   fi
 
@@ -263,7 +263,7 @@ generate_boot_files:
 clean:
 	rm -rf $(BSVBUILDDIR) *.log $(BSVOUTDIR) obj_dir
 	rm -f *.jou rm *.log
-	rm -rf verification/workdir/*
+	rm -rf verif/workdir/*
 
 clean_verilog: clean 
 	rm -rf verilog/
@@ -272,5 +272,8 @@ clean_verilog: clean
 	rm -rf work
 	rm -f ./ncvlog.*
 	rm -f irun.*
+
+clean_verif:
+	rm -rf verif/workdir/*
 
 restore: clean_verilog

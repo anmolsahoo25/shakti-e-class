@@ -1,0 +1,3 @@
+[submodule "verif"]
+	path = verif
+	url = https://gitlab.com/shaktiproject/verification_environment/verification.git
