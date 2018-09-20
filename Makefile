@@ -261,7 +261,7 @@ generate_boot_files:
 
 .PHONY: patch
 patch:
-	@git apply --directory $(SHAKTI_HOME)/verification/riscv-tests/env ($(SHAKTI_HOME)/verification/patches/riscv-tests-shakti.patch
+	@cd $(SHAKTI_HOME)/verification/riscv-tests/env && git apply $(SHAKTI_HOME)/verification/patches/riscv-tests-shakti.patch
 
 .PHONY: clean
 clean:
