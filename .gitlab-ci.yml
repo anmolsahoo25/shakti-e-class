@@ -1,4 +1,6 @@
 build64:
+    variables:
+        GIT_SUBMODULE_STRATEGY: recursive
     script:
         - source /tools/setup.sh
         - make restore 
@@ -12,6 +14,8 @@ build64:
         - e-class-build-regression
         
 build32:
+    variables:
+        GIT_SUBMODULE_STRATEGY: recursive
     script:
         - source /tools/setup.sh
         - make restore 
