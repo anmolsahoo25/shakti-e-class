@@ -1,3 +1,0 @@
-unload
-merge cov_work/scope/* -out cov_merge_riscv -overwrite
-exit

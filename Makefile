@@ -78,7 +78,7 @@ check-restore: update_xlen
 
 .PHONY: update_xlen
 update_xlen:
-	@echo "XLEN=$(XLEN)" > verif/dts/Makefile.inc
+	@echo "XLEN=$(XLEN)" > verification/dts/Makefile.inc
 
 .PHONY:  compile_bluesim
 compile_bluesim: check-restore check-env
@@ -234,28 +234,28 @@ vivado_build:
 
 .PHONY: regress 
 regress:  
-	@SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verif/verif-scripts $(SHAKTI_HOME)/verif/verif-scripts/makeRegress.pl $(opts)
+	@SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/verif-scripts $(SHAKTI_HOME)/verification/verif-scripts/makeRegress.pl $(opts)
 	
 .PHONY: test
 test:  
-	@SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verif/verif-scripts $(SHAKTI_HOME)/verif/verif-scripts/makeTest.pl $(opts)
+	@SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/verif-scripts $(SHAKTI_HOME)/verification/verif-scripts/makeTest.pl $(opts)
 
 .PHONY: torture
 torture:  
-	@SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verif/verif-scripts $(SHAKTI_HOME)/verif/verif-scripts/makeTorture.pl $(opts)
+	@SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/verif-scripts $(SHAKTI_HOME)/verification/verif-scripts/makeTorture.pl $(opts)
 
 .PHONY: aapg
 aapg:  
-	@SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verif/verif-scripts $(SHAKTI_HOME)/verif/verif-scripts/makeAapg.pl $(opts)
+	@SHAKTI_HOME=$$PWD perl -I$(SHAKTI_HOME)/verification/verif-scripts $(SHAKTI_HOME)/verification/verif-scripts/makeAapg.pl $(opts)
 
 
 .PHONY: generate_boot_files
 generate_boot_files:
 	@mkdir -p bin
-	@cd verif/dts/; make;
-	@cut -c1-8 verif/dts/boot.hex > bin/boot.MSB
+	@cd verification/dts/; make;
+	@cut -c1-8 verification/dts/boot.hex > bin/boot.MSB
 	@if [ "$(XLEN)" = "64" ]; then\
-	  cut -c9-16 verif/dts/boot.hex > bin/boot.LSB;\
+	  cut -c9-16 verification/dts/boot.hex > bin/boot.LSB;\
     else cp bin/boot.MSB bin/boot.LSB;\
   fi
 
@@ -263,7 +263,7 @@ generate_boot_files:
 clean:
 	rm -rf $(BSVBUILDDIR) *.log $(BSVOUTDIR) obj_dir
 	rm -f *.jou rm *.log
-	rm -rf verif/workdir/*
+	rm -rf verification/workdir/*
 
 clean_verilog: clean 
 	rm -rf verilog/
@@ -274,6 +274,6 @@ clean_verilog: clean
 	rm -f irun.*
 
 clean_verif:
-	rm -rf verif/workdir/*
+	rm -rf verification/workdir/*
 
 restore: clean_verilog
