@@ -259,6 +259,10 @@ generate_boot_files:
     else cp bin/boot.MSB bin/boot.LSB;\
   fi
 
+.PHONY: patch
+patch:
+	@git apply --directory $(SHAKTI_HOME)/verification/riscv-tests/env ($(SHAKTI_HOME)/verification/patches/riscv-tests-shakti.patch
+
 .PHONY: clean
 clean:
 	rm -rf $(BSVBUILDDIR) *.log $(BSVOUTDIR) obj_dir

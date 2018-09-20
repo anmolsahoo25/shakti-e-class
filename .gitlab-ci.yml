@@ -6,6 +6,7 @@ build64:
         - make restore 
         - make generate_verilog SYNTH=SIM MUL=fpga ISA=RV64IMAC MULSTAGES=8 DIVSTAGES=64
         - make link_verilator generate_boot_files
+        - make patch
         - make regress opts='--filter=rv64 --parallel=90 --sub'
         - make regress opts='--filter=rv64 --final'
     only:
@@ -21,6 +22,7 @@ build32:
         - make restore 
         - make generate_verilog SYNTH=SIM MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
         - make link_verilator generate_boot_files MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
+        - make patch
         - make regress opts='--filter=rv32 --sub --parallel=90' CONFIG_ISA=RV32IMAC
         - make regress opts='--filter=rv32 --final'
     only:
