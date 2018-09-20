@@ -470,8 +470,7 @@ package decode;
     Bool t_ADD =((opcode =='b10100)&&inst[6:2]!=0);
     Bool t_BR  =((opcode=='b01110)||opcode =='b01111);
     Bool t_ARITH_W=(t_ADDIW||(t_CS &&inst[12]==1'b1));
-    Bool t_SP_OP =
-    (opcode=='b10001||opcode=='b10010||opcode=='b10011||opcode=='b10101||opcode=='b10110||opcode=='b10111||opcode=='b00000||t_ADDI16SP);
+    Bool t_SP_OP=(opcode=='b10001||opcode=='b10010||opcode=='b10011||opcode=='b10101||opcode=='b10110||opcode=='b10111||opcode=='b00000||t_ADDI16SP);
     Bool t_CJ=(`ifdef RV32 (opcode =='b01001) || `endif opcode=='b01101);
     Bool t_LUI = t_ADDI_LUI && inst[11:7]!=2;
     Bool t_LI = (opcode =='b01010);
@@ -481,10 +480,11 @@ package decode;
     Bool t_SDSP = (opcode =='b10111);
     Bool t_CI =(t_ADDI||t_ADDIW||t_LUI||t_LI||t_LWSP||t_LDSP||t_ADDI16SP);
     Bool t_CB =(t_BR);
-    Bool t_CIW = (opcode =='b00000);
+    Bool t_CIW =(opcode =='b00000);
     Bool t_ANDI=(opcode=='b01100 && inst[9:7]==3);
     Bool t_IMM=((funct3_comp=='b000)||(op_comp=='b01 && inst[15]==1'b0)||(opcode=='b01100 &&
     inst[11:10]!='b11)); 
+    Bool t_BREAK=((opcode =='b10100) && inst[11:2]==0);
 
     Bit#(5) rs1={2'b01,inst[9:7]};
     Bit#(5) rs2={2'b01,inst[4:2]};
@@ -536,7 +536,7 @@ package decode;
 
     // immediate value 
     Bit#(32)imm_value=0;
-
+    
     if(t_LWSP) 
       imm_value=zeroExtend({inst[3:2],inst[12],inst[6:4],2'b00});//word 
     else if(t_LDSP)
@@ -594,18 +594,19 @@ package decode;
       inst_type=BRANCH;
     else
       inst_type=ALU;
-
+    
     Bit#(3) funct3=gen_funct3(opcode,inst);
     if((op_comp==2'b11)||(opcode==5'b00100)||(opcode==5'b00101)||
         (opcode==5'b10001)||(opcode==5'b10101))
       exception = tagged Exception Illegal_inst;
 
     if (inst==0)
-		  exception = tagged Exception Illegal_inst;
-
+		  exception = tagged Exception Illegal_inst;    //TODO exception for non zero immediates
     if(t_CIW||t_ADDI16SP||t_LUI||t_SLLI)
       if(immediate_value==0)
         exception = tagged Exception Illegal_inst;
+      if(t_BREAK)
+        exception = tagged Exception Breakpoint;
     Bit#(4) fn=0;
 		if(t_BR) begin
 		  fn={2'b0,1,funct3[0]};
@@ -631,10 +632,10 @@ package decode;
 				default:{1'b0,funct3};
 			endcase;
 		end
-    if(pc[0]!=0)
-      exception = tagged Exception Inst_addr_misaligned;
-    else if(err)
+
+    if(err)
       exception = tagged Exception Inst_access_fault;
+    
     if(interrupt matches tagged None)
       interrupt =  exception;
     
@@ -649,11 +650,13 @@ package decode;
           tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt,  
           `ifdef atomic {0,epoch} `else epoch `endif );
     `endif
+
     `ifdef RV64 
       return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
     `else
       return tuple7(fn, rs1, rs2, rd, signExtend(immediate_value), funct3, type_tuple);            
     `endif
+
   endfunction
 `endif
 endpackage
