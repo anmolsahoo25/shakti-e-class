@@ -17,9 +17,9 @@ If you wish to contribute please make a pull-request. You can also reach out to 
 
         $ git clone https://gitlab.com/shaktiproject/cores/e-class
         $ cd e-class
-        $ export SHAKTI_E_HOME=$PWD
+        $ export SHAKTI_HOME=$PWD
         
-It is important to set the SHAKTI_E_HOME variable for generation of the core and relevant other surrounding tools and software. It is recommended
+It is important to set the SHAKTI_HOME variable for generation of the core and relevant other surrounding tools and software. It is recommended
 to set this variable in your bashrc permanently.
 
 ## Directory Structure
