@@ -436,6 +436,7 @@ package opfetch_execute_stage;
     method Action flush_from_wb(Bool fl);
       if(fl)begin
         rg_epoch[1]<=~rg_epoch[1];
+        ff_memory_request.clear();
         if(verbosity>1)
           $display($time, "\tSTAGE2: Received Flush");
       end
