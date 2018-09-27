@@ -102,7 +102,8 @@ package alu;
 		end
 		
     // generate the effective address to jump to 
-		Bit#(PADDR) effective_address=op3+ truncate(imm_value);
+		Bit#(XLEN) effective_address=op3+ signExtend(imm_value);
+    Bit#(TSub#(XLEN, PADDR)) temp=effective_address[valueOf(XLEN)-1:valueOf(PADDR)];
     if(inst_type==JALR)
       effective_address[0]=0;
     // The following can be placed here since we are not using a branch predictor yet.
@@ -123,7 +124,13 @@ package alu;
       exception = memaccess==Load? tagged Exception Load_addr_misaligned: 
                                    tagged Exception Store_addr_misaligned;
     end
-
+    // there is priority implied here.
+    else if(inst_type==MEMORY && (|temp)==1 && valueOf(XLEN)>valueOf(PADDR))begin
+      if(memaccess==Load)
+        exception= tagged Exception Load_access_fault;
+      else
+        exception = tagged Exception Store_access_fault;
+    end
     
     Commit_type committype = REGULAR;
     if(inst_type==MEMORY)
@@ -133,7 +140,7 @@ package alu;
 	
 	  Bit#(TAdd#(PADDR, 1)) effaddr_csrdata = (inst_type==SYSTEM_INSTR)? 
                                             zeroExtend({funct3, imm_value[16:0]}): 
-                                            {pack(flush), effective_address};
+                                            {pack(flush), effective_address[valueOf(PADDR)-1:0]};
 
 	  return tuple4(committype, final_output, effaddr_csrdata, exception);
 	endfunction

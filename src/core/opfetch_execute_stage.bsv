@@ -117,7 +117,7 @@ package opfetch_execute_stage;
       `endif
     `endif
   
-    function (Tuple4#(Bit#(XLEN),Bit#(XLEN),Bit#(PADDR), Bool)) operand_provider(Bit#(5) rs1_addr, 
+    function (Tuple4#(Bit#(XLEN),Bit#(XLEN),Bit#(XLEN), Bool)) operand_provider(Bit#(5) rs1_addr, 
         Operand1_type rs1_type, Bit#(5) rs2_addr, Operand2_type rs2_type, Bit#(PADDR) pc, 
         Instruction_type insttype, Bit#(32) imm);
      
@@ -131,9 +131,9 @@ package opfetch_execute_stage;
       else 
         rs1=rs1irf;
       
-      Bit#(PADDR) op3=pc;
+      Bit#(XLEN) op3=zeroExtend(pc);
       if(insttype==MEMORY || insttype==JALR)
-        op3=truncate(rs1irf);
+        op3=rs1irf;
     
 
       if(rs2_type==Constant4)
@@ -264,7 +264,8 @@ package opfetch_execute_stage;
           end
         `ifdef muldiv 
           if(verbosity>1)
-            $display($time, "\tSTAGE2: CommitType: ", fshow(committype), " done: %b", done);
+            $display($time, "\tSTAGE2: CommitType: ", fshow(committype), " done: %b ", done, 
+                     "effaddr :%h op1_reslt: %h", effaddr_csrdata,  op1_reslt);
           if(done) begin 
             rx.u.deq;
             if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
