@@ -16,7 +16,7 @@
 
 // slave numbers of fabric
 
-`define Addr_space 17
+`define Addr_space 21
 
 `define MemoryBase  'h8000_0000
 `define MemoryEnd   'hFFFF_FFFF
