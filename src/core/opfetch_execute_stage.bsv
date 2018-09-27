@@ -102,7 +102,7 @@ package opfetch_execute_stage;
     // then the entire pipe will have to flushed. 
     // There does exist mechanism in the last stage to flush pipe on a trap. in case a full flush is
     // required,  that particular method should be excited.
-    Reg#(Bool) rg_csr_stall <- mkReg(False);
+    Reg#(Bool) rg_csr_stall[2] <- mkCReg(2,False);
     `ifdef muldiv
       Ifc_alu alu <-mkalu;
       Reg#(Bool) rg_stall <- mkReg(False);
@@ -176,9 +176,13 @@ package opfetch_execute_stage;
     rule resume_from_wfi(rg_wfi && wr_interrupt);
       rg_wfi<= False;
     endrule
+
+    rule disp_stuff;
+      $display($time,"\trg_csr_stall: %b",rg_csr_stall[0]);
+    endrule
      
     rule fetch_execute_pass(!initialize `ifdef muldiv && !rg_stall `elsif atomic && !rg_stall 
-        `endif && !rg_csr_stall &&
+        `endif && !rg_csr_stall[0] &&
     !rg_wfi);
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm `ifdef RV64, word32 `endif , funct3, rs1_type, rs2_type, 
@@ -259,8 +263,8 @@ package opfetch_execute_stage;
             `endif
           `endif
 
-          if(committype==SYSTEM_INSTR)begin
-            rg_csr_stall<= True;
+          if(insttype==SYSTEM_INSTR)begin
+            rg_csr_stall[0]<= True;
           end
         `ifdef muldiv 
           if(verbosity>1)
@@ -441,9 +445,9 @@ package opfetch_execute_stage;
           $display($time, "\tSTAGE2: Received Flush");
       end
     endmethod
-    method Action csr_updated (Bool upd) if(rg_csr_stall);
+    method Action csr_updated (Bool upd);
       if(upd) begin
-        rg_csr_stall<= False;
+        rg_csr_stall[1]<= False;
       end
     endmethod
     method Action interrupt(Bool i);
