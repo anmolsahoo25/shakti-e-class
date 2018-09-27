@@ -103,7 +103,6 @@ package alu;
 		
     // generate the effective address to jump to 
 		Bit#(XLEN) effective_address=op3+ signExtend(imm_value);
-    Bit#(TSub#(XLEN, PADDR)) temp=effective_address[valueOf(XLEN)-1:valueOf(PADDR)];
     if(inst_type==JALR)
       effective_address[0]=0;
     // The following can be placed here since we are not using a branch predictor yet.
@@ -125,11 +124,13 @@ package alu;
                                    tagged Exception Store_addr_misaligned;
     end
     // there is priority implied here.
-    else if(inst_type==MEMORY && (|temp)==1 && valueOf(XLEN)>valueOf(PADDR))begin
-      if(memaccess==Load)
-        exception= tagged Exception Load_access_fault;
-      else
-        exception = tagged Exception Store_access_fault;
+    else if(valueOf(XLEN)>valueOf(PADDR)) begin
+      Bit#(TSub#(XLEN, PADDR)) temp=effective_address[valueOf(XLEN)-1:valueOf(PADDR)];
+      if(inst_type==MEMORY && (|temp)==1)
+        if(memaccess==Load)
+          exception= tagged Exception Load_access_fault;
+        else
+          exception = tagged Exception Store_access_fault;
     end
     
     Commit_type committype = REGULAR;
