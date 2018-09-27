@@ -94,10 +94,6 @@ package riscv;
     rule flush_from_writeback(fl);
       stage1.flush_from_wb(newpc, fl);
       stage2.flush_from_wb(fl);
-      if(fl)begin
-        pipe1.clear;
-        pipe2.clear;
-      end
     endrule
 
     rule connect_csrs;
