@@ -158,7 +158,6 @@ package mem_wb_stage;
           if(drain) 
             fl=Flush;
           `ifdef simulate 
-          else
             dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, dest));
           `endif
           wr_commit <= tagged Valid (tuple2(rd, dest));
