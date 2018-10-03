@@ -45,7 +45,7 @@ The soc_config.inc file is used to configure the specs of the core and the Soc t
 |__MAINMEM__  | BRAM,DDR| BRAM will implement main-mem module made of BRAMs. DDR setting will simply instantiate a bus-master which can be connected directly to the DDR ip.|
 |__VERBOSITY__  | 0, 1 and 2 |Higher the number, more the display statements while simulation|
 |__BOOTROM__|enable,disable|Instantiates a read-only BRAM memory of 64KB size.|
-| __USERTRAP__|True,False| When True, implements the user-space csrs meant to handle traps in user-mode.|
+| __USERTRAPS__|True,False| When True, implements the user-space csrs meant to handle traps in user-mode.|
 |__COREFABRIC__|AXI4, AXI4Lite, TileLink| Chooses which protocol based master must be instantiated for the core.|
 |__MULSTAGES__| 1 to XLEN| This defines the latency of the DSP multiplier that needs to be generated and instantiated|
 |__DIVSTAGES__| 1 to XLEN| This defines the number of cycles for the non-restoring division algorithm|
