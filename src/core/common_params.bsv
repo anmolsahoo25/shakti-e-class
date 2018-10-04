@@ -1,3 +1,9 @@
+`ifdef usertraps
+  `define non_m_traps True
+`endif
+`ifdef supervisor
+  `define non_m_traps True
+`endif
 `define FNADD   0   //'b0000
 `define FNSL	  1	  //'b0001  	
 `define FNSEQ	  2	  //'b0010  	
@@ -53,14 +59,6 @@
 `define MULHU_f3	'b011
 `define DIV_f3		'b100
 `define DIVU_f3		'b101
-
-////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////cache related parameters//////////////////////////
-`define ICACHE_WAYS 4			// way_bits =2
-`define ICACHE_BLOCK_SIZE 8	// word_bits = 3
-`define ICACHE_SETS 512			// set_bits	=7
-`define ICACHE_WORD_SIZE 4		// byte_bits=2
-`define ICACHE_TAG_BITS 20		// tag_bits = 52
 
 ////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////// Register Mapping for Machine Mode Regs /////////////////

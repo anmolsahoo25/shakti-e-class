@@ -75,7 +75,7 @@ package csr;
 	  	case(funct3)
         'd0:case (csr_address[11:8])
               'h0, 'h3:begin // URET,  MRET
-                let temp<-csrfile.upd_on_ret( `ifdef USERTRAPS unpack(csr_address[9:8]) `endif );
+                let temp<-csrfile.upd_on_ret( `ifdef non_m_traps unpack(csr_address[9:8]) `endif );
                 jump_add=temp;
                 flush=True;
               end
@@ -112,7 +112,7 @@ package csr;
 		  	tagged Exception .e: begin cause_type = 0; cause_code = zeroExtend(pack(e)); end
 		  endcase
 			cause = {cause_type, cause_code};
-      let jump_address<-csrfile.upd_on_trap(`ifdef USERTRAPS Machine, `endif cause, pc, badaddr); 
+      let jump_address<-csrfile.upd_on_trap(cause, pc, badaddr); 
 		  return jump_address;
   	endmethod
 
