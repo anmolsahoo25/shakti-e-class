@@ -601,8 +601,9 @@ package decode;
       exception = tagged Exception Illegal_inst;
 
     if (inst==0)
-		  exception = tagged Exception Illegal_inst;    //TODO exception for non zero immediates
-    if(t_CIW||t_ADDI16SP||t_LUI||t_SLLI)
+		  exception = tagged Exception Illegal_inst;  
+    //Generate exceptions on nzimm in case of ADDI,ADDI14SP,ADDI16SP,SLLI,SRLI,SRAI,LUI
+    if(t_CIW||t_ADDI16SP||t_LUI||t_SLLI||((opcode=='b01100) && (inst[11]==0)||t_ADDI)
       if(immediate_value==0)
         exception = tagged Exception Illegal_inst;
       if(t_BREAK)
