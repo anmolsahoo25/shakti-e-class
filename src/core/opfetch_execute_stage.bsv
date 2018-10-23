@@ -177,10 +177,6 @@ package opfetch_execute_stage;
       rg_wfi<= False;
     endrule
 
-    rule disp_stuff;
-      $display($time,"\trg_csr_stall: %b",rg_csr_stall[0]);
-    endrule
-     
     rule fetch_execute_pass(!initialize `ifdef muldiv && !rg_stall `elsif atomic && !rg_stall 
         `endif && !rg_csr_stall[0] &&
     !rg_wfi);
