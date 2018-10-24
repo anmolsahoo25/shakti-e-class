@@ -464,7 +464,10 @@ package decode;
     Bool t_CS =(opcode=='b01100&&inst[11:10]==2'b11);
     Bool t_ADDI_EQ=(opcode=='b00000||opcode=='b01010||opcode=='b01000||t_ADDI16SP);
     Bool t_ADDI = (opcode == 'b01000);
-    Bool t_ADDIW=((opcode=='b01001)&&(inst[11:7]!=0));
+    Bool t_ADDIW=False;
+    `ifndef RV32
+      t_ADDIW= ((opcode=='b01001)&&(inst[11:7]!=0));
+    `endif
     Bool t_SLLI=(opcode=='b10000);
     Bool t_J_R =((opcode =='b10100)&&inst[6:2]==0);
     Bool t_ADD =((opcode =='b10100)&&inst[6:2]!=0);
