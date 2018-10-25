@@ -39,6 +39,7 @@ package TbSoC;
   import common_types::*;
   `include "common_params.bsv"
   import device_common::*;
+  import DReg::*;
 
   module mkTbSoC(Empty);
 
@@ -51,12 +52,13 @@ package TbSoC;
     `endif
     
     UserInterface#(PADDR,XLEN,16) uart <- mkuart_user(5);
+    Reg#(Bool) rg_read_rx<- mkDReg(False);
 
     let verbosity=`VERBOSITY;
-    Reg#(Bit#(1)) rg_cnt <-mkReg(0);
+    Reg#(Bit#(5)) rg_cnt <-mkReg(0);
  	  let dump <- mkReg(InvalidFile) ;
  	  let dump1 <- mkReg(InvalidFile) ;
-    rule open_file(rg_cnt==0);
+    rule open_file(rg_cnt<5);
       String dumpFile = "rtl.dump" ;
       String dumpFile1 = "app_log" ;
     	File lfh <- $fopen( dumpFile, "w" ) ;
@@ -67,7 +69,7 @@ package TbSoC;
     	end
     	dump <= lfh ;
       dump1 <= lfh1;
-    	rg_cnt <= 1 ;
+    	rg_cnt <= rg_cnt+1 ;
     endrule
 
     rule connect_uart_out;
@@ -77,13 +79,19 @@ package TbSoC;
       uart.io.sin(soc.uart_io.sout);
     endrule
 
-    rule write_received_character(rg_cnt!=0);
+    rule check_if_character_present(!rg_read_rx);
+      let {data,err}<- uart.read_req('hc,Byte);
+      if (data[3]==1) // character present
+        rg_read_rx<=True;
+    endrule
+
+    rule write_received_character(rg_cnt>=5 && rg_read_rx);
       let data<-uart.read_req('h8,Byte);
       $fwrite(dump1,"%c",data);
     endrule
 
     `ifdef simulate
-      rule write_dump_file(rg_cnt!=0);
+      rule write_dump_file(rg_cnt>=5);
         let {prv, pc, instruction, rd, data}<- soc.io_dump.get;
         if(instruction=='h00006f||instruction =='h00a001)
           $finish(0);

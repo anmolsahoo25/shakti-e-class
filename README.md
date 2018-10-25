@@ -51,6 +51,9 @@ The soc_config.inc file is used to configure the specs of the core and the Soc t
 |__DIVSTAGES__| 1 to XLEN| This defines the number of cycles for the non-restoring division algorithm|
 |__FPGA__| Xilinx Part Number| This should be set with the FPGA part number the synthesis is targetted towards.|
 |__SYNTHTOP__| Module Name| This is the module name of the design that needs to be synthesized in the FPGA.|
+|__COVERAGE__| none,all, line, toggle, user| This is used for verilator simulation only and enables the coverage.|
+|__TRACE__| enable, disable | This is used by verilator to enable or disable VCD dump.|
+|__THREADS__|Integer| Number of threads to be used by verilator.|
 
 # Compiling the Core/SoC
 
