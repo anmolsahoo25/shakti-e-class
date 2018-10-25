@@ -7,3 +7,6 @@
 [submodule "src/common_bsv"]
 	path = src/common_bsv
 	url = https://gitlab.com/shaktiproject/common_bsv.git
+[submodule "src/devices"]
+	path = src/devices
+	url = https://gitlab.com/shaktiproject/uncore/devices.git

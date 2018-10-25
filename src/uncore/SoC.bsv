@@ -117,7 +117,7 @@ package SoC;
                                                                                         exmem_rst);
     `endif
 		`ifdef BOOTROM
-			Ifc_bootrom_AXI4#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_AXI4(`BootRomBase);
+			Ifc_bootrom_axi4#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_axi4(`BootRomBase);
 		`endif
 
    	mkConnection(eclass.master_d,	fabric.v_from_masters[`Mem_master_num]);
@@ -150,7 +150,7 @@ package SoC;
 		Ifc_memory_AXI4Lite#(PADDR, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4Lite(
                                                       `MemoryBase, "code.mem.MSB", "code.mem.LSB");
 		`ifdef BOOTROM
-			Ifc_bootrom_AXI4Lite#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_AXI4Lite(`BootRomBase);
+			Ifc_bootrom_axi4lite#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_axi4lite(`BootRomBase);
 		`endif
 
    	mkConnection(eclass.master_d,	fabric.v_from_masters[`Mem_master_num]);
