@@ -57,7 +57,7 @@ CORE:=./src/core/:./src/caches/:./src/core/m_ext/
 FABRIC:=./src/fabrics/axi4:./src/fabrics/axi4lite:./src/fabrics/tilelink_lite
 UNCORE:=./src/uncore
 TESTBENCH:=./src/testbench/
-PERIPHERALS:=./src/devices/bootrom:./src/devices/pwm
+PERIPHERALS:=./src/devices/bootrom:./src/devices/pwm:./src/devices/uart
 WRAPPERS:=./src/wrappers/
 LIB:=./src/common_bsv
 VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS "-static" --x-assign fast --x-initial fast --noassert --cc $(TOP_MODULE).v sim_main.cpp --bbox-sys -Wno-STMTDLY -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY --autoflush
@@ -131,6 +131,8 @@ generate_verilog: check-restore check-env
 	@cp ${BLUESPECDIR}/Verilog/FIFO20.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFOL1.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/SyncFIFO.v ./verilog/
+	@cp ${BLUESPECDIR}/Verilog/Counter.v ./verilog/
+	@cp ${BLUESPECDIR}/Verilog/SizedFIFO.v ./verilog/
 #ifeq ($(SYNTH), SIM)
 #  ifeq ($(MUL), fpga)
 #    ifneq (,$(findstring M,$(ISA)))

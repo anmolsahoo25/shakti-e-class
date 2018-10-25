@@ -35,6 +35,11 @@ package TbSoC;
 	import Semi_FIFOF:: *;
 	import AXI4_Types:: *;
 	import AXI4_Fabric:: *;
+  import uart::*;
+  import common_types::*;
+  `include "common_params.bsv"
+  import device_common::*;
+
   module mkTbSoC(Empty);
 
     let def_clk <- exposeCurrentClock;
@@ -44,18 +49,37 @@ package TbSoC;
     `else
       Ifc_SoC soc <- mkSoC();
     `endif
+    
+    UserInterface#(PADDR,XLEN,16) uart <- mkuart_user(5);
+
     let verbosity=`VERBOSITY;
     Reg#(Bit#(1)) rg_cnt <-mkReg(0);
  	  let dump <- mkReg(InvalidFile) ;
+ 	  let dump1 <- mkReg(InvalidFile) ;
     rule open_file(rg_cnt==0);
       String dumpFile = "rtl.dump" ;
+      String dumpFile1 = "app_log" ;
     	File lfh <- $fopen( dumpFile, "w" ) ;
-    	if ( lfh == InvalidFile )begin
+    	File lfh1 <- $fopen( dumpFile1, "w" ) ;
+    	if ( lfh == InvalidFile || lfh1==InvalidFile )begin
     	  if(verbosity>1) $display("cannot open %s", dumpFile); 
     	  $finish(0);
     	end
     	dump <= lfh ;
+      dump1 <= lfh1;
     	rg_cnt <= 1 ;
+    endrule
+
+    rule connect_uart_out;
+      soc.uart_io.sin(uart.io.sout);
+    endrule
+    rule connect_uart_in;
+      uart.io.sin(soc.uart_io.sout);
+    endrule
+
+    rule write_received_character(rg_cnt!=0);
+      let data<-uart.read_req('h8,Byte);
+      $fwrite(dump1,"%c",data);
     endrule
 
     `ifdef simulate
