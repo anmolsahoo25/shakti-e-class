@@ -1,3 +1,9 @@
 [submodule "verification"]
 	path = verification
 	url = https://gitlab.com/shaktiproject/verification_environment/verification.git
+[submodule "src/fabrics"]
+	path = src/fabrics
+	url = https://gitlab.com/shaktiproject/uncore/fabrics.git
+[submodule "src/common_bsv"]
+	path = src/common_bsv
+	url = https://gitlab.com/shaktiproject/common_bsv.git

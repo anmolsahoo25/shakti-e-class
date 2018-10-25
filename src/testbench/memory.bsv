@@ -39,7 +39,7 @@ package memory;
   import Tilelink_lite_Types::*;
 	import BUtils::*;
   import GetPut::*;
-	import axi_addr_generator::*;
+	import device_common::*;
 
   interface UserInterface#(numeric type awidth,  numeric type dwidth, numeric type mem_size);
     method Action read_request (Bit#(awidth) addr);
@@ -140,7 +140,7 @@ package memory;
     // send a error response on receiving the last data.
     rule write_request_data_channel(write_state==Burst);
       let w  <- pop_o (s_xactor.o_wr_data);
-  		let address=burst_address_generator(rg_write_packet.awlen, rg_write_packet.awsize, 
+  		let address=axi4burst_addrgen(rg_write_packet.awlen, rg_write_packet.awsize, 
             rg_write_packet.awburst, rg_write_packet.awaddr);
       dut.write_request(tuple3(address, w.wdata, w.wstrb));
 	    let b = AXI4_Wr_Resp {bresp: AXI4_OKAY, buser: rg_write_packet.awuser, 
@@ -168,7 +168,7 @@ package memory;
       if(rg_readburst_counter==rg_read_packet.arlen)
         read_state<=Idle;
       else begin
-  		  let address=burst_address_generator(rg_read_packet.arlen, rg_read_packet.arsize, 
+  		  let address=axi4burst_addrgen(rg_read_packet.arlen, rg_read_packet.arsize, 
             rg_read_packet.arburst, rg_read_packet.araddr);
         rg_read_packet.araddr<=address;
         rg_readburst_counter<= rg_readburst_counter+1;
