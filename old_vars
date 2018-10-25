@@ -1,1 +1,0 @@
-old_define_macros = -D RV64=True -D muldiv_fpga=True -D muldiv=True -D atomic=True -D compressed=True -D simulate=True -D BOOTROM=True -D VERBOSITY=0 -D USERTRAPS=False -D CORE_AXI4=True -D MULSTAGES=8 -D DIVSTAGES=64 -D Counters=0 -D BRAM=True
