@@ -6,10 +6,11 @@
   `define BootRom_slave_num 2
 `else
   `define Num_Masters 2 
-  `define Num_Slaves 3
+  `define Num_Slaves 4
   `define Memory_slave_num 0
   `define BootRom_slave_num 1
   `define Uart_slave_num 2
+  `define Clint_slave_num 3
 `endif
 // master numbers on fabric
 `define Mem_master_num 0
@@ -25,4 +26,6 @@
 `define BootRomEnd  'h0001_0FFF
 `define UartBase    'h11300
 `define UartEnd     'h11340
+`define ClintBase   'h0200_0000
+`define ClintEnd    'h020B_FFFF
 

@@ -51,6 +51,7 @@ package SoC;
     import external_mem::*;
   `endif
   import uart::*;
+  import clint::*;
   // package imports
   import Connectable:: *;
   import GetPut:: *;
@@ -127,6 +128,7 @@ package SoC;
 			Ifc_bootrom_axi4#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_axi4(`BootRomBase);
 		`endif
 	  Ifc_uart_axi4#(PADDR,XLEN,0, 16) uart <- mkuart_axi4(curr_clk,curr_reset, 5);
+    Ifc_clint_axi4#(PADDR,XLEN,0,1) clint <- mkclint_axi4();
 
    	mkConnection(eclass.master_d,	fabric.v_from_masters[`Mem_master_num ]);
    	mkConnection(eclass.master_i, fabric.v_from_masters[`Fetch_master_num ]);
@@ -141,6 +143,12 @@ package SoC;
 			mkConnection (fabric.v_to_slaves [`BootRom_slave_num],bootrom.slave);
 		`endif
   	mkConnection (fabric.v_to_slaves [`Uart_slave_num ],uart.slave);
+  	mkConnection (fabric.v_to_slaves [`Clint_slave_num ],clint.slave);
+
+    // sideband connection
+    mkConnection(eclass.sb_clint_msip,clint.sb_clint_msip);
+    mkConnection(eclass.sb_clint_mtip,clint.sb_clint_mtip);
+    mkConnection(eclass.sb_clint_mtime,clint.sb_clint_mtime);
     `ifdef simulate
       interface io_dump= eclass.io_dump;
     `endif
