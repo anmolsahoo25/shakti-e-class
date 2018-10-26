@@ -112,7 +112,7 @@ package mem_wb_stage;
         // in case of a flush also flip the local epoch register.
         // if instruction is of memory type then wait for response from memory
         if(trap matches tagged Exception .ex)begin
-          jump_address<- csr.take_trap(trap, pc, ?);
+          jump_address<- csr.take_trap(trap, pc, truncate(effaddr_csrdata));
           fl= Flush;
           rx.u.deq;
           if(verbosity!=0)
