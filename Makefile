@@ -52,6 +52,12 @@ endif
 ifeq ($(USER), True)
   define_macros += -D user=True
 endif
+ifeq ($(RTLDUMP), True)
+  define_macros += -D rtldump=True
+endif
+ifeq ($(SIGNATURE), True)
+  define_macros += -D signature=True 
+endif
 
 ifeq ($(COVERAGE), none)
 else ifeq ($(COVERAGE),all)
@@ -63,7 +69,8 @@ endif
 ifeq ($(TRACE), enable)
   trace := --trace
 endif
-define_macros += -D VERBOSITY=$(VERBOSITY) -D CORE_$(COREFABRIC)=True -D MULSTAGES=$(MULSTAGES) -D DIVSTAGES=$(DIVSTAGES) -D Counters=$(COUNTERS) -D $(MAINMEM)=True
+define_macros += -D VERBOSITY=$(VERBOSITY) -D CORE_$(COREFABRIC)=True -D MULSTAGES=$(MULSTAGES) -D DIVSTAGES=$(DIVSTAGES) -D Counters=$(COUNTERS) -D $(MAINMEM)=True -D signstart=\'h$(SIGNATURESTART)
+
 CORE:=./src/core/:./src/caches/:./src/core/m_ext/
 FABRIC:=./src/fabrics/axi4:./src/fabrics/axi4lite:./src/fabrics/tilelink_lite
 UNCORE:=./src/uncore
