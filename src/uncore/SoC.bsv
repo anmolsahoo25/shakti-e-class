@@ -52,6 +52,7 @@ package SoC;
   `endif
   import uart::*;
   import clint::*;
+  import sign_dump::*;
   // package imports
   import Connectable:: *;
   import GetPut:: *;
@@ -108,6 +109,7 @@ package SoC;
       interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
     `endif
     interface RS232 uart_io;
+    method Action start();
   endinterface
 
 `ifdef CORE_AXI4
@@ -116,6 +118,7 @@ package SoC;
     let curr_clk<-exposeCurrentClock;
     let curr_reset<-exposeCurrentReset;
     Ifc_eclass_axi4 eclass <- mkeclass_axi4();
+    Ifc_sign_dump signature<- mksign_dump();
     AXI4_Fabric_IFC #(`Num_Masters, `Num_Slaves, PADDR, XLEN, USERSPACE) 
                                                     fabric <- mkAXI4_Fabric(fn_slave_map);
     `ifdef BRAM
@@ -134,6 +137,7 @@ package SoC;
 
    	mkConnection(eclass.master_d,	fabric.v_from_masters[`Mem_master_num ]);
    	mkConnection(eclass.master_i, fabric.v_from_masters[`Fetch_master_num ]);
+   	mkConnection(signature.master, fabric.v_from_masters[`Sign_master_num ]);
 
     `ifdef EXTERNAL
   		mkConnection(fabric.v_to_slaves[`Memory_slave_num],external_memory.slave);
@@ -158,6 +162,7 @@ package SoC;
       interface mem_master=external_memory.master;
     `endif
     interface uart_io=uart.io;
+    method start=signature.start;
   endmodule: mkSoC
 `endif
 //`ifdef CORE_AXI4Lite

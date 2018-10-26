@@ -53,21 +53,31 @@ package TbSoC;
     
     UserInterface#(PADDR,XLEN,16) uart <- mkuart_user(5);
     Reg#(Bool) rg_read_rx<- mkDReg(False);
+    Reg#(Bool) rg_stop <- mkReg(False);
 
     let verbosity=`VERBOSITY;
     Reg#(Bit#(5)) rg_cnt <-mkReg(0);
- 	  let dump <- mkReg(InvalidFile) ;
+    `ifdef rtldump
+   	  let dump <- mkReg(InvalidFile) ;
+      rule open_file_rtldump(rg_cnt<5);
+        String dumpFile = "rtl.dump" ;
+      	File lfh <- $fopen( dumpFile, "w" ) ;
+      	if ( lfh == InvalidFile)begin
+      	  if(verbosity>1) $display("cannot open %s", dumpFile); 
+      	  $finish(0);
+      	end
+      	dump <= lfh ;
+      endrule
+    `endif
+    
  	  let dump1 <- mkReg(InvalidFile) ;
-    rule open_file(rg_cnt<5);
-      String dumpFile = "rtl.dump" ;
+    rule open_file_app(rg_cnt<5);
       String dumpFile1 = "app_log" ;
-    	File lfh <- $fopen( dumpFile, "w" ) ;
     	File lfh1 <- $fopen( dumpFile1, "w" ) ;
-    	if ( lfh == InvalidFile || lfh1==InvalidFile )begin
-    	  if(verbosity>1) $display("cannot open %s", dumpFile); 
+    	if (lfh1==InvalidFile )begin
+    	  if(verbosity>1) $display("cannot open %s", dumpFile1); 
     	  $finish(0);
     	end
-    	dump <= lfh ;
       dump1 <= lfh1;
     	rg_cnt <= rg_cnt+1 ;
     endrule
@@ -91,15 +101,23 @@ package TbSoC;
     endrule
 
     `ifdef simulate
-      rule write_dump_file(rg_cnt>=5);
-        let {prv, pc, instruction, rd, data}<- soc.io_dump.get;
-        if(instruction=='h00006f||instruction =='h00a001)
-          $finish(0);
-        else begin
-  		  	$fwrite(dump, prv, " 0x%16h", pc, " (0x%8h", instruction, ")"); 
-	  	  	$fwrite(dump, " x%d", rd, " 0x%16h", data, "\n"); 
-        end
-      endrule
+        rule write_dump_file(rg_cnt>=5 && !rg_stop);
+          let {prv, pc, instruction, rd, data}<- soc.io_dump.get;
+          if(instruction=='h00006f||instruction =='h00a001)begin
+            `ifdef signature
+              soc.start();
+              rg_stop<=True;
+            `else
+              $finish(0);
+            `endif
+          end
+      `ifdef rtldump
+          else begin
+  	  	  	$fwrite(dump, prv, " 0x%16h", pc, " (0x%8h", instruction, ")"); 
+	    	  	$fwrite(dump, " x%d", rd, " 0x%16h", data, "\n"); 
+          end
+      `endif
+        endrule
     `endif
 
     `ifdef simulate
