@@ -98,7 +98,6 @@ package csr;
 	  endmethod
 	
     method ActionValue#(Bit#(PADDR)) take_trap(Trap_type trap, Bit#(PADDR) pc, Bit#(PADDR) badaddr);
-      $display($time,"\tCSR: Trap: ",fshow(trap)," PC: %h BADADDR: %h",pc,badaddr);
 		  if(trap matches tagged Exception .ex)begin
 		  	if(ex==Inst_access_fault)
 		  		badaddr=pc;
