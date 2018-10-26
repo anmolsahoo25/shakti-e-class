@@ -106,14 +106,9 @@ package alu;
     if(inst_type==JALR)
       effective_address[0]=0;
     // The following can be placed here since we are not using a branch predictor yet.
-		`ifdef simulate
-			if(inst_type==BRANCH)
-				final_output=0;
-		`endif
-
     Trap_type exception=tagged None;
     `ifndef compressed
-	    if((inst_type==JAL || inst_type==JALR) && effective_address[1]!=0)
+	    if((inst_type==JAL || inst_type==JALR || (inst_type==BRANCH && final_output[0]==1)) && effective_address[1]!=0)
 	  	  exception=tagged Exception Inst_addr_misaligned;
       else
     `endif
@@ -142,6 +137,11 @@ package alu;
 	  Bit#(TAdd#(PADDR, 1)) effaddr_csrdata = (inst_type==SYSTEM_INSTR)? 
                                             zeroExtend({funct3, imm_value[16:0]}): 
                                             {pack(flush), effective_address[valueOf(PADDR)-1:0]};
+
+		`ifdef simulate
+			if(inst_type==BRANCH)
+				final_output=0;
+		`endif
 
 	  return tuple4(committype, final_output, effaddr_csrdata, exception);
 	endfunction
