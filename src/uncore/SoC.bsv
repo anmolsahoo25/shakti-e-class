@@ -91,6 +91,8 @@ package SoC;
       `endif
       if(addr>= `UartBase && addr<= `UartEnd)
         slave_num = `Uart_slave_num;
+      else if(addr>= `ClintBase && addr<= `ClintEnd)
+        slave_num = `Clint_slave_num;
       else
         slave_exist = False;
         
