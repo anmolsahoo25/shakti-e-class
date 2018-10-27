@@ -333,8 +333,6 @@ package opfetch_execute_stage;
                  `ifdef simulate , inst `endif }=rx.u.first;
         `ifdef atomic
           Bit#(1) epoch=epoch_atomicop[0];
-        `else
-          Bit#(1) epoch=epoch_atomicop;
         `endif
         let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu.delayed_output;
         if(epoch==rg_epoch[0])begin
