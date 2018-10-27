@@ -143,47 +143,27 @@ package csrfile;
     Reg#(Bit#(1)) rg_mpie <- mkReg(0);
     Bit#(1) hpie = 0;
     Bit#(1) spie = 0;
-    `ifdef usertraps
-      Reg#(Bit#(1)) rg_upie <- mkReg(0);
-    `else
-      Bit#(1) rg_upie = 0;
-    `endif
+    Reg#(Bit#(1)) rg_upie <- mkReg(0);
 	  Reg#(Bit#(1)) rg_mie	<- mkReg(0);
     Bit#(1) hie = 0;
     Bit#(1) sie = 0;
-    `ifdef usertraps
-      Reg#(Bit#(1)) rg_uie <- mkReg(0);
-    `else
-      Bit#(1) rg_uie = 0;
-    `endif
+    Reg#(Bit#(1)) rg_uie <- mkReg(0);
 
 	  // mie fields
     Reg#(Bit#(1)) rg_meie <- mkReg(0);
     Bit#(1) heie = 0;
     Bit#(1) seie = 0;
-    `ifdef usertraps
-      Reg#(Bit#(1)) rg_ueie <- mkReg(0);
-    `else
-      Bit#(1) rg_ueie = 0;
-    `endif
+    Reg#(Bit#(1)) rg_ueie <- mkReg(0);
     Reg#(Bit#(1)) rg_mtie <- mkReg(0);
     Bit#(1) htie = 0;
     Bit#(1) stie = 0;
-    `ifdef usertraps
       Reg#(Bit#(1)) rg_utie <- mkReg(0);
-    `else
-      Bit#(1) rg_utie = 0;
-    `endif
     Reg#(Bit#(1)) rg_msie <- mkReg(0);
     Bit#(1) hsie = 0;
     Bit#(1) ssie = 0;
-    `ifdef usertraps
       Reg#(Bit#(1)) rg_usie <-  mkReg(0);
-    `else
-      Bit#(1) rg_usie = 0;
-    `endif
    
-   `ifdef usertraps
+   `ifdef non_m_traps
       Reg#(Bit#(12)) rg_mideleg <- mkReg(0);
       Reg#(Bit#(11)) rg_medeleg <- mkReg(0);
     `else
@@ -195,27 +175,15 @@ package csrfile;
     Reg#(Bit#(1)) rg_meip <- mkReg(0);
     Bit#(1) heip = 0;
     Bit#(1) seip = 0; 
-    `ifdef usertraps
       Reg#(Bit#(1)) rg_ueip <- mkReg(0); //extInterruptReg(rg_ueips,rg_ueipe);
-    `else
-      Bit#(1) rg_ueip = 0;
-    `endif
     Reg#(Bit#(1)) rg_mtip <- mkReg(0);
     Bit#(1) htip = 0;
     Bit#(1) stip = 0;
-    `ifdef usertraps
       Reg#(Bit#(1)) rg_utip <- mkReg(0);
-    `else
-      Bit#(1) rg_utip = 0;
-    `endif
 	  Reg#(Bit#(1)) rg_msip <- mkReg(0);
     Bit#(1) hsip = 0;
     Bit#(1) ssip = 0;
-    `ifdef usertraps 
       Reg#(Bit#(1)) rg_usip <- mkReg(0);
-    `else
-      Bit#(1) rg_usip = 0;
-	  `endif 
 
     `ifdef RV64
 	  	Reg#(Bit#(XLEN)) mcycle <- mkReg(0);
@@ -372,16 +340,14 @@ package csrfile;
           rg_mode<=word[1:0];
         end
         `MSTATUS: begin 
-          `ifdef usertraps
             rg_uie<= word[0];
             rg_upie<= word[4];
-          `endif
           rg_mie<= word[3];
           rg_mpie<= word[7];
           rg_mpp<= word[12:11];
           rg_mprv<= word[17];
         end
-        `ifdef usertraps
+        `ifdef non_m_traps
           `MIDELEG: begin
             rg_mideleg<= truncate(word);
           end
@@ -393,19 +359,15 @@ package csrfile;
           rg_msie<= word[3];
           rg_mtie<= word[7];
           rg_meie<= word[11];
-          `ifdef usertraps
-            rg_ueie<= word[8];
-            rg_usie<= word[0];
-            rg_utie<= word[4];
-          `endif
+          rg_ueie<= word[8];
+          rg_utie<= word[4];
+          rg_usie<= word[0];
         end
-        `ifdef usertraps
           `MIP: begin
             rg_usip<= word[0];
             rg_utip<= word[4];
             rg_ueip<= word[8];
           end
-        `endif
         `MCYCLE: begin
           mcycle<= word;
         end
