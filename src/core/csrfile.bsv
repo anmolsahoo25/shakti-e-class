@@ -196,7 +196,7 @@ package csrfile;
 	  `endif
 
 	  // Machine Trap Handling
-	  Reg#(Bit#(PADDR)) rg_mepc  		<- mkReg(0);
+	  Reg#(Bit#(TSub#(PADDR,1))) rg_mepc  		<- mkReg(0);
 	  Reg#(Bit#(PADDR))rg_mtval  		<- mkReg(0);
 	  Reg#(Bit#(XLEN)) rg_mscratch <- mkReg(0);
     
@@ -278,7 +278,7 @@ package csrfile;
           if (addr == `MCYCLEH) data= mcycleh;
           if (addr == `MINSTRETH) data= minstreth;
         `endif
-        if (addr == `MEPC) data= zeroExtend(rg_mepc);
+        if (addr == `MEPC) data= zeroExtend({rg_mepc,1'b0});
         if (addr == `MTVAL) data= zeroExtend(rg_mtval);//?
         if (addr == `MSCRATCH) data= rg_mscratch;
         if (addr == `MCAUSE) data= {rg_minterrupt, 'd0, rg_mcause};
@@ -378,7 +378,7 @@ package csrfile;
           `MCYCLEH: mcycleh<= word;
           `MINSTRETH: minstreth<= word;
         `endif
-        `MEPC: rg_mepc<= truncate(word);
+        `MEPC: rg_mepc<= truncateLSB(word);
         `MTVAL: rg_mtval<= truncate(word);
         `MSCRATCH: rg_mscratch<= word;
         `MCAUSE: begin
@@ -445,7 +445,10 @@ package csrfile;
 	  		    sie<=spie;
             if(verbosity>1)
               $display($time,"\tCSRFILE: SRET Function sepc: %h",sepc);
-            return sepc;
+            let lv_sepc=rg_sepc;
+            if(misa_c==0)
+              lv_sepc[0]=0;
+            return {lv_sepc,1'b0};
           end else 
         `endif
         `ifdef usertraps
@@ -453,7 +456,10 @@ package csrfile;
             rg_upie <= 1;
             rg_prv <= User;
 	    	  	rg_uie<=rg_upie;
-            return rg_uepc;
+            let lv_uepc=rg_uepc;
+            if(misa_c==0)
+              lv_uepc[0]=0;
+            return {lv_uepc,1'b0};
           end else
         `endif
       `endif
@@ -462,7 +468,10 @@ package csrfile;
         rg_mpp <= pack(User);
         rg_prv <= unpack(rg_mpp);
 	  	  rg_mie<=rg_mpie;
-        return rg_mepc;
+        let lv_mepc=rg_mepc;
+        if(misa_c==0)
+          lv_mepc[0]=0;
+        return {lv_mepc,1'b0};
       end
     endmethod
     method ActionValue#(Bit#(PADDR)) upd_on_trap(Bit#(6) cause, Bit#(PADDR) pc, Bit#(PADDR) tval);
@@ -519,11 +528,12 @@ package csrfile;
               return ({(rg_utvec+ zeroExtend(cause[4:0])),2'b0}); // pc jumps to base+(4*cause)
             else
               return {rg_utvec, 2'b0}; // pc jumps to base
-          end else
+          end 
+          else
         `endif
           begin
             rg_mtval<=signExtend(tval);
-			      rg_mepc<=pc;
+			      rg_mepc<=truncateLSB(pc);
 			      rg_mcause<=cause[4:0];
             rg_minterrupt<= cause[5];
 			      rg_mie <= 0;
@@ -538,7 +548,7 @@ package csrfile;
       `endif
         begin
           rg_mtval<=signExtend(tval);
-			    rg_mepc<=pc;
+			    rg_mepc<=truncateLSB(pc);
 			    rg_mcause<=cause[4:0];
           rg_minterrupt<= cause[5];
 			    rg_mie <= 0;
