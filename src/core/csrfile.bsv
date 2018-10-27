@@ -37,7 +37,7 @@ package csrfile;
 
   interface Ifc_csrfile;
     method Bit#(XLEN) read_csr (Bit#(12) addr);
-    method Action write_csr(Bit#(12) addr,  Bit#(XLEN) word);
+    method Action write_csr(Bit#(12) addr,  Bit#(XLEN) word, Bit#(2) lpc);
     method CSRtoDecode csrs_to_decode;
 	  method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
@@ -349,11 +349,11 @@ package csrfile;
         return data;
     endmethod
 
-    method Action write_csr(Bit#(12) addr,  Bit#(XLEN) word);
+    method Action write_csr(Bit#(12) addr,  Bit#(XLEN) word, Bit#(2) lpc);
       case(addr)
         `MISA: begin 
           `ifdef atomic misa_a<= word[0]; `endif
-          `ifdef compressed misa_c<= word[2]; `endif  
+          `ifdef compressed if(word[2]==1 || (word[2]==0 && lpc==0)) misa_c<= word[2]; `endif  
           `ifdef dpfpu misa_d<= word[3]; `endif 
           `ifdef spfpu misa_f<= word[5]; `endif
             misa_i<= word[8];

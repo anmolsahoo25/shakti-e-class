@@ -42,7 +42,7 @@ package csr;
 	
   interface Ifc_csr;
 	  method ActionValue#(Tuple3#(Bool, Bit#(PADDR), Bit#(XLEN))) system_instruction( Bit#(5) rd, 
-            Bit#(12) csr_address, Bit#(5) rs1_addr, Bit#(XLEN) op1, Bit#(3) funct3);
+            Bit#(12) csr_address, Bit#(5) rs1_addr, Bit#(XLEN) op1, Bit#(3) funct3, Bit#(2) pc);
     method CSRtoDecode csrs_to_decode;
     method ActionValue#(Bit#(PADDR)) take_trap(Trap_type trap, Bit#(PADDR) pc, Bit#(PADDR) badaddr);
 	  method Action clint_msip(Bit#(1) intrpt);
@@ -62,7 +62,7 @@ package csr;
     Ifc_csrfile csrfile <- mkcsrfile();
     
 	  method ActionValue#(Tuple3#(Bool, Bit#(PADDR), Bit#(XLEN))) system_instruction( Bit#(5) rd, 
-            Bit#(12) csr_address, Bit#(5) rs1_addr, Bit#(XLEN) op1, Bit#(3) funct3);
+            Bit#(12) csr_address, Bit#(5) rs1_addr, Bit#(XLEN) op1, Bit#(3) funct3, Bit#(2) pc);
       if(verbosity>1)
         $display($time, "\tCSR: csr: %h rs1addr: %d, op1: %h, funct3: %b", csr_address, rs1_addr, 
             op1, funct3);
@@ -91,7 +91,7 @@ package csr;
             writecsrdata = op1|csrread;
           else
             writecsrdata = ~op1&csrread;
-          csrfile.write_csr(csr_address, writecsrdata);
+          csrfile.write_csr(csr_address, writecsrdata, truncate(pc));
         end
       endcase
 	  	return tuple3(flush,jump_add,destination_value);
