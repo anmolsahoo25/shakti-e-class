@@ -401,7 +401,10 @@ package decode;
       exception = tagged Exception Inst_access_fault;
     else if( `ifdef atomic (inst_type==MEMORY && mem_access==Atomic && misa[0]==0) || `endif 
              `ifdef muldiv (inst_type==MULDIV && misa[12]==0) || `endif
-             (inst_type==ALU && misa[8]==0) )
+             `ifdef RV32 (opcode==`IMM_ARITH_op && funct3=='b001 && inst[31:25]!=0) || `endif
+             `ifdef RV64 (opcode==`IMM_ARITH_op && funct3=='b001 && inst[31:26]!=0) || `endif
+             (inst_type==ALU && misa[8]==0) 
+             `ifndef compressed || inst[1:0]!='b11 `endif )
       exception=tagged Exception Illegal_inst; 
     else if(inst_type == SYSTEM_INSTR)begin
       if(funct3 == 0)
