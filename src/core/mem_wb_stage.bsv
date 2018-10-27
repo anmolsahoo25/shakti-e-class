@@ -153,7 +153,7 @@ package mem_wb_stage;
         end
         else if(committype == SYSTEM_INSTR)begin
           let {drain, newpc, dest}<-csr.system_instruction(rd, effaddr_csrdata[11:0], 
-                                              effaddr_csrdata[16:12], reslt, effaddr_csrdata[19:17]);
+                          effaddr_csrdata[16:12], reslt, effaddr_csrdata[19:17], truncate(pc));
           jump_address=newpc;
           if(drain) 
             fl=Flush;
