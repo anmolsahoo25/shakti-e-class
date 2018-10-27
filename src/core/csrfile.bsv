@@ -264,7 +264,7 @@ package csrfile;
             data= {sd, 8'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp, hpp, spp, rg_mpie,
                     hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie};
           `endif
-        `ifdef usertraps
+        `ifdef non_m_traps 
           if (addr == `MIDELEG) data= {'d0, rg_mideleg};
           if (addr == `MEDELEG) data= {'d0, rg_medeleg};
         `endif
