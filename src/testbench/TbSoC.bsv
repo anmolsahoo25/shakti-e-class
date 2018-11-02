@@ -91,12 +91,13 @@ package TbSoC;
 
     rule check_if_character_present(!rg_read_rx);
       let {data,err}<- uart.read_req('hc,Byte);
+      $display($time,"\tTB: data: %b",data);
       if (data[3]==1) // character present
         rg_read_rx<=True;
     endrule
 
     rule write_received_character(rg_cnt>=5 && rg_read_rx);
-      let data<-uart.read_req('h8,Byte);
+      let {data,err}<-uart.read_req('h8,Byte);
       $fwrite(dump1,"%c",data);
     endrule
 
