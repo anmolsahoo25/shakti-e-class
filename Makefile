@@ -8,6 +8,13 @@ else
 endif
 include soc_config.inc
 
+
+ifeq (, $(wildcard ${TOOLS_DIR}/shakti-tools/insert_license.sh))
+  VERILOG_FILTER:= -verilog-filter ${BLUESPECDIR}/bin/basicinout
+else
+  VERILOG_FILTER:= -verilog-filter ${BLUESPECDIR}/bin/basicinout -verilog-filter ${TOOLS_DIR}/shakti-tools/insert_license.sh
+  VERILOGLICENSE:= cp ${TOOLS_DIR}/shakti-tools/IITM_LICENSE.txt ./verilog
+endif
 SHAKTI_HOME=$(PWD)
 export SHAKTI_HOME
 
@@ -140,7 +147,7 @@ generate_verilog: check-restore check-env
 	@mkdir -p $(VERILOGDIR); 
 	@echo "old_define_macros = $(define_macros)" > old_vars
 	bsc -u -verilog -elab -vdir $(VERILOGDIR) -bdir $(BSVBUILDDIR) -info-dir $(BSVBUILDDIR)\
-  $(define_macros) -D verilog=True $(BSVCOMPILEOPTS) -verilog-filter ${BLUESPECDIR}/bin/basicinout\
+  $(define_macros) -D verilog=True $(BSVCOMPILEOPTS) $(VERILOG_FILTER) \
   -p $(BSVINCDIR) -g $(TOP_MODULE) $(TOP_DIR)/$(TOP_FILE)  || (echo "BSC COMPILE ERROR"; exit 1) 
 	@cp ${BLUESPECDIR}/Verilog.Vivado/RegFile.v ./verilog/  
 	@cp ${BLUESPECDIR}/Verilog.Vivado/BRAM1Load.v ./verilog/
@@ -153,6 +160,7 @@ generate_verilog: check-restore check-env
 	@cp ${BLUESPECDIR}/Verilog/SyncFIFO.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/Counter.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/SizedFIFO.v ./verilog/
+	@$(VERILOGLICENSE)
 #ifeq ($(SYNTH), SIM)
 #  ifeq ($(MUL), fpga)
 #    ifneq (,$(findstring M,$(ISA)))
