@@ -211,7 +211,7 @@ package csrfile;
     Reg#(Bit#(2)) rg_uxl = readOnlyReg(fromInteger(valueOf(XLEN)/32));
 
     `ifdef usertraps
-  	  Reg#(Bit#(PADDR)) rg_uepc  		<- mkReg(0);
+  	  Reg#(Bit#(TSub#(PADDR,1))) rg_uepc  		<- mkReg(0);
 	    Reg#(Bit#(PADDR))rg_utval  		<- mkReg(0);
       Reg#(Bit#(1)) rg_uinterrupt <-mkReg(0);
   	  Reg#(Bit#(5)) rg_ucause   <- mkReg(0);
@@ -308,7 +308,7 @@ package csrfile;
         `endif
         `ifdef usertraps
           if (addr == `UTVEC) data= {'d0, rg_utvec, rg_umode};
-          if (addr == `UEPC) data= zeroExtend(rg_uepc);
+          if (addr == `UEPC) data= zeroExtend({rg_uepc,1'b0});
           if (addr == `UTVAL) data= zeroExtend(rg_utval);
           if (addr == `UCAUSE) data= {rg_uinterrupt, 'd0, rg_ucause};
         `endif
@@ -378,7 +378,7 @@ package csrfile;
           `MCYCLEH: mcycleh<= word;
           `MINSTRETH: minstreth<= word;
         `endif
-        `MEPC: rg_mepc<= truncateLSB(word);
+        `MEPC: begin word=word>>1;rg_mepc<= truncate(word); end
         `MTVAL: rg_mtval<= truncate(word);
         `MSCRATCH: rg_mscratch<= word;
         `MCAUSE: begin
@@ -411,7 +411,7 @@ package csrfile;
             rg_utvec<= word[paddr- 1:2]; 
             rg_umode<=word[1:0];
           end
-          `UEPC: rg_uepc<= truncate(word);
+          `UEPC: begin word=word>>1;rg_uepc<= truncate(word); end
           `UTVAL: rg_utval<= truncate(word);
           `UCAUSE: begin
             rg_uinterrupt<= word[maxIndex-1];
