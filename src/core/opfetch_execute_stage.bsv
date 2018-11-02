@@ -92,7 +92,7 @@ package opfetch_execute_stage;
       FIFOF#(Tuple3#(Bit#(XLEN), Bool, Access_type)) ff_atomic_response <- mkSizedFIFOF(2);
       Reg#(Bit#(PADDR)) rg_atomic_address<- mkReg(0);
       Reg#(Bit#(XLEN)) rg_op2 <- mkReg(0);
-      Reg#(Bit#(PADDR)) rg_loadreserved_addr <- mkReg(0);
+      Reg#(Maybe#(Bit#(PADDR))) rg_loadreserved_addr <- mkReg(tagged Invalid);
     `endif
     // If a CSR operation is detected then you need to stall fetching operands from the regfile
     // untill the csr instruction has been committed. the forwarding path from the csr operation to
@@ -224,13 +224,22 @@ package opfetch_execute_stage;
               rg_op2<= op2;
               rg_atomic_address<= truncate(effaddr_csrdata);
             end
-            if(committype==MEMORY)
-              rg_loadreserved_addr<=truncate(effaddr_csrdata);
+            if(committype==MEMORY) begin 
+              if(mem_access==Atomic && epoch_atomicop[5:1]=='b00010) // LR
+                rg_loadreserved_addr<=tagged Valid truncate(effaddr_csrdata);
+              else
+                rg_loadreserved_addr<=tagged Invalid;
+            end
             Bool perform_memory=True;
             
-            if(committype==MEMORY && mem_access==Atomic && epoch_atomicop[5:1]=='b00011)begin
-              if(truncate(effaddr_csrdata)!=rg_loadreserved_addr)begin
+            if(committype==MEMORY && mem_access==Atomic && epoch_atomicop[5:1]=='b00011)begin // SC
+              if(rg_loadreserved_addr matches tagged Valid .a &&& truncate(effaddr_csrdata)!=a)begin
                 $display($time,"\tSTAGE2: StoreConditional Failed");
+                perform_memory=False;
+                op1_reslt=1;
+                committype=REGULAR;
+              end
+              else if(rg_loadreserved_addr matches tagged Invalid)begin
                 perform_memory=False;
                 op1_reslt=1;
                 committype=REGULAR;
