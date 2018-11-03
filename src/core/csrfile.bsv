@@ -344,7 +344,8 @@ package csrfile;
             rg_upie<= word[4];
           rg_mie<= word[3];
           rg_mpie<= word[7];
-          rg_mpp<= word[12:11];
+          if(^word[12:11]==0)
+            rg_mpp<= word[12:11];
           rg_mprv<= word[17];
         end
         `ifdef non_m_traps
