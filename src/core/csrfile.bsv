@@ -71,7 +71,7 @@ package csrfile;
 	  Reg#(Privilege_mode) rg_prv <- mkReg(Machine); // resets to machine mode
 	  
 	  Bit#(XLEN) csr_mvendorid  = 0;
-    Bit#(XLEN) csr_marchid    = 6;
+    Bit#(XLEN) csr_marchid    = `ifdef simulate 0 `else 6 `endif ;
     Bit#(XLEN) csr_mimpid     = 0;
     Bit#(XLEN) csr_mhartid    = 0;
 
