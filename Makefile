@@ -295,11 +295,11 @@ generate_boot_files:
 
 .PHONY: patch
 patch:
-	@cd $(SHAKTI_HOME)/verification/riscv-tests/env && git apply $(SHAKTI_HOME)/verification/patches/riscv-tests-shakti.patch
+	@cd $(SHAKTI_HOME)/verification/riscv-tests/env && git apply $(SHAKTI_HOME)/verification/patches/riscv-tests-shakti-signature.patch
 
 .PHONY: unpatch
 unpatch:
-	@cd $(SHAKTI_HOME)/verification/riscv-tests/env && git apply -R $(SHAKTI_HOME)/verification/patches/riscv-tests-shakti.patch
+	@cd $(SHAKTI_HOME)/verification/riscv-tests/env && git apply -R $(SHAKTI_HOME)/verification/patches/riscv-tests-shakti-signature.patch
 
 .PHONY: clean
 clean:
