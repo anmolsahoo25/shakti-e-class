@@ -165,10 +165,10 @@ package csrfile;
    
    `ifdef non_m_traps
       Reg#(Bit#(12)) rg_mideleg <- mkReg(0);
-      Reg#(Bit#(11)) rg_medeleg <- mkReg(0);
+      Reg#(Bit#(16)) rg_medeleg <- mkReg(0);
     `else
       Bit#(12) rg_mideleg = 0;
-      Bit#(11) rg_medeleg = 0;
+      Bit#(16) rg_medeleg = 0;
     `endif
     
 	  // mip fields
@@ -269,9 +269,9 @@ package csrfile;
           if (addr == `MEDELEG) data= {'d0, rg_medeleg};
         `endif
         if (addr == `MIE) data= {'d0, rg_meie, heie, seie, misa_n&rg_ueie, rg_mtie, htie, stie, 
-                                rg_utie, rg_msie, hsie, ssie, misa_n&rg_usie};
-        if (addr == `MIP) data= {'d0, rg_meip, heip, seip, misa_n&rg_ueip, rg_mtip, htie, stie, misa_n&rg_utip, rg_msip,
-                      hsip, ssip, misa_n&rg_usip};
+                                              misa_n&rg_utie, rg_msie, hsie, ssie, misa_n&rg_usie};
+        if (addr == `MIP ) data= {'d0, rg_meip, heip, seip, misa_n&rg_ueip, rg_mtip, htie, stie,
+                          misa_n&rg_utip, rg_msip, hsip, ssip, misa_n&rg_usip};
         if (addr == `MCYCLE) data= mcycle;
         if (addr == `MINSTRET) data= minstret;
         `ifndef RV64
@@ -546,7 +546,7 @@ package csrfile;
             else
               return {rg_mtvec, 2'b0}; // pc jumps to base
           end
-      `endif
+      `else
         begin
           rg_mtval<=signExtend(tval);
 			    rg_mepc<=truncateLSB(pc);
@@ -561,6 +561,7 @@ package csrfile;
           else
             return {rg_mtvec, 2'b0}; // pc jumps to base
         end
+      `endif
     endmethod
     method Action incr_minstret;
       `ifdef RV64
