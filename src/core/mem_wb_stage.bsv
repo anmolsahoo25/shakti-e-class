@@ -130,7 +130,7 @@ package mem_wb_stage;
               `endif
               wr_operand_fwding <= tuple3(rd, True, data);
               wr_commit <= tagged Valid (tuple2(rd, data));
-              `ifdef rtdlump 
+              `ifdef rtldump 
                 dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
               `endif
             end
