@@ -54,7 +54,7 @@ package mem_wb_stage;
     method Action externalinterrupt(Bit#(1) intrpt);
     method Bool csr_updated;
     method Bool interrupt;
-    `ifdef simulate
+    `ifdef rtldump
       interface Get#(DumpType) dump;
     `endif
   endinterface:Ifc_mem_wb_stage
@@ -81,7 +81,7 @@ package mem_wb_stage;
     // the local epoch register
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
 
-    `ifdef simulate
+    `ifdef rtldump
       FIFO#(DumpType) dump_ff <- mkLFIFO;
       let prv=tpl_1(csr.csrs_to_decode);
     `endif
@@ -89,7 +89,7 @@ package mem_wb_stage;
     Integer verbosity = `VERBOSITY;
 
     rule instruction_commit;
-      let {committype, reslt, effaddr_csrdata, pc, rd, epoch, trap `ifdef simulate , inst `endif } = 
+      let {committype, reslt, effaddr_csrdata, pc, rd, epoch, trap `ifdef rtldump , inst `endif } = 
                                                                                         rx.u.first;
       if(verbosity!=0)begin
         $display($time, "\tSTAGE3: PC: %h committype: ", pc, fshow(committype), " result: %h",
@@ -130,7 +130,7 @@ package mem_wb_stage;
               `endif
               wr_operand_fwding <= tuple3(rd, True, data);
               wr_commit <= tagged Valid (tuple2(rd, data));
-              `ifdef simulate 
+              `ifdef rtdlump 
                 dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
               `endif
             end
@@ -157,7 +157,7 @@ package mem_wb_stage;
           jump_address=newpc;
           if(drain) 
             fl=Flush;
-          `ifdef simulate 
+          `ifdef rtldump 
             dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, dest));
           `endif
           wr_commit <= tagged Valid (tuple2(rd, dest));
@@ -172,7 +172,7 @@ package mem_wb_stage;
           wr_operand_fwding <= tuple3(rd, True, reslt);
           wr_commit <= tagged Valid (tuple2(rd, reslt));
           rx.u.deq;
-          `ifdef simulate 
+          `ifdef rtldump 
             dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, reslt));
           `endif
         end
@@ -233,7 +233,7 @@ package mem_wb_stage;
 		method Action externalinterrupt(Bit#(1) intrpt);
       csr.externalinterrupt(intrpt);
     endmethod
-    `ifdef simulate
+    `ifdef rtldump 
       interface dump = interface Get
         method ActionValue#(DumpType) get ;
           dump_ff.deq;

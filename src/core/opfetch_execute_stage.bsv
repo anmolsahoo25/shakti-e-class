@@ -182,7 +182,7 @@ package opfetch_execute_stage;
     !rg_wfi);
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm `ifdef RV64, word32 `endif , funct3, rs1_type, rs2_type, 
-          insttype, mem_access, pc, trap, epoch_atomicop `ifdef simulate , inst `endif }=rx.u.first;
+          insttype, mem_access, pc, trap, epoch_atomicop `ifdef rtldump , inst `endif }=rx.u.first;
       `ifdef atomic
         Bit#(1) epoch=epoch_atomicop[0];
         Bit#(4) atomic_op=epoch_atomicop[5:2];
@@ -190,7 +190,7 @@ package opfetch_execute_stage;
         Bit#(1) epoch=epoch_atomicop;
       `endif
       if(verbosity!=0)begin
-        $display($time, "\tSTAGE2: PC: %h", pc `ifdef simulate ," Inst: %h", inst `endif );
+        $display($time, "\tSTAGE2: PC: %h", pc `ifdef rtldump ," Inst: %h", inst `endif );
         $display($time, "\t        fn: %b rs1: %d rs2: %d rd: %d imm: %h", fn, rs1, rs2, rd, imm);
         $display($time, "\t        rs1type: ", fshow(rs1_type), " rs2type: ", fshow(rs2_type),
             " insttype: ", fshow(insttype) `ifdef RV64 , " word32: ", word32 `endif );
@@ -278,7 +278,7 @@ package opfetch_execute_stage;
           if(done) begin 
             rx.u.deq;
             if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
-              `ifdef simulate
+              `ifdef rtldump
                 tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
                     final_trap, inst));
               `else
@@ -312,7 +312,7 @@ package opfetch_execute_stage;
           `endif
               rx.u.deq;
               if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
-                `ifdef simulate
+                `ifdef rtldump
                   tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
                       final_trap, inst));
                 `else
@@ -339,13 +339,13 @@ package opfetch_execute_stage;
       rule capture_stalled_output(rg_stall `ifdef atomic && !rg_muldiv_atomic `endif );
         let {fn, rs1, rs2, rd, imm `ifdef RV64 , word32 `endif , funct3, rs1_type, 
         rs2_type, insttype, mem_access, pc, trap, `ifdef atomic epoch_atomicop `else epoch `endif 
-                 `ifdef simulate , inst `endif }=rx.u.first;
+                 `ifdef rtldump , inst `endif }=rx.u.first;
         `ifdef atomic
           Bit#(1) epoch=epoch_atomicop[0];
         `endif
         let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu.delayed_output;
         if(epoch==rg_epoch[0])begin
-          `ifdef simulate
+          `ifdef rtldump
             tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap, inst));
           `else
             tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], trap));
@@ -362,7 +362,7 @@ package opfetch_execute_stage;
         ff_atomic_response.deq;
         let {fn, rs1, rs2, rd, imm `ifdef RV64 , word32 `endif ,funct3, rs1_type, rs2_type, 
             insttype, mem_access, pc, trap, `ifdef atomic epoch_atomicop `else epoch `endif 
-                 `ifdef simulate , inst `endif }=rx.u.first;
+                 `ifdef rtldump , inst `endif }=rx.u.first;
         `ifdef atomic
           Bit#(4) atomic_op=epoch_atomicop[5:2];
           Bit#(1) maxop=epoch_atomicop[1];
@@ -391,7 +391,7 @@ package opfetch_execute_stage;
           else
             ff_memory_request.enq(tuple5(rg_atomic_address, op1_reslt, Store, funct3[1:0], ~funct3[2]));
           Commit_type committype1=MEMORY;                                         
-          `ifdef simulate
+          `ifdef rtldump
             tx.u.enq(tuple8(committype1, data, {1'b0, rg_atomic_address}, pc, rd, rg_epoch[0], trap, inst));
           `else
             tx.u.enq(tuple7(committype1, data, {1'b0, rg_atomic_address}, pc, rd, rg_epoch[0], trap));

@@ -428,9 +428,9 @@ package decode;
     `ifdef atomic
       Bit#(5) atomic_op = fn_atomic(inst[31:27]);
     `endif
-    `ifdef simulate 
+    `ifdef rtldump 
       Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
-        `ifdef atomic Bit#(6) `else Bit#(1) `endif `ifdef simulate , Bit#(32) `endif ) 
+        `ifdef atomic Bit#(6) `else Bit#(1) `endif , Bit#(32)) 
         type_tuple = tuple8(rs1type, rs2type, inst_type, mem_access, pc, interrupt, 
           `ifdef atomic {atomic_op,epoch} `else epoch `endif , inst);
     `else
@@ -646,9 +646,9 @@ package decode;
     if(interrupt matches tagged None)
       interrupt =  exception;
     
-    `ifdef simulate 
+    `ifdef rtldump 
       Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
-        `ifdef atomic Bit#(6) `else Bit#(1) `endif `ifdef simulate , Bit#(32) `endif ) 
+        `ifdef atomic Bit#(6) `else Bit#(1) `endif , Bit#(32) ) 
         type_tuple = tuple8(rs1type, rs2type, inst_type, mem_access, pc, interrupt, 
           `ifdef atomic {0,epoch} `else epoch `endif , zeroExtend(inst));
     `else

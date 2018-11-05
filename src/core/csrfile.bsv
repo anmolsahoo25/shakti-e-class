@@ -71,7 +71,7 @@ package csrfile;
 	  Reg#(Privilege_mode) rg_prv <- mkReg(Machine); // resets to machine mode
 	  
 	  Bit#(XLEN) csr_mvendorid  = 0;
-    Bit#(XLEN) csr_marchid    = `ifdef simulate 0 `else 6 `endif ;
+    Bit#(XLEN) csr_marchid    = `ifdef rtdlump 0 `else 6 `endif ;
     Bit#(XLEN) csr_mimpid     = 0;
     Bit#(XLEN) csr_mhartid    = 0;
 
@@ -112,8 +112,10 @@ package csrfile;
     `else
       Bit#(1) misa_n =0;
     `endif
-    `ifdef simulate
+    `ifdef rtldump
       Bit#(1) misa_s =1;
+    `else 
+      Bit#(1) misa_s =0;
     `endif
     `ifdef user
       Reg#(Bit#(1)) misa_u <- mkReg(1);

@@ -55,7 +55,7 @@ package riscv;
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(64) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
-    `ifdef simulate
+    `ifdef rtldump
       interface Get#(DumpType) dump;
     `endif
     `ifdef atomic
@@ -117,7 +117,7 @@ package riscv;
     method Action externalinterrupt(Bit#(1) intrpt);
       stage3.externalinterrupt(intrpt);
     endmethod
-    `ifdef simulate
+    `ifdef rtldump
       interface dump=stage3.dump;
     `endif
     `ifdef atomic

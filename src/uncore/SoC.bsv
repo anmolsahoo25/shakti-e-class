@@ -96,7 +96,7 @@ package SoC;
   `endif
 
   interface Ifc_SoC;
-    `ifdef simulate
+    `ifdef rtldump
       interface Get#(DumpType) io_dump;
     `endif
     `ifdef EXTERNAL
@@ -134,7 +134,7 @@ package SoC;
     mkConnection(eclass.sb_clint_msip,clint.sb_clint_msip);
     mkConnection(eclass.sb_clint_mtip,clint.sb_clint_mtip);
     mkConnection(eclass.sb_clint_mtime,clint.sb_clint_mtime);
-    `ifdef simulate
+    `ifdef rtldump
       interface io_dump= eclass.io_dump;
     `endif
     interface uart_io=uart.io;
@@ -161,7 +161,7 @@ package SoC;
 //			mkConnection (fabric.v_to_slaves [`BootRom_slave_num],bootrom.slave);
 //		`endif
 //
-//    `ifdef simulate
+//    `ifdef rtldump
 //      interface io_dump= eclass.io_dump;
 //    `endif
 //  endmodule: mkSoC
@@ -194,7 +194,7 @@ package SoC;
 //			mkConnection (fabric.v_to_slaves [`BootRom_slave_num],bootrom.slave);
 //		`endif
 //
-//    `ifdef simulate
+//    `ifdef rtldump
 //      interface dump= eclass.io_dump;
 //    `endif
 //  endmodule: mkSoC

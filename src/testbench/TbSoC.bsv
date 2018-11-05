@@ -53,7 +53,6 @@ package TbSoC;
     
     UserInterface#(PADDR,XLEN,16) uart <- mkuart_user(5);
     Reg#(Bool) rg_read_rx<- mkDReg(False);
-    Reg#(Bool) rg_stop <- mkReg(False);
 
     let verbosity=`VERBOSITY;
     Reg#(Bit#(5)) rg_cnt <-mkReg(0);
@@ -91,7 +90,6 @@ package TbSoC;
 
     rule check_if_character_present(!rg_read_rx);
       let {data,err}<- uart.read_req('hc,Byte);
-      $display($time,"\tTB: data: %b",data);
       if (data[3]==1) // character present
         rg_read_rx<=True;
     endrule
@@ -101,23 +99,11 @@ package TbSoC;
       $fwrite(dump1,"%c",data);
     endrule
 
-    `ifdef simulate
-        rule write_dump_file(rg_cnt>=5 && !rg_stop);
+    `ifdef rtldump
+        rule write_dump_file(rg_cnt>=5);
           let {prv, pc, instruction, rd, data}<- soc.io_dump.get;
-          if(instruction=='h00006f||instruction =='h00a001)begin
-            `ifdef signature
-              soc.start();
-              rg_stop<=True;
-            `else
-              $finish(0);
-            `endif
-          end
-      `ifdef rtldump
-          else begin
-  	  	  	$fwrite(dump, prv, " 0x%16h", pc, " (0x%8h", instruction, ")"); 
-	    	  	$fwrite(dump, " x%d", rd, " 0x%16h", data, "\n"); 
-          end
-      `endif
+  	    	$fwrite(dump, prv, " 0x%16h", pc, " (0x%8h", instruction, ")"); 
+	      	$fwrite(dump, " x%d", rd, " 0x%16h", data, "\n"); 
         endrule
     `endif
 

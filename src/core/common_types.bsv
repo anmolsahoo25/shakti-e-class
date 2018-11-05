@@ -53,7 +53,7 @@ package common_types;
   typedef Tuple8#(Bit#(4), Bit#(XLEN), Bit#(XLEN), Bit#(PADDR), Bit#(XLEN), Instruction_type, Funct3,
         Access_type)  ALU_Inputs;
   // define all tuples here
-  `ifdef simulate
+  `ifdef rtldump
     `ifdef RV64
     typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
               Tuple8#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),

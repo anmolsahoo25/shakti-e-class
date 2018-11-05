@@ -65,7 +65,7 @@ package eclass;
     interface Put#(Bit#(1)) sb_clint_mtip;
     interface Put#(Bit#(64)) sb_clint_mtime;
     interface Put#(Bit#(1)) sb_externalinterrupt;
-    `ifdef simulate
+    `ifdef rtldump
       interface Get#(DumpType) io_dump;
     `endif
   endinterface: Ifc_eclass_axi4
@@ -200,7 +200,7 @@ package eclass;
     endinterface;
 		interface master_i= fetch_xactor.axi_side;
 		interface master_d= memory_xactor.axi_side;
-    `ifdef simulate
+    `ifdef rtldump
       interface io_dump=riscv.dump;
     `endif
   endmodule: mkeclass_axi4
@@ -212,7 +212,7 @@ package eclass;
     interface Put#(Bit#(1)) sb_clint_mtip;
     interface Put#(Bit#(64)) sb_clint_mtime;
     interface Put#(Bit#(1)) sb_externalinterrupt;
-    `ifdef simulate
+    `ifdef rtldump
       interface Get#(DumpType) io_dump;
     `endif
   endinterface: Ifc_eclass_axi4lite
@@ -342,7 +342,7 @@ package eclass;
     endinterface;
 		interface master_i= fetch_xactor.axi_side;
 		interface master_d= memory_xactor.axi_side;
-    `ifdef simulate
+    `ifdef rtldump
       interface io_dump=riscv.dump;
     `endif
   endmodule: mkeclass_axi4lite
@@ -354,7 +354,7 @@ package eclass;
     interface Put#(Bit#(1)) sb_clint_mtip;
     interface Put#(Bit#(64)) sb_clint_mtime;
     interface Put#(Bit#(1)) sb_externalinterrupt;
-    `ifdef simulate
+    `ifdef rtldump
       interface Get#(DumpType) io_dump;
     `endif
   endinterface: Ifc_eclass_TLU
@@ -459,7 +459,7 @@ package eclass;
         riscv.externalinterrupt(intrpt);
       endmethod
     endinterface;
-    `ifdef simulate
+    `ifdef rtldump
       interface io_dump=riscv.dump;
     `endif
   endmodule
