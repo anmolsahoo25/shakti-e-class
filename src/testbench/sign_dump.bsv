@@ -117,8 +117,8 @@ package sign_dump;
         $finish(0);
       end
       rg_word_count<=rg_word_count-1;
-      lv_dataarray[rg_word_count]=response.rdata;
-      dataarray[rg_word_count]<=response.rdata;
+      lv_dataarray[rg_word_count]=truncate(response.rdata);
+      dataarray[rg_word_count]<=truncate(response.rdata);
 
       if(rg_word_count==0)begin 
         for(Integer i=0;i<word_count;i=i+1)
