@@ -61,7 +61,7 @@ package sign_dump;
     Reg#(Bit#(PADDR)) rg_end_address<- mkReg(0);      // 0x2008
 
 
-    Reg#(Bit#(XLEN)) dataarray[word_count];
+    Reg#(Bit#(32)) dataarray[word_count];
     for(Integer i=0;i<word_count;i=i+1)
       dataarray[i]<-mkReg(0);
     Reg#(Bit#(5)) rg_cnt <-mkReg(0);
@@ -83,26 +83,23 @@ package sign_dump;
 	    let b = AXI4_Wr_Resp {bresp: AXI4_SLVERR, buser: aw.awuser, bid:aw.awid};
       if (aw.awaddr[3:0]=='h0) begin
         rg_start_address<=truncate(w.wdata);
-        $display($time,"\tSIGNDUMP: Writing Start Address: %h",w.wdata);
         b.bresp=AXI4_OKAY;
       end
       else if (aw.awaddr[3:0]=='h8) begin
         rg_end_address<=truncate(w.wdata);
-        $display($time,"\tSIGNDUMP: Writing End Address: %h",w.wdata);
         rg_start<=True;
         b.bresp=AXI4_OKAY;
         Bit#(PADDR) total_bytes=truncate(w.wdata)-rg_start_address;
         rg_total_count<=total_bytes>>2;
       end
       else if (aw.awaddr[3:0]=='hc) begin
-        $display($time,"\tSIGNDUMP: Ending simulation");
         $finish(0);        
       end
   	  s_xactor.i_wr_resp.enq (b);
     endrule
     
     rule send_request(rg_start);
-      if(rg_start_address!=rg_end_address) begin
+      if(rg_start_address<rg_end_address) begin
   			AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: rg_start_address, aruser: ?, 
           arlen:0, arsize: 2, arburst: 'b01, arid:2}; // arburst: 00-FIXED 01-INCR 10-WRAP
   			m_xactor.i_rd_addr.enq(read_request);	
@@ -112,14 +109,11 @@ package sign_dump;
 
     rule receive_response(rg_cnt>=5 && rg_start);
 			let response <- pop_o (m_xactor.o_rd_data);	
-      $display($time,"\tSIGNATURE: Memory responded with: ",fshow(response), "rg_total_count: %d",
-        rg_total_count);
       rg_total_count<=rg_total_count-1;
-      Bit#(XLEN) lv_dataarray[word_count];
+      Bit#(32) lv_dataarray[word_count];
       for(Integer i=0;i<word_count;i=i+1)
         lv_dataarray[i]=dataarray[i];
       if (response.rresp!=AXI4_OKAY)begin
-        $display($time,"\tSIGNATURE: Memory responded with Error");
         $finish(0);
       end
       rg_word_count<=rg_word_count-1;

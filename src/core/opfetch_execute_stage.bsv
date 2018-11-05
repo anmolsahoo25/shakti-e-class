@@ -385,7 +385,6 @@ package opfetch_execute_stage;
           if(atomic_op == 'b1100 || atomic_op == 'b1110)begin // AMOMAX[U], AMOMIN[U]
             op1_reslt=(op1_reslt[0]^maxop)==1?data:rg_op2;
           end
-          $display($time, "\tSTAGE2: Recieved Atomic response: ", fshow(ff_atomic_response.first));
           if(err)
             trap = tagged Exception Store_access_fault;
           else
