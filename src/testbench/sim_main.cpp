@@ -2,9 +2,11 @@
 
 #include <verilated.h>
 
-#include "VmkTbSoC.h"
+//#include "Vmkicache_tb.h"
 
-# include <verilated_vcd_c.h>
+#include <verilated_vcd_c.h>
+
+#include "sim_main.h"
 
 vluint64_t main_time = 0;    // Current simulation time
 
@@ -26,7 +28,7 @@ int main (int argc, char **argv, char **env) {
     Verilated::randReset(2);
 
 
-    VmkTbSoC* mkTbSoC = new VmkTbSoC;    // create instance of model
+    TOPMODULE* mkTbSoC = new TOPMODULE;    // create instance of model
 
 #if VM_TRACE
     // If verilator was invoked with --trace argument,

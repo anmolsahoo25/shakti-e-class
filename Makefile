@@ -236,8 +236,11 @@ link_msim:
 link_verilator: 
 	@echo "Linking $(TOP_MODULE) using verilator"
 	@mkdir -p bin obj_dir
-	verilator $(VERILATOR_FLAGS) -y $(VERILOGDIR) --exe
+	@echo "#define TOPMODULE V$(TOP_MODULE)" > src/testbench/sim_main.h
+	@echo '#include "V$(TOP_MODULE).h"' >> src/testbench/sim_main.h
+	@verilator $(VERILATOR_FLAGS) -y $(VERILOGDIR) --exe
 	@ln -f -s ../src/testbench/sim_main.cpp obj_dir/sim_main.cpp
+	@ln -f -s ../src/testbench/sim_main.h obj_dir/sim_main.h
 	@make -j8 -C obj_dir -f V$(TOP_MODULE).mk
 	@cp obj_dir/V$(TOP_MODULE) bin/out
 
