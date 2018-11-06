@@ -72,7 +72,7 @@ package csrfile;
 	  Reg#(Privilege_mode) rg_prv <- mkReg(Machine); // resets to machine mode
 	  
 	  Bit#(XLEN) csr_mvendorid  = 0;
-    Bit#(XLEN) csr_marchid    = `ifdef rtldump 0 `else 6 `endif ;
+    Bit#(XLEN) csr_marchid    = `ifdef rtldump 0 `else 6 `endif ; // TODO this is done for spike  dump checking
     Bit#(XLEN) csr_mimpid     = 0;
     Bit#(XLEN) csr_mhartid    = 0;
 
@@ -113,7 +113,7 @@ package csrfile;
     `else
       Bit#(1) misa_n =0;
     `endif
-    `ifdef rtldump
+    `ifdef rtldump // TODO: this is done only for spike dump checking.
       Bit#(1) misa_s =1;
     `else 
       Bit#(1) misa_s =0;
