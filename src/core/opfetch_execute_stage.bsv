@@ -61,6 +61,7 @@ package opfetch_execute_stage;
     method Action flush_from_wb(Bool fl);
     method Action csr_updated (Bool upd);
     method Action interrupt(Bool i);
+    method Action misa_c_from_csr (Bit#(1) c);
     `ifdef atomic
       interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) atomic_response;
     `endif
@@ -73,6 +74,7 @@ package opfetch_execute_stage;
 
     Wire#(Bool) wr_interrupt<-mkWire();
     Reg#(Bool) rg_wfi <- mkReg(False);
+    Wire#(Bit#(1)) wr_misa_c <- mkWire();
      
     // generating the register file
     RegFile#(Bit#(5),Bit#(XLEN)) integer_rf <-mkRegFileWCF(0,31);
@@ -83,9 +85,9 @@ package opfetch_execute_stage;
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
 
     `ifdef RV64
-      Wrapper2#(ALU_Inputs,Bool,ALU_OUT) alu_wrapper <- mkUniqueWrapper2(fn_alu);
+      Wrapper3#(ALU_Inputs,Bool,Bit#(1),ALU_OUT) alu_wrapper <- mkUniqueWrapper3(fn_alu);
     `else
-      Wrapper#(ALU_Inputs,ALU_OUT) alu_wrapper <- mkUniqueWrapper(fn_alu);
+      Wrapper2#(ALU_Inputs,Bit#(1),ALU_OUT) alu_wrapper <- mkUniqueWrapper2(fn_alu);
     `endif
 
     `ifdef atomic
@@ -208,7 +210,7 @@ package opfetch_execute_stage;
 
       `ifndef muldiv
         let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu_wrapper.func(inp1 
-            `ifdef RV64, word32 `endif );
+            `ifdef RV64, word32 `endif , wr_misa_c );
       `endif
       if(epoch==rg_epoch[0])begin
         //passing the result to next stage via fifo
@@ -216,7 +218,7 @@ package opfetch_execute_stage;
           
           `ifdef muldiv
             let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- alu.get_inputs(inp1
-              `ifdef RV64 ,word32 `endif );
+              `ifdef RV64 ,word32 `endif , wr_misa_c);
           `endif
           
           `ifdef atomic
@@ -373,11 +375,11 @@ package opfetch_execute_stage;
           `ifdef muldiv
             let {done, committype, op1_reslt, effaddr_csrdata, trap1} <- 
                   alu.get_inputs(tuple8(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access) 
-                      `ifdef RV64 , word32 `endif );
+                      `ifdef RV64 , word32 `endif , wr_misa_c);
           `else
             let {committype, op1_reslt, effaddr_csrdata, trap1} <-
                 alu_wrapper.func(tuple8(atomic_op, data, rg_op2, 0, 0, ALU, funct3, mem_access)
-                  `ifdef RV64 , word32 `endif );
+                  `ifdef RV64 , word32 `endif  , wr_misa_c);
           `endif
           if(&atomic_op==1)begin // AMOSWAP
             op1_reslt=rg_op2;
@@ -454,6 +456,9 @@ package opfetch_execute_stage;
     endmethod
     method Action interrupt(Bool i);
       wr_interrupt<= i;
+    endmethod
+    method Action misa_c_from_csr (Bit#(1) c);
+      wr_misa_c<=c;
     endmethod
   endmodule:mkopfetch_execute_stage
 endpackage:opfetch_execute_stage

@@ -49,7 +49,7 @@ package alu;
   `include "common_params.bsv"
 
 	(*noinline*)
-    function ALU_OUT fn_alu(ALU_Inputs inp `ifdef RV64 , Bool word32 `endif );
+    function ALU_OUT fn_alu(ALU_Inputs inp `ifdef RV64 , Bool word32 `endif , Bit#(1) misa_c);
     let {fn, op1, op2, imm_value, op3, inst_type, funct3, memaccess}=inp;
 
 	  /*========= Perform all the arithmetic ===== */
@@ -107,11 +107,10 @@ package alu;
       effective_address[0]=0;
     // The following can be placed here since we are not using a branch predictor yet.
     Trap_type exception=tagged None;
-    `ifndef compressed
-	    if((inst_type==JAL || inst_type==JALR || (inst_type==BRANCH && final_output[0]==1)) && effective_address[1]!=0)
-	  	  exception=tagged Exception Inst_addr_misaligned;
-      else
-    `endif
+	  if((inst_type==JAL || inst_type==JALR || (inst_type==BRANCH && final_output[0]==1)) 
+                                                     && effective_address[1]!=0 && misa_c==0)
+	    exception=tagged Exception Inst_addr_misaligned;
+    else
     if(inst_type==MEMORY && ((funct3[1:0]==1 && effective_address[0]!=0) || (funct3[1:0]==2 &&
         effective_address[1:0]!=0) `ifdef RV64 || (funct3[1:0]==3 && effective_address[2:0]!=0)
         `endif ))begin
@@ -149,7 +148,7 @@ package alu;
 `ifdef muldiv
   interface Ifc_alu;
     method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(ALU_Inputs inp 
-        `ifdef RV64 , Bool word32 `endif );
+        `ifdef RV64 , Bool word32 `endif , Bit#(1) misa_c);
 		method ActionValue#(ALU_OUT) delayed_output;
   endinterface:Ifc_alu
 
@@ -157,14 +156,14 @@ package alu;
   module mkalu(Ifc_alu);
     Ifc_muldiv muldiv <- mkmuldiv;
     method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(ALU_Inputs inp 
-        `ifdef RV64 , Bool word32 `endif );
+        `ifdef RV64 , Bool word32 `endif , Bit#(1) misa_c );
       let {fn, op1, op2, imm_value, op3, inst_type, funct3, memaccess}=inp;
       if(inst_type==MULDIV)begin
         let product <- muldiv.get_inputs(op1, op2, funct3 `ifdef RV64 , word32 `endif );
         return product;
       end
       else
-        return tuple2(True, fn_alu(inp `ifdef RV64 , word32 `endif ));
+        return tuple2(True, fn_alu(inp `ifdef RV64 , word32 `endif ,misa_c));
     endmethod
 		method delayed_output=muldiv.delayed_output;
   endmodule

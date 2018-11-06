@@ -51,6 +51,7 @@ package csr;
     method Action externalinterrupt(Bit#(1) intrpt);
     method Action incr_minstret;
     method Bool interrupt;
+    method Bit#(1) mv_misa_c;
   endinterface:Ifc_csr
 
 
@@ -131,5 +132,6 @@ package csr;
     endmethod
     method incr_minstret=csrfile.incr_minstret;
     method  interrupt=csrfile.interrupt;
+    method mv_misa_c=csrfile.mv_misa_c;
   endmodule
 endpackage

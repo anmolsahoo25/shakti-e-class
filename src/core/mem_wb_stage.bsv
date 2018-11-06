@@ -57,6 +57,7 @@ package mem_wb_stage;
     `ifdef rtldump
       interface Get#(DumpType) dump;
     `endif
+    method Bit#(1) mv_misa_c;
   endinterface:Ifc_mem_wb_stage
 
   (*synthesize*)
@@ -241,6 +242,7 @@ package mem_wb_stage;
         endmethod
       endinterface;
     `endif
-    method  interrupt=csr.interrupt;
+    method interrupt=csr.interrupt;
+    method mv_misa_c=csr.mv_misa_c;
   endmodule:mkmem_wb_stage
 endpackage:mem_wb_stage

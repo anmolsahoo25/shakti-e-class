@@ -47,6 +47,7 @@ package csrfile;
     method ActionValue#(Bit#(PADDR)) upd_on_trap(Bit#(6) cause, Bit#(PADDR) pc, Bit#(PADDR) tval);
     method Action incr_minstret;
     method Bool interrupt;
+    method Bit#(1) mv_misa_c;
   endinterface
   
   function Reg#(t) readOnlyReg(t r);
@@ -575,5 +576,6 @@ package csrfile;
       `endif
     endmethod
     method interrupt = unpack(|(csr_mie&csr_mip));
+    method mv_misa_c=misa_c;
   endmodule
 endpackage

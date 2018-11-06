@@ -100,6 +100,10 @@ package riscv;
       stage1.csrs(stage3.csrs_to_decode);
     endrule
 
+    rule connect_misa;
+      stage2.misa_c_from_csr(stage3.mv_misa_c);
+    endrule
+
     interface inst_request = stage1.inst_request;
     interface inst_response = stage1.inst_response;
     interface memory_request = stage2.memory_request;
