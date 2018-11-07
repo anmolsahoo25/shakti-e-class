@@ -106,3 +106,10 @@ To generate VCD go to the bin and execute the following:
 
 * in bsim environment: ./out -V
 * in verilog environment: ./out +bscvcd
+
+# Verilog Sources
+The verilog instances of the e-class are released un GPL 3 license.
+Please check the Release Tags for verilog releases.
+These releases are typically meant for simulation only. 
+
+If you interested in acquiring a BSD version of the verilog or any other instance of the verilog kindly send a mail at: shakti[dot]iitm[at]gmail[dot]com
