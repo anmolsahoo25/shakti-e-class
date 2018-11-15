@@ -109,21 +109,11 @@ package sign_dump;
 
     rule receive_response(rg_cnt>=5 && rg_start);
 			let response <- pop_o (m_xactor.o_rd_data);	
+    	$fwrite(dump,"%8h\n", response.rdata); 
       rg_total_count<=rg_total_count-1;
-      Bit#(32) lv_dataarray[word_count];
-      for(Integer i=0;i<word_count;i=i+1)
-        lv_dataarray[i]=dataarray[i];
       if (response.rresp!=AXI4_OKAY)begin
+        $display($time, "\tSIGNATUREDUMP got Bus Error");
         $finish(0);
-      end
-      rg_word_count<=rg_word_count-1;
-      lv_dataarray[rg_word_count]=truncate(response.rdata);
-      dataarray[rg_word_count]<=truncate(response.rdata);
-
-      if(rg_word_count==0)begin 
-        for(Integer i=0;i<word_count;i=i+1)
-      		$fwrite(dump,"%8h", lv_dataarray[i]); 
-        $fwrite(dump,"\n");
       end
       if(rg_total_count==1)
         rg_start<=False;
