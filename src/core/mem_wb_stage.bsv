@@ -101,91 +101,93 @@ package mem_wb_stage;
       Bit#(PADDR) jump_address=truncate(effaddr_csrdata);
       Flush_type fl = unpack(effaddr_csrdata[valueOf(PADDR)]);
       // continue commit only if epochs match. Else deque the ex fifo
-      if(trap matches tagged Interrupt .in)begin
-        let newpc<-  csr.take_trap(trap, pc, ?);
-        wr_flush<=tuple2(newpc, True);
-        rg_epoch <= ~rg_epoch;
-        rx.u.deq;
-        if(verbosity!=0)
-          $display($time, "\tSTAGE3: Received Interrupt: ", fshow(trap));
-      end
-      else if(rg_epoch==epoch)begin
-        // in case of a flush also flip the local epoch register.
-        // if instruction is of memory type then wait for response from memory
-        if(trap matches tagged Exception .ex)begin
-          jump_address<- csr.take_trap(trap, pc, truncate(effaddr_csrdata));
-          fl= Flush;
+      if(rg_epoch==epoch)begin
+        if(trap matches tagged Interrupt .in)begin
+          let newpc<-  csr.take_trap(trap, pc, ?);
+          wr_flush<=tuple2(newpc, True);
+          rg_epoch <= ~rg_epoch;
           rx.u.deq;
           if(verbosity!=0)
-            $display($time, "\tSTAGE3: Received Exception: ", fshow(trap));
+            $display($time, "\tSTAGE3: Received Interrupt: ", fshow(trap));
         end
-        else if(committype == MEMORY) begin
-          if (wr_memory_response matches tagged Valid .resp)begin
-            let {data, err, access_type}=resp;
-            if(!err)begin // no bus error
-              if(rd==0)
-                data=0;
-              `ifdef atomic
-                else if(access_type==Store)
-                  data=reslt;
-              `endif
-              wr_operand_fwding <= tuple3(rd, True, data);
-              wr_commit <= tagged Valid (tuple2(rd, data));
-              `ifdef rtldump 
-                dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
-              `endif
+        else begin
+          // in case of a flush also flip the local epoch register.
+          // if instruction is of memory type then wait for response from memory
+          if(trap matches tagged Exception .ex)begin
+            jump_address<- csr.take_trap(trap, pc, truncate(effaddr_csrdata));
+            fl= Flush;
+            rx.u.deq;
+            if(verbosity!=0)
+              $display($time, "\tSTAGE3: Received Exception: ", fshow(trap));
+          end
+          else if(committype == MEMORY) begin
+            if (wr_memory_response matches tagged Valid .resp)begin
+              let {data, err, access_type}=resp;
+              if(!err)begin // no bus error
+                if(rd==0)
+                  data=0;
+                `ifdef atomic
+                  else if(access_type==Store)
+                    data=reslt;
+                `endif
+                wr_operand_fwding <= tuple3(rd, True, data);
+                wr_commit <= tagged Valid (tuple2(rd, data));
+                `ifdef rtldump 
+                  dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
+                `endif
+              end
+              else begin
+                if(verbosity!=0)
+                  $display($time, "\tSTAGE3: Received Exception from Memory: ", fshow(resp));
+                if(access_type == Load)
+                  trap = tagged Exception Load_access_fault;
+                else
+                  trap = tagged Exception Store_access_fault;
+                jump_address<- csr.take_trap(trap, pc, truncate(effaddr_csrdata));
+                fl= Flush;
+              end
+              rx.u.deq;
             end
             else begin
-              if(verbosity!=0)
-                $display($time, "\tSTAGE3: Received Exception from Memory: ", fshow(resp));
-              if(access_type == Load)
-                trap = tagged Exception Load_access_fault;
-              else
-                trap = tagged Exception Store_access_fault;
-              jump_address<- csr.take_trap(trap, pc, truncate(effaddr_csrdata));
-              fl= Flush;
+              // is response is not available then indicate that the rd is not yet available.
+              wr_operand_fwding <= tuple3(rd, False, 0);
             end
+          end
+          else if(committype == SYSTEM_INSTR)begin
+            let {drain, newpc, dest}<-csr.system_instruction(rd, effaddr_csrdata[11:0], 
+                            effaddr_csrdata[16:12], reslt, effaddr_csrdata[19:17], truncate(pc));
+            jump_address=newpc;
+            if(drain) 
+              fl=Flush;
+            `ifdef rtldump 
+              dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, dest));
+            `endif
+            wr_commit <= tagged Valid (tuple2(rd, dest));
             rx.u.deq;
           end
           else begin
-            // is response is not available then indicate that the rd is not yet available.
-            wr_operand_fwding <= tuple3(rd, False, 0);
+            // in case of regular instruction simply update RF and forward the data.
+            if(verbosity!=0)
+              $display($time, "\tSTAGE3: Commiting PC: %h", pc);
+            if(rd==0)
+              reslt=0;
+            wr_operand_fwding <= tuple3(rd, True, reslt);
+            wr_commit <= tagged Valid (tuple2(rd, reslt));
+            rx.u.deq;
+            `ifdef rtldump 
+              dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, reslt));
+            `endif
           end
-        end
-        else if(committype == SYSTEM_INSTR)begin
-          let {drain, newpc, dest}<-csr.system_instruction(rd, effaddr_csrdata[11:0], 
-                          effaddr_csrdata[16:12], reslt, effaddr_csrdata[19:17], truncate(pc));
-          jump_address=newpc;
-          if(drain) 
-            fl=Flush;
-          `ifdef rtldump 
-            dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, dest));
-          `endif
-          wr_commit <= tagged Valid (tuple2(rd, dest));
-          rx.u.deq;
-        end
-        else begin
-          // in case of regular instruction simply update RF and forward the data.
-          if(verbosity!=0)
-            $display($time, "\tSTAGE3: Commiting PC: %h", pc);
-          if(rd==0)
-            reslt=0;
-          wr_operand_fwding <= tuple3(rd, True, reslt);
-          wr_commit <= tagged Valid (tuple2(rd, reslt));
-          rx.u.deq;
-          `ifdef rtldump 
-            dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, reslt));
-          `endif
-        end
-        
-        // if it is a branch/JAL_R instruction generate a flush signal to the pipe. 
-        wr_flush<=tuple2(jump_address, (fl==Flush));
-        if(fl==Flush)begin
-          rg_epoch <= ~rg_epoch;
-        end
-        if(fl==Flush || committype==SYSTEM_INSTR)
-          wr_csr_updated<= True;
+          
+          // if it is a branch/JAL_R instruction generate a flush signal to the pipe. 
+          wr_flush<=tuple2(jump_address, (fl==Flush));
+          if(fl==Flush)begin
+            rg_epoch <= ~rg_epoch;
+          end
+          if(fl==Flush || committype==SYSTEM_INSTR)
+            wr_csr_updated<= True;
 
+        end
       end
       else begin
         if(verbosity!=0)
