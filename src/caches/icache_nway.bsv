@@ -41,6 +41,7 @@ package icache_nway;
   import DReg::*;
   import Assert::*;
   import replacement::*;
+  import SpecialFIFOs::*;
   
   //parameters:
   // wordsize: number of bytes per word. This is what is responded back to the core.
@@ -129,7 +130,7 @@ package icache_nway;
        return write_enable;
     endfunction
 
-    Ifc_mem_config#(sets, linewidth, 8) data_arr [v_ways]; // data array
+    Ifc_mem_config#(sets, linewidth, 1) data_arr [v_ways]; // data array
     Ifc_mem_config#(sets, TAdd#(1, tagbits), 1) tag_arr [v_ways];// one extra valid bit
     Ifc_replace#(sets,ways) repl <- mkreplace(alg);
     for(Integer i=0;i<v_ways;i=i+1)begin
@@ -389,11 +390,6 @@ package icache_nway;
     // generate an IO hit response.
     rule rl_response_to_core(!tpl_2(ff_req_queue.first) && (wr_lb_state==Hit || wr_cache_state==Hit
         || wr_io_response));
-      `ifdef simulate
-        if (verbosity>0)
-          $display($time,"\tICACHE: Sending Response to the Core");
-        dynamicAssert(!(wr_lb_state==Hit && wr_cache_state==Hit), "Hit in Both LB and Cache found");
-      `endif
       let {addr, fence, epoch, prefetch}=ff_req_queue.first();
       ff_req_queue.deq();
       Bit#(respwidth) word=0;
@@ -552,7 +548,7 @@ addresses");
     endrule
 
     interface core_req=interface Put
-      method Action put(ICore_request#(paddr) req) if(!rg_init && !rg_fence_stall );
+      method Action put(ICore_request#(paddr) req) if(!rg_init && !rg_fence_stall && ff_core_response.notFull);
         `ifdef perf
           wr_total_access<=1;
         `endif
