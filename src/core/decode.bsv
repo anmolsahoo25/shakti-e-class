@@ -98,7 +98,6 @@ package decode;
 			default:return False;
 		endcase
 	endfunction
-`ifdef compressed
   function Bit#(3) gen_funct3(Bit#(5) opcode,Bit #(16) inst);
     Bit #(3) funct3 =3'b000;
     
@@ -143,7 +142,6 @@ package decode;
     return funct3;
 
  endfunction
-`endif
 	
   function Bool hasCSRPermission(Bit#(12) address, Bool write,  Privilege_mode prv);
     Bit#(12) csr_index = pack(address);
@@ -344,7 +342,12 @@ package decode;
     		'b001:inst_type=JALR; 
         'b011:inst_type=JAL;
     		'b000:inst_type=BRANCH;
-    		'b100:inst_type=(funct7=='b001000)?WFI:SYSTEM_INSTR;
+    		'b100:begin
+            if(funct3==0 && funct7=='b001000)
+              inst_type=WFI;
+            else
+              inst_type=SYSTEM_INSTR;
+        end
     	endcase
     end
     else if(opcode[4:3]=='b01)begin 
@@ -403,8 +406,8 @@ package decode;
              `ifdef muldiv (inst_type==MULDIV && misa[12]==0) || `endif
              `ifdef RV32 (opcode==`IMM_ARITH_op && funct3=='b001 && inst[31:25]!=0) || `endif
              `ifdef RV64 (opcode==`IMM_ARITH_op && funct3=='b001 && inst[31:26]!=0) || `endif
-             (inst_type==ALU && misa[8]==0) 
-             `ifndef compressed || inst[1:0]!='b11 `endif )
+             (inst_type==ALU && misa[8]==0) ||
+             (inst[1:0]!='b11 && misa[2]==0 ))
       exception=tagged Exception Illegal_inst; 
     else if(inst_type == SYSTEM_INSTR)begin
       if(funct3 == 0)
@@ -446,7 +449,6 @@ package decode;
     `endif
   endfunction
 
-`ifdef compressed
  function PIPE1_DS decoder_func_16(Bit#(16) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch, Bool err, 
                                                                                CSRtoDecode csrs );
     let {prv, mip, csr_mie, mideleg, misa, counteren, mie}=csrs;
@@ -665,5 +667,4 @@ package decode;
     `endif
 
   endfunction
-`endif
 endpackage
