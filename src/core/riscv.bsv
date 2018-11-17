@@ -43,8 +43,8 @@ package riscv;
 
   interface Ifc_riscv;
 	`ifdef compressed
-  	interface Get#(Tuple2#(Bit#(32),Bit#(1))) inst_request;//instruction whose addr is needed
-	  interface Put#(Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1))) inst_response;//addr of the given inst
+  	interface Get#(Tuple4#(Bit#(PADDR),Bool, Bit#(1), Bool)) inst_request;//instruction whose addr is needed
+	  interface Put#(Tuple4#(Bit#(32),Bool, Bit#(1), Bit#(32))) inst_response;//addr of the given inst
 	`else
   	interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
 	  interface Put#(Tuple2#(Bit#(32),Bool)) inst_response;//addr of the given inst
