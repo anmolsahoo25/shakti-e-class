@@ -44,11 +44,13 @@ package fetch_decode_stage;
   // Interface for the fetch and decode unit
 	interface Ifc_fetch_decode_stage;
     `ifdef compressed
-  	  interface Get#(Tuple2#(Bit#(32),Bit#(1))) inst_request;//instruction whose addr is needed
-      interface Put#(Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1))) inst_response;//addr of the given inst
+  	 // interface Get#(Tuple2#(Bit#(32),Bit#(1))) inst_request;//instruction whose addr is needed
+	  interface Get#(Tuple4#(Bit#(PADDR), Bool, Bit#(1), Bool)) inst_request; // icache integration
+      interface Put#(Tuple4#(Bit#(32),Bool,Bit#(1), Bit#(32))) inst_response;//addr of the given inst
     `else
-      interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
- 	    interface Put#(Tuple2#(Bit#(32),Bool)) inst_response;//addr of the given inst
+      //interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
+	  interface Get#(Tuple4#(Bit#(PADDR), Bool, Bit#(1), Bool )) inst_request; // icache integration
+ 	  interface Put#(Tuple2#(Bit#(32),Bool)) inst_response;//addr of the given inst
     `endif
     // rs1,rs2,rd,fn,funct3,instruction_type will be passed on to opfetch and execute unit
     interface TXe#(PIPE1_DS) to_opfetch_unit;
@@ -66,7 +68,8 @@ package fetch_decode_stage;
     `ifdef compressed
     	Reg#(Maybe#(Bit#(16)))buff<-mkReg(tagged Invalid);
     	Reg#(Bit#(1)) epoch_buff<-mkReg(0);
-     	FIFOF#(Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1))) ff_response_from_memory <-mkSizedBypassFIFOF(1);
+     	FIFOF#(Tuple4#(Bit#(32),Bool,Bit#(1),Bit#(32))) ff_response_from_memory <-mkSizedBypassFIFOF(1);
+		//FIFOF#(Tuple2#(Bit#(PADDR), Bit#(1)) ff_inst_addr <- mkSizedFIFOF(2); //icache integration
     `else 
     	Reg#(Bit#(PADDR)) shadow_pc <-mkRegU;  //shadow pc to preserve it
     `endif
@@ -76,7 +79,7 @@ package fetch_decode_stage;
       rule inst_response_to_decode;
         Bit#(32) inst_decode = 0;
         Bool compressed = False;
-        let {inst,err,shadow_pc,shadow_epoch}=ff_response_from_memory.first;
+        let {inst,err,shadow_epoch,shadow_pc}=ff_response_from_memory.first;
          
         if(shadow_pc[1:0] == 2'b10 && inst[17:16]==2'b11) begin//upon a jump inst to pc+2
           ff_response_from_memory.deq;
@@ -133,21 +136,27 @@ package fetch_decode_stage;
     `endif
     //getting response from bus  
     //instruction whose addr is needed
+	// TODO assign pc to shadow pc
 		`ifdef compressed
 		  interface inst_request = interface Get
-			  method ActionValue#(Tuple2#(Bit#(PADDR),Bit#(1))) get;
+			  method ActionValue#(Tuple4#(Bit#(PADDR), Bool, Bit#(1), Bool )) get; // icache integration
 				  if(pc[0][1:0]==2'b10)
 				    pc[0]<=pc[0]+2;
 				  else
             pc[0]<=pc[0]+4;
           if(verbosity!=0)
             $display($time, "\tSTAGE1: Sending Instruction Addr: %h", pc[0]);
-		      return tuple2(pc[0],rg_epoch[0]);
+			//ff_inst_addr.enq(Tuple2(pc[0], rg_epoch[0]); // icache integration
+			let request = tuple4(pc[0], False, rg_epoch[0], False);
+		      return request; // icache integration
         endmethod
       endinterface;
 		  interface inst_response= interface Put
-		  	method Action put (Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1)) resp);
-          ff_response_from_memory.enq(resp);
+		  	method Action put (Tuple4#(Bit#(32), Bool, Bit#(1), Bit#(32)) resp); // icache integration
+				//let {inst_address, epoch} = ff_instr_addr.first; // icache integration
+				$display($time,"\tSTAGE1: Enquing instruction into FIFO: ",fshow(resp));
+                ff_response_from_memory.enq(resp); // icache integration
+		       // ff_inst_addr.deq; // icache integration
 		  	endmethod
 		  endinterface;
     `else 
