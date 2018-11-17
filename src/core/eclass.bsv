@@ -78,7 +78,7 @@ package eclass;
 
   (*synthesize*)
   (*conflict_free="core_req_put,deq_lb"*)
-  (*conflict_free="upd_data_into_cache,core_req_put"*)
+//  (*conflict_free="upd_data_into_cache,core_req_put"*)
   module mkicache(Ifc_icache_dm#(`wordsize, `blocksize, `sets, `ways, `respwidth, PADDR));
      let ifc();
 	 mkicache_dm#(isIO, False, "PLRU", False, "dual") _temp(ifc);

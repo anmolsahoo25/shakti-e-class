@@ -31,7 +31,7 @@ Details:
 package riscv;
   // project imports
   import common_types::*;
-  import fetch_decode_stage::*;
+  import fetch_new::*;
   import opfetch_execute_stage::*;
   import mem_wb_stage::*;
 
@@ -42,13 +42,8 @@ package riscv;
   import FIFOF::*;
 
   interface Ifc_riscv;
-	`ifdef compressed
   	interface Get#(Tuple4#(Bit#(PADDR),Bool, Bit#(1), Bool)) inst_request;//instruction whose addr is needed
-	  interface Put#(Tuple4#(Bit#(32),Bool, Bit#(1), Bit#(32))) inst_response;//addr of the given inst
-	`else
-  	interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
-	  interface Put#(Tuple2#(Bit#(32),Bool)) inst_response;//addr of the given inst
-	`endif
+    interface Put#(Tuple3#(Bit#(32),Bool,Bit#(1))) inst_response;//addr of the given inst
     interface Get#(MemoryRequest) memory_request;
     interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) memory_response;
 	  method Action clint_msip(Bit#(1) intrpt);
