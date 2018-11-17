@@ -62,7 +62,7 @@ package icache_nway;
                            numeric type paddr
                            );
     interface Put#(ICore_request#(paddr)) core_req;
-    interface Get#(ICore_response#(respwidth, paddr)) core_resp;
+    interface Get#(ICore_response#(respwidth)) core_resp;
     interface Get#(IMem_request#(paddr)) mem_req;
     interface Put#(IMem_response#(respwidth)) mem_resp;
     `ifdef simulate
@@ -138,7 +138,7 @@ package icache_nway;
     end
    
     // FIFOs for interface communication
-    FIFOF#(ICore_response#(respwidth, paddr))ff_core_response <- mkSizedFIFOF(2);
+    FIFOF#(ICore_response#(respwidth))ff_core_response <- mkSizedBypassFIFOF(1);
     FIFOF#(IMem_request#(paddr)) ff_mem_request    <- mkSizedFIFOF(2);
     FIFOF#(IMem_response#(respwidth)) ff_mem_response  <- mkSizedFIFOF(2);
     FIFOF#(ICore_request#(paddr)) ff_req_queue <- mkSizedFIFOF(2); 
@@ -423,11 +423,16 @@ package icache_nway;
       end
       if(prefetch_en)begin
         if(!prefetch)
-          ff_core_response.enq(tuple4(word,err,epoch, addr)); //icache integration
+          ff_core_response.enq(tuple3(word,err,epoch)); //icache integration
       end
       else
-        ff_core_response.enq(tuple4(word,err,epoch, addr)); // icache integration
+        ff_core_response.enq(tuple3(word,err,epoch)); // icache integration
       rg_miss_ongoing<=False;
+      `ifdef simulate
+        if (verbosity>0)
+          $display($time,"\tICACHE: Sending Response to the Core word: %h for addr: %h",word,addr);
+        dynamicAssert(!(wr_lb_state==Hit && wr_cache_state==Hit), "Hit in Both LB and Cache found");
+      `endif
 //      `ifdef simulate
 //        if(rg_miss_ongoing)
 //          ff_meta.enq(0);
@@ -573,7 +578,7 @@ addresses");
     endinterface;
 
     interface core_resp = interface Get
-      method ActionValue#(ICore_response#(respwidth, paddr)) get();
+      method ActionValue#(ICore_response#(respwidth)) get();
         ff_core_response.deq;
         return ff_core_response.first;
       endmethod
