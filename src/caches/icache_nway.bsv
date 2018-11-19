@@ -248,7 +248,7 @@ package icache_nway;
     // This rule will also check if the request is cacheable. If not, then a miss generated for that
     // one request and not the entire line.
     rule check_hit_or_miss(!tpl_2(ff_req_queue.first) && !rg_miss_ongoing && ff_lb_control.notFull
-    && !delay_checking);
+    && !delay_checking && ff_core_response.notFull);
       let {request, fence, epoch} =ff_req_queue.first();
       Bit#(TAdd#(3,TAdd#(wordbits,blockbits)))block_offset=
                                                           (request[v_blockbits+v_wordbits-1:0])<<3;
@@ -340,7 +340,7 @@ package icache_nway;
     endrule
 
     // This rule will fire for every request from the core that is not a Fence operation.
-    rule poll_on_lb(!tpl_2(ff_req_queue.first));
+    rule poll_on_lb(!tpl_2(ff_req_queue.first) && ff_core_response.notFull);
       
       // We first check if the requested word is in the line-buffer. This is done by checking the
       // if the tags match. While this means that the line-buffer should have the data

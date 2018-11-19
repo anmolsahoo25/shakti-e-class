@@ -41,7 +41,7 @@ package fetch_new;
   import decode::*;
   import cache_types::*;
 
-  typedef enum {CheckOld, None} ActionType deriving(Bits,Eq,FShow);
+  typedef enum {CheckPrev, None} ActionType deriving(Bits,Eq,FShow);
 
   // Interface for the fetch and decode unit
 	interface Ifc_fetch_decode_stage;
@@ -85,7 +85,7 @@ package fetch_new;
           ff_memory_response.deq;
           if(cache_response[17:16]==2'b11)begin
             rg_instruction<=cache_response[31:16];
-            rg_action<=CheckOld;
+            rg_action<=CheckPrev;
             perform_decode=False;
           end
           else begin
@@ -102,7 +102,7 @@ package fetch_new;
             compressed=True;
             final_instruction=zeroExtend(cache_response[15:0]);
             rg_instruction<=truncateLSB(cache_response);
-            rg_action<=CheckOld;
+            rg_action<=CheckPrev;
           end
         end
         else begin
