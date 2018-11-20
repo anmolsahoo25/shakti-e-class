@@ -66,6 +66,8 @@ package mem_config;
   import FIFOF::*;
   import SpecialFIFOs::*;
   import Assert::*;
+  import bram_1r1w::*;
+  import bram_1rw::*;
 
   interface Ifc_mem_config#( numeric type n_entries, numeric type datawidth, numeric type banks);
     method Action read_request(Bit#(TLog#(n_entries)) index);
@@ -90,14 +92,16 @@ package mem_config;
     
     staticAssert(porttype=="single" || porttype=="dual","Only supported porttypes are: single, dual");
 
-    BRAM_DUAL_PORT#(Bit#(TLog#(n_entries)), Bit#(bpb)) ram_double [valueOf(banks)];
-    BRAM_PORT#(Bit#(TLog#(n_entries)), Bit#(bpb)) ram_single [valueOf(banks)];
+//    BRAM_DUAL_PORT#(Bit#(TLog#(n_entries)), Bit#(bpb)) ram_double [valueOf(banks)];
+//    BRAM_PORT#(Bit#(TLog#(n_entries)), Bit#(bpb)) ram_single [valueOf(banks)];
+    Ifc_bram_1r1w#(TLog#(n_entries), bpb, n_entries) ram_double [valueOf(banks)];
+    Ifc_bram_1rw#(TLog#(n_entries), bpb, n_entries) ram_single [valueOf(banks)];
     Reg#(Bit#(bpb)) rg_output[valueOf(banks)][2];
     for(Integer i=0;i<valueOf(banks);i=i+1) begin
       if(porttype=="single")
-        ram_single[i]<-mkBRAMCore1(valueOf(n_entries), False);
+        ram_single[i]<-mkbram_1rw;
       else
-        ram_double[i]<-mkBRAMCore2(valueOf(n_entries), False);
+        ram_double[i]<-mkbram_1r1w;
       rg_output[i] <- mkCReg(2,0);
     end
 
@@ -105,24 +109,24 @@ package mem_config;
     for(Integer i=0;i<valueOf(banks);i=i+1)begin
       rule capture_output(rg_read_req_made && !ramreg);
         if(porttype=="single")
-          rg_output[i][0]<=ram_single[i].read;
+          rg_output[i][0]<=ram_single[i].response;
         else
-          rg_output[i][0]<=ram_double[i].a.read;
+          rg_output[i][0]<=ram_double[i].response;
       endrule
       rule capture_output_reg(ramreg);
         if(porttype=="single")
-          rg_output[i][1]<=ram_single[i].read;
+          rg_output[i][1]<=ram_single[i].response;
         else
-          rg_output[i][1]<=ram_double[i].a.read;
+          rg_output[i][1]<=ram_double[i].response;
       endrule
     end
 
     method Action read_request(Bit#(TLog#(n_entries)) index);
       for(Integer i=0;i<valueOf(banks);i=i+1) begin
         if(porttype=="single")
-          ram_single[i].put(False, index,  ?);
+          ram_single[i].request(?, index, 0);
         else
-          ram_double[i].a.put(False, index,  ?);
+          ram_double[i].read(index);
       end
       rg_read_req_made<=True;
     endmethod
@@ -136,9 +140,9 @@ package mem_config;
     method Action write_request(Bit#(TLog#(n_entries)) address,  Bit#(datawidth) data);
       for(Integer i=0;i<valueOf(banks);i=i+1)begin
         if (porttype=="single")
-          ram_single[i].put(True, address, data[i*bits_per_bank+bits_per_bank-1:i*bits_per_bank]);
+          ram_single[i].request(data[i*bits_per_bank+bits_per_bank-1:i*bits_per_bank], address, 1);
         else
-          ram_double[i].b.put(True, address, data[i*bits_per_bank+bits_per_bank-1:i*bits_per_bank]);
+          ram_double[i].write(data[i*bits_per_bank+bits_per_bank-1:i*bits_per_bank], address, 1);
       end
     endmethod
   endmodule

@@ -36,12 +36,14 @@ package replacement;
   interface Ifc_replace#(numeric type sets, numeric type ways);
     method ActionValue#(Bit#(TLog#(ways))) line_replace (Bit#(TLog#(sets)) index, Bit#(ways) valid);
     method Action update_set (Bit#(TLog#(sets)) index, Bit#(TLog#(ways)) way);
-    method Action reset_repl(Bit#(TLog#(sets)) index);
+    method Action reset_repl;
   endinterface
 
   module mkreplace#(String alg)(Ifc_replace#(sets,ways))
     provisos(Add#(a__, TLog#(ways), 4));
+
     let v_ways = valueOf(ways);
+    let v_sets = valueOf(sets);
     let verbosity = `VERBOSITY;
     staticAssert(alg=="RANDOM" || alg=="RROBIN" || alg=="PLRU","Invalid replacement Algorithm");
     if(alg == "RANDOM")begin
@@ -69,7 +71,7 @@ package replacement;
       method Action update_set (Bit#(TLog#(sets)) index, Bit#(TLog#(ways)) way)if(!rg_init);
         random.next();
       endmethod
-      method Action reset_repl(Bit#(TLog#(sets)) index);
+      method Action reset_repl;
         random.seed(1);
       endmethod
     end
@@ -98,8 +100,9 @@ package replacement;
           $display("REPL: Updating index: %d",index);
         v_count[index]<=v_count[index]-1;
       endmethod
-      method Action reset_repl(Bit#(TLog#(sets)) index);
-        v_count[index]<=fromInteger(v_ways-1);
+      method Action reset_repl;
+        for(Integer i=0;i<v_sets;i=i+1)
+          v_count[i]<=fromInteger(v_ways-1);
       endmethod
     end
     else if(alg=="PLRU")begin
@@ -136,8 +139,9 @@ package replacement;
           $display($time,"\tREPL: old:%b mask:%b new: %b final: %b",v_count[index],mask,val,(v_count[index]&~mask)|(val&mask));
         v_count[index]<=(v_count[index]&~mask)|(val&mask);
       endmethod
-      method Action reset_repl(Bit#(TLog#(sets)) index);
-        v_count[index]<=5;
+      method Action reset_repl;
+        for(Integer i=0;i<v_sets;i=i+1)
+          v_count[i]<=5;
       endmethod
     end
     else begin
@@ -147,7 +151,7 @@ package replacement;
       method Action update_set (Bit#(TLog#(sets)) index, Bit#(TLog#(ways)) way);
         noAction;
       endmethod
-      method Action reset_repl(Bit#(TLog#(sets)) index);
+      method Action reset_repl;
         noAction;
       endmethod
     end
