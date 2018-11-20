@@ -163,8 +163,8 @@ package l1icache;
     Ifc_mem_config#(sets, linewidth, 1) data_arr [v_ways]; // data array
     Ifc_mem_config#(sets, tagbits, 1) tag_arr [v_ways];// one extra valid bit
     for(Integer i=0;i<v_ways;i=i+1)begin
-      data_arr[i]<-mkmem_config_h(False, "dual"); // TODO parameterize arguments
-      tag_arr[i]<-mkmem_config_h(False, "dual");
+      data_arr[i]<-mkmem_config_h(False, "single"); // TODO parameterize arguments
+      tag_arr[i]<-mkmem_config_h(False, "single");
     end
     Ifc_replace#(sets,ways) repl <- mkreplace(alg);
     Reg#(Bit#(ways)) rg_valid[v_sets];
