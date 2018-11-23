@@ -1,3 +1,4 @@
+[![License](https://img.shields.io/badge/License-BSD%203--Clause-blue.svg)](LICENSE)
 [![pipeline status](https://gitlab.com/shaktiproject/cores/e-class/badges/master/pipeline.svg)](https://gitlab.com/shaktiproject/cores/e-class/commits/master)
 # SHAKTI E-CLASS #
 
