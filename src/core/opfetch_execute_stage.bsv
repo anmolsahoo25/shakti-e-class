@@ -138,6 +138,14 @@ package opfetch_execute_stage;
         op3=rs1irf;
     
 
+	  /* Operand arrangement for short circuiting JAL/JALR 
+	  updates. rs2 is set to 4/2 depending on whether 
+	  compressed is enabled or not. the results of of
+	  rs1 + rs2 are stored into rd as required for
+	  JAL and JALR to be PC + 4. 
+
+	  Refer to the table in decode.bsv
+	  */
       if(rs2_type==Constant4)
         rs2='d4;
       `ifdef compressed
