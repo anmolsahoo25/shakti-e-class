@@ -58,7 +58,7 @@ package opfetch_execute_stage;
     // memory request interface in case of Load/Store instruction
     interface Get#(MemoryRequest) memory_request;
   
-    method Action flush_from_wb(Bool fl);
+    method Action flush_from_wb;
     method Action csr_updated (Bool upd);
     method Action interrupt(Bool i);
     method Action misa_c_from_csr (Bit#(1) c);
@@ -138,14 +138,13 @@ package opfetch_execute_stage;
         op3=rs1irf;
     
 
-	  /* Operand arrangement for short circuiting JAL/JALR 
-	  updates. rs2 is set to 4/2 depending on whether 
-	  compressed is enabled or not. the results of of
-	  rs1 + rs2 are stored into rd as required for
-	  JAL and JALR to be PC + 4. 
+	  // Operand arrangement for short circuiting JAL/JALR 
+	  //updates. rs2 is set to 4/2 depending on whether 
+	  //compressed is enabled or not. the results of of
+	  //rs1 + rs2 are stored into rd as required for
+	  //JAL and JALR to be PC + 4. 
 
-	  Refer to the table in decode.bsv
-	  */
+	  //Refer to the table in decode.bsv
       if(rs2_type==Constant4)
         rs2='d4;
       `ifdef compressed
@@ -449,13 +448,11 @@ package opfetch_execute_stage;
       endinterface;
     `endif
 
-    method Action flush_from_wb(Bool fl);
-      if(fl)begin
+    method Action flush_from_wb; //fence integration
         rg_epoch[1]<=~rg_epoch[1];
         ff_memory_request.clear();
         if(verbosity>1)
           $display($time, "\tSTAGE2: Received Flush");
-      end
     endmethod
     method Action csr_updated (Bool upd);
       if(upd) begin

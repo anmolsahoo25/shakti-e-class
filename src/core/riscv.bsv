@@ -74,7 +74,7 @@ package riscv;
     mkConnection(stage2.to_mem_wb_unit, pipe2);  // connect stage-2 output to pipe-2
     mkConnection(pipe2,stage3.from_execute);
 
-    let {newpc, fl}=stage3.flush;
+    let {newpc, fl, fence}=stage3.flush; //fence integration
     Bool clear_csr_stall=stage3.csr_updated||fl;
 
     mkConnection(stage3.commit_rd,stage2.commit_rd);
@@ -86,9 +86,9 @@ package riscv;
       stage2.interrupt(stage3.interrupt);
     endrule
 
-    rule flush_from_writeback(fl);
-      stage1.flush_from_wb(newpc, fl);
-      stage2.flush_from_wb(fl);
+    rule flush_from_writeback(fl); // fence integration
+      stage1.flush_from_wb(newpc, fence);
+      stage2.flush_from_wb;
     endrule
 
     rule connect_csrs;

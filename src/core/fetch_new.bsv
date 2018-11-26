@@ -49,7 +49,7 @@ package fetch_new;
     interface Put#(Tuple3#(Bit#(32),Bool,Bit#(1))) inst_response;//addr of the given inst
     // rs1,rs2,rd,fn,funct3,instruction_type will be passed on to opfetch and execute unit
     interface TXe#(PIPE1_DS) to_opfetch_unit;
-    method Action flush_from_wb( Bit#(PADDR) newpc, Bool fl);
+    method Action flush_from_wb( Bit#(PADDR) newpc, Bool fence);
     method Action csrs (CSRtoDecode csr);
 	endinterface:Ifc_fetch_decode_stage
 	(*synthesize*)
@@ -59,6 +59,7 @@ package fetch_new;
     Wire#(CSRtoDecode) wr_csr <-mkWire();
 
     Reg#(Bit#(PADDR)) rg_icache_request <- mkReg('h1000);
+	Reg#(Bool) rg_fence <- mkReg(False); //fence integration
     Reg#(Bit#(PADDR)) rg_pc <- mkReg('h1000);
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
     Reg#(ActionType) rg_action <-mkReg(None);
@@ -139,7 +140,9 @@ package fetch_new;
     interface inst_request=interface Get
       method ActionValue#(Tuple4#(Bit#(PADDR),Bool,Bit#(1),Bool)) get;
         rg_icache_request<=rg_icache_request+4;
-        return tuple4(rg_icache_request,False,rg_epoch,False);
+		if(rg_fence==True)
+			rg_fence<=False;
+        return tuple4(rg_icache_request,rg_fence,rg_epoch,False);
       endmethod
     endinterface;
 
@@ -152,17 +155,17 @@ package fetch_new;
 
     //providing the output of the decoder function to the opfetch unit via tx interface
 		interface to_opfetch_unit=tx.e;
-    method Action flush_from_wb( Bit#(PADDR) newpc, Bool fl);
-      if(fl)begin
+    method Action flush_from_wb( Bit#(PADDR) newpc, Bool fence); //fence integration
+		if(fence)
+			rg_fence<=True;
         rg_epoch<=~rg_epoch;
         rg_pc<=newpc;
         rg_icache_request<={truncateLSB(newpc),2'b0};
         if(newpc[1:0]!=0)
           rg_discard_lower<=True;
         if(verbosity>1)
-          $display($time, "\tSTAGE1: Received Flush. PC: %h Flush: ",newpc, fshow(fl)); 
+          $display($time, "\tSTAGE1: Received Flush. PC: %h Flush: ",newpc); 
         ff_memory_response.clear();
-      end
     endmethod
 
     method Action csrs (CSRtoDecode csr);

@@ -216,6 +216,8 @@ package decode;
 		Access_type mem_access=Load;
 		if(opcode[3]=='b1 && opcode[1]==0)
 			mem_access=Store;
+		else  if(funct3=='b001) // fence integration
+			mem_access=Fencei; 
     `ifdef atomic
       else if(opcode=='b01011)
         mem_access=Atomic;
@@ -367,9 +369,8 @@ package decode;
     end 
     else if(opcode[4:3]=='b00)begin
     	case(opcode[2:0])
-    		'b000: `ifdef RV32 if(funct3!='b011) `endif inst_type=MEMORY;
+    		'b000, 'b011: `ifdef RV32 if(funct3!='b011) `endif inst_type=MEMORY; // fence integration
     		'b101,'b100,'b110:inst_type=ALU;
-			'b011: inst_type=FENCE;
     	endcase
     end
     else
@@ -650,20 +651,11 @@ package decode;
       interrupt =  exception;
     
     `ifdef rtldump
-	if(inst_type==FENCE) begin // fence integration
-      Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
-        `ifdef atomic Bit#(6) `else Bit#(1) `endif , Bit#(32) ) 
-        type_tuple = tuple8(?,?, inst_type,?, pc, interrupt, 
-          `ifdef atomic {0,epoch} `else epoch `endif , zeroExtend(inst));
-	  end
-	else begin
-      Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
+	 Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
         `ifdef atomic Bit#(6) `else Bit#(1) `endif , Bit#(32) ) 
         type_tuple = tuple8(rs1type, rs2type, inst_type, mem_access, pc, interrupt, 
           `ifdef atomic {0,epoch} `else epoch `endif , zeroExtend(inst));
-	  end
 	  
-
     `else
       Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
           `ifdef atomic Bit#(6) `else Bit#(1) `endif ) type_tuple = 
