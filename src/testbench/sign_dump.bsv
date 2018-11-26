@@ -65,18 +65,19 @@ package sign_dump;
     for(Integer i=0;i<word_count;i=i+1)
       dataarray[i]<-mkReg(0);
     Reg#(Bit#(5)) rg_cnt <-mkReg(0);
- 	  let dump <- mkReg(InvalidFile) ;
-    rule open_file(rg_cnt<5);
-      String dumpFile = "signature" ;
-    	File lfh <- $fopen( dumpFile, "w" ) ;
-    	if ( lfh == InvalidFile )begin
-    	  $display("cannot open %s", dumpFile); 
-    	  $finish(0);
-    	end
-    	dump <= lfh ;
-    	rg_cnt <= rg_cnt+1 ;
-    endrule
-
+    `ifdef simulate
+   	  let dump <- mkReg(InvalidFile) ;
+      rule open_file(rg_cnt<5);
+        String dumpFile = "signature" ;
+      	File lfh <- $fopen( dumpFile, "w" ) ;
+      	if ( lfh == InvalidFile )begin
+      	  $display("cannot open %s", dumpFile); 
+      	  $finish(0);
+      	end
+      	dump <= lfh ;
+      	rg_cnt <= rg_cnt+1 ;
+      endrule
+    `endif
     rule configure_registers(!rg_start);
       let aw <- pop_o (s_xactor.o_wr_addr);
       let w  <- pop_o (s_xactor.o_wr_data);
@@ -106,7 +107,7 @@ package sign_dump;
         rg_start_address<=rg_start_address+4;
       end
     endrule
-
+`ifdef simulate
     rule receive_response(rg_cnt>=5 && rg_start);
 			let response <- pop_o (m_xactor.o_rd_data);	
     	$fwrite(dump,"%8h\n", response.rdata); 
@@ -118,6 +119,7 @@ package sign_dump;
       if(rg_total_count==1)
         rg_start<=False;
     endrule
+`endif
     interface master=m_xactor.axi_side;
     interface slave=s_xactor.axi_side;
   endmodule
