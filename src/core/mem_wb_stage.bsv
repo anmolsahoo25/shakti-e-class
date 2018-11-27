@@ -124,23 +124,26 @@ package mem_wb_stage;
           else if(committype == MEMORY) begin
             if (wr_memory_response matches tagged Valid .resp)begin
               let {data, err, access_type}=resp;
-              if(access_type==Fencei) begin // fence integration
-				      fen=FENCE;
-					  jump_address=pc;
-					  fl=Flush;
-				  end
-			  else if(!err) begin // no bus error
-				  if(rd==0)
+              if(access_type==Fencei || access_type==Fence) begin // fence integration
+				        fen=FENCE;
+					      jump_address=pc;
+					      fl=Flush;
+               `ifdef rtldump 
+                 dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
+               `endif
+				      end
+			        else if(!err) begin // no bus error
+				        if(rd==0)
                   data=0;
-                `ifdef atomic
-                  else if(access_type==Store)
-                    data=reslt;
-                `endif
-                wr_operand_fwding <= tuple3(rd, True, data);
-                wr_commit <= tagged Valid (tuple2(rd, data));
-                `ifdef rtldump 
-                  dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
-                `endif
+               `ifdef atomic
+                 else if(access_type==Store)
+                   data=reslt;
+               `endif
+               wr_operand_fwding <= tuple3(rd, True, data);
+               wr_commit <= tagged Valid (tuple2(rd, data));
+               `ifdef rtldump 
+                 dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
+               `endif
               end
               else begin
                 if(verbosity!=0)
@@ -192,7 +195,6 @@ package mem_wb_stage;
           end
           if(fl==Flush || committype==SYSTEM_INSTR)
             wr_csr_updated<= True;
-
         end
       end
       else begin
