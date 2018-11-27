@@ -252,11 +252,12 @@ package l1icache;
       if(verbosity!=0)begin
         $display($time,"\tICACHE: Fence operation in progress");
       end
+      ff_io_read_request.enq(tuple3(addr,0,fromInteger(v_wordbits)));
     endrule
     
     // This rule is fired when there is a hit in the cache. The word received is further modified
     // depending on the request made by the core.
-    rule respond_to_core(wr_cache_response==Hit || wr_fb_response==Hit);
+    rule respond_to_core(wr_cache_response==Hit || wr_fb_response==Hit || wr_io_response==Hit);
       let {addr, fence, epoch, prefetch} =ff_core_request.first();
       Bit#(respwidth) word=0;
       Bool err=False;
