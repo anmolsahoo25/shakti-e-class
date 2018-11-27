@@ -522,7 +522,7 @@ fb_enables[rg_fbbeingfilled]);
     // requested by the core (present in the ff_core_request). Writing this line would cause a
     // replay of the latest request. This would cause another cycle delay which would eventually be
     // a hit in the cache RAMS. 
-    rule release_from_FB((fb_full || fill_oppurtunity) && !rg_replaylatest &&
+    rule release_from_FB((fb_full || fill_oppurtunity || rg_fence_stall) && !rg_replaylatest &&
               !fb_empty && fb_valid[rg_fbwriteback]==1 && (&fb_enables[rg_fbwriteback])==1);
       // if line is valid and is completely filled.
       let addr=fb_addr[rg_fbwriteback];
@@ -585,7 +585,7 @@ addr:%h way: %d",
         end
         wr_takingrequest<=True;
         if (verbosity!=0) begin
-		      $display($time,"\tICACHE: Receiving request to address:%h Fence: %b epoch: %b index: $d",
+		      $display($time,"\tICACHE: Receiving request to address:%h Fence: %b epoch: %b index: %d",
           addr, fence, epoch, set_index); 
         end
         rg_latest_index<=set_index;
