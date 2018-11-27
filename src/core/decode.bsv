@@ -214,10 +214,14 @@ package decode;
 
 		//memory access type
 		Access_type mem_access=Load;
-		if(opcode[3]=='b1 && opcode[1]==0)
+		if(opcode=='b01000)
 			mem_access=Store;
-		else  if(funct3=='b001) // fence integration
-			mem_access=Fencei; 
+		else if(opcode=='b00011) begin // fence integration
+      if(funct3[0]==1)
+        mem_access=Fencei;
+      else
+			  mem_access=Fence; 
+    end
     `ifdef atomic
       else if(opcode=='b01011)
         mem_access=Atomic;
