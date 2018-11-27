@@ -252,7 +252,6 @@ package l1icache;
       if(verbosity!=0)begin
         $display($time,"\tICACHE: Fence operation in progress");
       end
-      ff_io_read_request.enq(tuple3(addr,0,fromInteger(v_wordbits)));
     endrule
     
     // This rule is fired when there is a hit in the cache. The word received is further modified
