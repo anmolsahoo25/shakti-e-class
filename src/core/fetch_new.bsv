@@ -140,8 +140,8 @@ package fetch_new;
     interface inst_request=interface Get
       method ActionValue#(Tuple4#(Bit#(PADDR),Bool,Bit#(1),Bool)) get;
         rg_icache_request<=rg_icache_request+4;
-		if(rg_fence==True)
-			rg_fence<=False;
+		    if(rg_fence==True)
+			    rg_fence<=False; // reset fence once the command is sent
         return tuple4(rg_icache_request,rg_fence,rg_epoch,False);
       endmethod
     endinterface;
@@ -156,16 +156,19 @@ package fetch_new;
     //providing the output of the decoder function to the opfetch unit via tx interface
 		interface to_opfetch_unit=tx.e;
     method Action flush_from_wb( Bit#(PADDR) newpc, Bool fence); //fence integration
-		if(fence)
-			rg_fence<=True;
-        rg_epoch<=~rg_epoch;
+		  if(fence) begin
+		  	rg_fence<=True;
+        rg_pc<=newpc+4;
+      end
+      else
         rg_pc<=newpc;
-        rg_icache_request<={truncateLSB(newpc),2'b0};
-        if(newpc[1:0]!=0)
-          rg_discard_lower<=True;
-        if(verbosity>1)
-          $display($time, "\tSTAGE1: Received Flush. PC: %h Flush: ",newpc); 
-        ff_memory_response.clear();
+      rg_epoch<=~rg_epoch;
+      rg_icache_request<={truncateLSB(newpc),2'b0};
+      if(newpc[1:0]!=0)
+        rg_discard_lower<=True;
+      if(verbosity>1)
+        $display($time, "\tSTAGE1: Received Flush. PC: %h Flush: ",newpc); 
+      ff_memory_response.clear();
     endmethod
 
     method Action csrs (CSRtoDecode csr);
