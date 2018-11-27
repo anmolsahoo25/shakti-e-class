@@ -128,6 +128,12 @@ package l1icache;
        write_enable[word_index]=1;
        return write_enable;
     endfunction
+    function Bool isTrue(Bool a);
+      return a;
+    endfunction
+    function Bool isOne(Bit#(1) a);
+      return unpack(a);
+    endfunction
   
     String alg ="RROBIN";
 
@@ -160,11 +166,11 @@ package l1icache;
 
    
     // ------------------------ Structures required for cache RAMS ------------------------------//
-    Ifc_mem_config#(sets, linewidth, 1) data_arr [v_ways]; // data array
-    Ifc_mem_config#(sets, tagbits, 1) tag_arr [v_ways];// one extra valid bit
+    Ifc_mem_config1rw#(sets, linewidth, 1) data_arr [v_ways]; // data array
+    Ifc_mem_config1rw#(sets, tagbits, 1) tag_arr [v_ways];// one extra valid bit
     for(Integer i=0;i<v_ways;i=i+1)begin
-      data_arr[i]<-mkmem_config_h(False, "single"); // TODO parameterize arguments
-      tag_arr[i]<-mkmem_config_h(False, "single");
+      data_arr[i]<-mkmem_config1rw(False, "single"); // TODO parameterize arguments
+      tag_arr[i]<-mkmem_config1rw(False, "single");
     end
     Ifc_replace#(sets,ways) repl <- mkreplace(alg);
     Reg#(Bit#(ways)) rg_valid[v_sets];
@@ -191,8 +197,8 @@ package l1icache;
     Reg#(Bit#(linewidth)) fb_dataline [v_fbsize];
     Reg#(Bit#(paddr)) fb_addr [v_fbsize];
     Reg#(Bit#(blocksize)) fb_enables [v_fbsize];
-//    Reg#(Bit#(fbsize)) fb_dirty <-mkReg(0);
-    Reg#(Bit#(fbsize)) fb_valid <-mkReg(0);
+    Vector#(fbsize,Reg#(Bool)) fb_valid<-replicateM(mkReg(False));
+//    Reg#(Bit#(fbsize)) fb_valid <-mkReg(0);
     for(Integer i=0;i<v_fbsize;i=i+1)begin
       fb_dataline[i]<-mkReg(0);
       fb_addr[i]<-mkReg(0);
@@ -214,25 +220,28 @@ package l1icache;
 
     // This register follows the rg_fbmissallocate register but is updated when the last word of a
     // line is filled in the FB on a miss.
-    Reg#(Bit#(TLog#(fbsize))) rg_fbbeingfilled <-mkReg(0);
+    // Reg#(Bit#(TLog#(fbsize))) rg_fbbeingfilled <-mkReg(0);
+    FIFOF#(Bit#(TLog#(fbsize))) ff_fb_fillindex<-mkSizedFIFOF(2);
 
     // This register points to the entry in the FB which needs to be written back to the cache
     // whenever possible.
     Reg#(Bit#(TLog#(fbsize))) rg_fbwriteback <-mkReg(0);
     Reg#(Bit#(blocksize))     rg_fbfillenable <- mkReg(0);
 
-    Bool fb_full=unpack(&fb_valid);
-    Bool fb_empty=!unpack(|fb_valid);
+    Bool fb_full= (all(isTrue,readVReg(fb_valid)));
+    Bool fb_empty=!(any(isTrue,readVReg(fb_valid)));
     Bit#(TLog#(sets)) fillindex=fb_addr[rg_fbwriteback][v_setbits+v_blockbits+v_wordbits-1:
                                                                           v_blockbits+v_wordbits];
     Bool fill_oppurtunity=(!ff_core_request.notEmpty || !wr_takingrequest) && !fb_empty &&
          /*countOnes(fb_valid)>0 &&*/ (fillindex!=rg_latest_index);
+    Bit#(tagbits) writetag=fb_addr[rg_fbwriteback][v_paddr-1:v_paddr-v_tagbits];
+    Bit#(linewidth) writedata=fb_dataline[rg_fbwriteback];
     // ------------------------------------------------------------------------------------------//
 
     rule display_stuff;
       if(verbosity!=0)begin
-        $display($time,"\tDACHE: fb_full: %b fb_empty: %b rg_fbwriteback: %d rg_fbmissallocate: %d\
- rg_fbbeingfilled:%d",fb_full,fb_empty,rg_fbwriteback,rg_fbmissallocate,rg_fbbeingfilled);
+        $display($time,"\tDACHE: fb_full: %b fb_empty: %b rg_fbwriteback: %d rg_fbmissallocate: %d",
+          fb_full,fb_empty,rg_fbwriteback,rg_fbmissallocate);
         $display($time,"\tICACHE: ff_core_response.notFull: %b rg_fence_stall: %b",
           ff_core_response.notFull,rg_fence_stall);
       end
@@ -245,7 +254,8 @@ package l1icache;
     rule fence_operation(tpl_2(ff_core_request.first) && rg_fence_stall && fb_empty);
       for(Integer i=0;i<v_sets;i=i+1)
         rg_valid[i]<=0;
-      fb_valid<=0;
+      for(Integer i=0;i<v_fbsize;i=i+1)
+        fb_valid[i]<=False;
       rg_fence_stall<=False;
       ff_core_request.deq; // TODO depends on how fence should be handled.
       repl.reset_repl;
@@ -393,7 +403,7 @@ package l1icache;
       
       for (Integer i=0;i<v_fbsize;i=i+1)begin
         // we use truncateLSB because we need to match only the tag and set bits
-        if( truncateLSB(fb_addr[i])==t && fb_valid[i]==1)begin
+        if( truncateLSB(fb_addr[i])==t && fb_valid[i])begin
           hitline=fb_dataline[i];
           fbhit[i]=1;
           if(fb_enables[i][word_index]==1'b1) begin
@@ -449,9 +459,10 @@ package l1icache;
       ff_read_mem_request.enq(tuple3(addr,fromInteger(v_blocksize-1),fromInteger(v_wordbits)));
       rg_miss_ongoing<=True;
       rg_fbmissallocate<=rg_fbmissallocate+1;
-      fb_valid[rg_fbmissallocate]<=1'b1;
+      fb_valid[rg_fbmissallocate]<=True;
       fb_addr[rg_fbmissallocate]<=addr;
       fb_enables[rg_fbmissallocate]<=0;
+      ff_fb_fillindex.enq(rg_fbmissallocate);
       
       if(verbosity!=0)begin
         $display($time,"\tICACHE: Sending memory request. Addr: %h",addr);
@@ -466,13 +477,14 @@ package l1icache;
       let {word,last,err}=ff_read_mem_response.first();
       rg_fb_err<=err;
       ff_read_mem_response.deq;
+      let fbindex=ff_fb_fillindex.first();
       Bit#(blocksize) temp=0;
-      Bit#(blockbits) word_index=fb_addr[rg_fbbeingfilled][v_blockbits+v_wordbits-1:v_wordbits];
-      if(fb_enables[rg_fbbeingfilled]==0)
+      Bit#(blockbits) word_index=fb_addr[fbindex][v_blockbits+v_wordbits-1:v_wordbits];
+      if(fb_enables[fbindex]==0)
         temp=fn_enable(word_index);
       else
         temp=rg_fbfillenable;
-      fb_enables[rg_fbbeingfilled]<=fb_enables[rg_fbbeingfilled]|temp;
+      fb_enables[fbindex]<=fb_enables[fbindex]|temp;
       rg_fbfillenable <= {temp[valueOf(blocksize)-2:0],temp[valueOf(blocksize)-1]};
 
       Bit#(linewidth) mask=0;
@@ -480,14 +492,13 @@ package l1icache;
         Bit#(respwidth) we=duplicate(temp[i]);
         mask[i*v_respwidth+v_respwidth-1:i*v_respwidth]=we;
       end
-      fb_dataline[rg_fbbeingfilled]<=(~mask&fb_dataline[rg_fbbeingfilled])|(mask&duplicate(word));
+      fb_dataline[fbindex]<=(~mask&fb_dataline[fbindex])|(mask&duplicate(word));
       if(last)
-        rg_fbbeingfilled<=rg_fbbeingfilled+1;
+        ff_fb_fillindex.deq();
 
       if(verbosity!=0)begin
-        $display($time,"\tICACHE: Filling up FB. rg_fbbeingfilled: %d fb_addr: %h fb_dataline: %h \
-fb_enables: %h",rg_fbbeingfilled,fb_addr[rg_fbbeingfilled],fb_dataline[rg_fbbeingfilled],
-fb_enables[rg_fbbeingfilled]);
+        $display($time,"\tICACHE: Filling up FB. fbindex: %d fb_addr: %h fb_dataline: %h \
+        fb_enables: %h",fbindex,fb_addr[fbindex],fb_dataline[fbindex],fb_enables[fbindex]);
       end
         
     endrule
@@ -503,16 +514,6 @@ fb_enables[rg_fbbeingfilled]);
       `endif
     endrule
 
-    `ifdef ASSERT
-      rule assertions;
-        dynamicAssert(rg_fbbeingfilled==rg_fbmissallocate || rg_fbbeingfilled==rg_fbmissallocate-1
-        || rg_fbbeingfilled==rg_fbmissallocate-2,
-            "rg_fbbeingfilled and rg_fbmissallocate are too far apart");
-        dynamicAssert(fb_valid[rg_fbmissallocate]==0 || &fb_valid==1,
-          "rg_fbmissallocate points to  non-empty entry even though one exists in the FB");
-      endrule
-    `endif
-
     // This rule will evict an entry from the fill-buffer and update it in the cache RAMS. Multiple
     // conditions under which this rule can fire:
     // 1. when the FB is full
@@ -523,7 +524,7 @@ fb_enables[rg_fbbeingfilled]);
     // replay of the latest request. This would cause another cycle delay which would eventually be
     // a hit in the cache RAMS. 
     rule release_from_FB((fb_full || fill_oppurtunity || rg_fence_stall) && !rg_replaylatest &&
-              !fb_empty && fb_valid[rg_fbwriteback]==1 && (&fb_enables[rg_fbwriteback])==1);
+              !fb_empty && fb_valid[rg_fbwriteback] && (&fb_enables[rg_fbwriteback])==1);
       // if line is valid and is completely filled.
       let addr=fb_addr[rg_fbwriteback];
       Bit#(setbits) set_index=addr[v_setbits+v_blockbits+v_wordbits-1:v_blockbits+v_wordbits];
@@ -540,10 +541,10 @@ fb_enables[rg_fbbeingfilled]);
         end
       end
       rg_valid[set_index][waynum]<=1'b1;
-      tag_arr[waynum].write_request(set_index,tag);
-      data_arr[waynum].write_request(set_index,fb_dataline[rg_fbwriteback]);
+      tag_arr[waynum].request(1'b1,set_index,writetag);
+      data_arr[waynum].request(1'b1,set_index,writedata);
       rg_fbwriteback<=rg_fbwriteback+1;
-      fb_valid[rg_fbwriteback]<=0;
+      fb_valid[rg_fbwriteback]<=False;
       if(fb_full && fillindex==rg_latest_index)
         rg_replaylatest<=True;
       `ifdef perf
@@ -561,8 +562,8 @@ addr:%h way: %d",
     rule replay_latest_request(rg_replaylatest);
       rg_replaylatest<=False;
       for(Integer i=0;i<v_ways;i=i+1)begin
-        data_arr[i].read_request(rg_latest_index);
-        tag_arr[i].read_request(rg_latest_index);
+        data_arr[i].request(1'b0,rg_latest_index,writedata);
+        tag_arr[i].request(1'b0,rg_latest_index,writetag);
       end
       if(verbosity!=0)begin
         $display($time,"\tICACHE: replaying last request to index: %d maintain sync",rg_latest_index);
@@ -580,12 +581,12 @@ addr:%h way: %d",
         ff_core_request.enq(req);
         rg_fence_stall<=fence;
         for(Integer i=0;i<v_ways;i=i+1)begin
-          data_arr[i].read_request(set_index);
-          tag_arr[i].read_request(set_index);
+          data_arr[i].request(1'b0,set_index,writedata);
+          tag_arr[i].request(1'b0,set_index,writetag);
         end
         wr_takingrequest<=True;
         if (verbosity!=0) begin
-		      $display($time,"\tICACHE: Receiving request to address:%h Fence: %b epoch: %b index: %d",
+		      $display($time,"\tICACHE: Receiving request to address:%h Fence: %b epoch: %b index: $d",
           addr, fence, epoch, set_index); 
         end
         rg_latest_index<=set_index;
