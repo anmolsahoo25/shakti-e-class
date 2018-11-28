@@ -166,10 +166,14 @@ package eclass;
 //        $display($time, "\tCORE: Fetch Response ", fshow(response));
 //    endrule
 
-
+    
+    // if its a fence instruction, the request is simply stored in memory_request register and is not
+	// latched on to the bus. This is done because we are only concerned about access_type being 
+	// propagated to mem_wb stage.
     rule handle_memory_request(memory_state ==  Request);
       let {address, data, access, size, sign}<- riscv.memory_request.get;
       memory_request<= tuple4(address, access, size, sign);
+	  if(access != Fence && access != Fencei) begin
       if(size==0)
         data=duplicate(data[7:0]);
       else if(size==1)
@@ -199,9 +203,12 @@ package eclass;
 	  		memory_xactor.i_wr_addr.enq(aw);
 		  	memory_xactor.i_wr_data.enq(w);
       end
+  end
       memory_state<= Response;
     endrule
-    rule handle_memoryRead_response(memory_state == Response && tpl_2(memory_request) != Store);
+    
+	// Rule to handle memory response of Load and Atomic type instr 
+    rule handle_memoryRead_response(memory_state == Response && (tpl_2(memory_request) == Load || tpl_2(memory_request) ==Atomic));
       let {address, access, size, sign}=  memory_request;
 			let response <- pop_o (memory_xactor.o_rd_data);	
 			let bus_error = !(response.rresp==AXI4_OKAY);
@@ -223,7 +230,10 @@ package eclass;
         $display($time, "\tCORE: Memory Read Response ", fshow(response));
       memory_state<= Request;
     endrule
-    rule handle_memoryWrite_response(memory_state == Response && tpl_2(memory_request) == Store);
+
+
+	// Rule to hande memory response of Store type instr
+	rule handle_memoryWrite_response(memory_state == Response && tpl_2(memory_request) == Store);
       let {address, access, size, sign}=  memory_request;
 			let response<-pop_o(memory_xactor.o_wr_resp);
 			let bus_error = !(response.bresp==AXI4_OKAY);
@@ -232,6 +242,17 @@ package eclass;
         $display($time, "\tCORE: Memory Write Response ", fshow(response));
       memory_state<= Request;
     endrule
+
+    
+	// rule to handle fence reponse.Contents of memory_request is sent back. 
+	rule handle_fence_response(memory_state == Response && (tpl_2(memory_request) == Fence || tpl_2(memory_request) == Fencei));
+		let {address, access, size, sign}=  memory_request;
+		riscv.memory_response.put(tuple3(0, False, access)); // data is dont care, bus error is false.
+		memory_state <= Request;
+		if(verbosity!=0)
+			$display($time, "\tCORE: Data memory serviced fence request");
+	endrule
+
     interface sb_clint_msip = interface Put
   	  method Action put(Bit#(1) intrpt);
         riscv.clint_msip(intrpt);
