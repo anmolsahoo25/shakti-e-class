@@ -124,23 +124,24 @@ package mem_wb_stage;
           else if(committype == MEMORY) begin
             if (wr_memory_response matches tagged Valid .resp)begin
               let {data, err, access_type}=resp;
-              if(access_type==Fencei || access_type==Fence) begin // fence integration
+			  if(!err) begin
+				  if(access_type==Fencei || access_type==Fence) begin // fence integration
 				        fen=FENCE;
-					      jump_address=pc;
-					      fl=Flush;
-               `ifdef rtldump 
-                 dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
-               `endif
-				      end
-			        else if(!err) begin // no bus error
-				        if(rd==0)
-                  data=0;
+					    jump_address=pc;
+					    fl=Flush;
+						if(verbosity!=0)
+						$display($time, "\tStage3: Fence instruction, Initiating flush");
+				  end
+				  else begin 
+					  if(rd==0)
+						  data=0;
                `ifdef atomic
-                 else if(access_type==Store)
-                   data=reslt;
+                      else if(access_type==Store)
+						  data=reslt;
                `endif
                wr_operand_fwding <= tuple3(rd, True, data);
                wr_commit <= tagged Valid (tuple2(rd, data));
+		   end
                `ifdef rtldump 
                  dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
                `endif
