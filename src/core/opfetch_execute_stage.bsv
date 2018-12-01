@@ -121,7 +121,7 @@ package opfetch_execute_stage;
   
     function (Tuple4#(Bit#(XLEN),Bit#(XLEN),Bit#(XLEN), Bool)) operand_provider(Bit#(5) rs1_addr, 
         Operand1_type rs1_type, Bit#(5) rs2_addr, Operand2_type rs2_type, Bit#(PADDR) pc, 
-        Instruction_type insttype, Bit#(32) imm);
+        Instruction_type insttype, Bit#(32) imm, Access_type memaccess);
      
       let {rd,valid,rd_value}=wr_opfwding;
       Bit#(XLEN) rs1irf=(rs1_addr==rd)?rd_value:integer_rf.sub(rs1_addr);
@@ -133,8 +133,9 @@ package opfetch_execute_stage;
       else 
         rs1=rs1irf;
       
-      Bit#(XLEN) op3=zeroExtend(pc);
-      if(insttype==MEMORY || insttype==JALR)
+      // If its a fence instruction, we need op3 to be pc to compute effective address (PC+4)
+	  Bit#(XLEN) op3=zeroExtend(pc);
+      if((insttype==MEMORY && memaccess!=Fencei) || insttype==JALR) // fence integration
         op3=rs1irf;
     
 
@@ -209,7 +210,7 @@ package opfetch_execute_stage;
       end
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
-      let {op1, op2, op3, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, insttype, imm);
+      let {op1, op2, op3, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, insttype, imm, mem_access);
       ALU_Inputs inp1=tuple8(fn, op1, op2, imm, op3, insttype, funct3,mem_access);
       if(verbosity!=0)
         $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \

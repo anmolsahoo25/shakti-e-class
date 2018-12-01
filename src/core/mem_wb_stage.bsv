@@ -125,14 +125,11 @@ package mem_wb_stage;
             if (wr_memory_response matches tagged Valid .resp)begin
               let {data, err, access_type}=resp;
 			  if(!err) begin
-				  if(access_type==Fencei || access_type==Fence) begin // fence integration
+				  if(access_type==Fencei) begin // fence integration
 				        fen=FENCE;
-					    jump_address=pc;
-					    fl=Flush;
 						if(verbosity!=0)
 						$display($time, "\tStage3: Fence instruction, Initiating flush");
 				  end
-				  else begin 
 					  if(rd==0)
 						  data=0;
                `ifdef atomic
@@ -141,7 +138,6 @@ package mem_wb_stage;
                `endif
                wr_operand_fwding <= tuple3(rd, True, data);
                wr_commit <= tagged Valid (tuple2(rd, data));
-		   end
                `ifdef rtldump 
                  dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
                `endif
@@ -189,13 +185,20 @@ package mem_wb_stage;
             `endif
           end
           
-          // if it is a branch/JAL_R instruction generate a flush signal to the pipe. 
-          wr_flush<=tuple3(jump_address, (fl==Flush), (fen==FENCE));
-          if(fl==Flush)begin
-              rg_epoch <= ~rg_epoch;
-          end
-          if(fl==Flush || committype==SYSTEM_INSTR)
-            wr_csr_updated<= True;
+          // if it is a branch/JAL_R/fencei instruction generate a flush signal to the pipe.
+		  // In case of Fencei, we get the eff_addr and flush signal from execute stage.
+		  // Flush would be initiated when its a Fencei or a branch/JAL or an Exception.
+		  Bool except=False;
+		  if(trap matches tagged Exception .ex) except=True;
+		  Bool memresp = isValid(wr_memory_response);
+		  if(committype!=MEMORY || (committype==MEMORY && memresp==True) || except==True )begin
+	          wr_flush<=tuple3(jump_address, (fl==Flush), (fen==FENCE));
+    	      if(fl==Flush)begin
+        	      rg_epoch <= ~rg_epoch;
+	          end
+    	      if(fl==Flush || committype==SYSTEM_INSTR)
+        	    wr_csr_updated<= True;
+		  end
         end
       end
       else begin

@@ -136,12 +136,16 @@ package fetch_new;
           $display($time, "\tSTAGE1: PC: %h Inst: %h, Err: %b Epoch: %b", rg_pc, final_instruction,
                                                                                         err, epoch);
     endrule
-
+    
+	// when fence has to to initiated, we send fence=true along with the address of instruction following fence-instruction, but
+	// this instr wont get fetched as it is tagged fence=true.
+	// In this situation, so to actually fetch instruction following fence-instr, we should not increment icache_request by 4
     interface inst_request=interface Get
       method ActionValue#(Tuple4#(Bit#(PADDR),Bool,Bit#(1),Bool)) get;
-        rg_icache_request<=rg_icache_request+4;
 		    if(rg_fence==True)
 			    rg_fence<=False; // reset fence once the command is sent
+			else
+				rg_icache_request<=rg_icache_request+4; 
         return tuple4(rg_icache_request,rg_fence,rg_epoch,False);
       endmethod
     endinterface;
@@ -158,7 +162,7 @@ package fetch_new;
     method Action flush_from_wb( Bit#(PADDR) newpc, Bool fence); //fence integration
 		  if(fence) begin
 		  	rg_fence<=True;
-        rg_pc<=newpc+4;
+            rg_pc<=newpc;
       end
       else
         rg_pc<=newpc;

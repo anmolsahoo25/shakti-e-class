@@ -173,7 +173,7 @@ package eclass;
     rule handle_memory_request(memory_state ==  Request);
       let {address, data, access, size, sign}<- riscv.memory_request.get;
       memory_request<= tuple4(address, access, size, sign);
-	  if(access != Fence && access != Fencei) begin
+	  if(access != Fencei) begin
       if(size==0)
         data=duplicate(data[7:0]);
       else if(size==1)
@@ -244,8 +244,8 @@ package eclass;
     endrule
 
     
-	// rule to handle fence reponse.Contents of memory_request is sent back. 
-	rule handle_fence_response(memory_state == Response && (tpl_2(memory_request) == Fence || tpl_2(memory_request) == Fencei));
+	// rule to handle fence reponse.Contents of memory_request register are sent back. 
+	rule handle_fence_response(memory_state == Response && tpl_2(memory_request) == Fencei);
 		let {address, access, size, sign}=  memory_request;
 		riscv.memory_response.put(tuple3(0, False, access)); // data is dont care, bus error is false.
 		memory_state <= Request;

@@ -43,7 +43,7 @@ package common_types;
   // Define all enums here 
 	typedef enum {ALU, MEMORY, BRANCH, JAL, JALR, SYSTEM_INSTR, WFI `ifdef muldiv , MULDIV `endif }
       Instruction_type deriving(Bits, Eq, FShow); // the type of the decoded instruction.// Adding fence
-	typedef enum {Load=0, Store=1, Fence=3, Fencei=4 `ifdef atomic ,Atomic=2 `endif } Access_type deriving (Bits, Eq, FShow);
+	typedef enum {Load=0, Store=1, Fencei=3 `ifdef atomic ,Atomic=2 `endif } Access_type deriving (Bits, Eq, FShow);
 	typedef enum {Flush= 1, None= 0} Flush_type deriving (Bits, Eq, FShow);
 	typedef enum {IntegerRF, PC} Operand1_type deriving(Bits, Eq, FShow);
 	typedef enum {IntegerRF, Immediate, Constant4, Constant2} Operand2_type deriving(Bits, Eq, FShow);
