@@ -45,8 +45,12 @@ package fetch_new;
 
   // Interface for the fetch and decode unit
 	interface Ifc_fetch_decode_stage;
-  	interface Get#(Tuple4#(Bit#(PADDR),Bool,Bit#(1),Bool)) inst_request;//instruction whose addr is needed
-    interface Put#(Tuple3#(Bit#(32),Bool,Bit#(1))) inst_response;//addr of the given inst
+	`ifdef icache 
+	 interface Get#(Tuple4#(Bit#(PADDR),Bool,Bit#(1),Bool)) inst_request; //instruction whose addr is needed
+    `else 
+	interface Get#(Tuple2#(Bit#(PADDR),Bit#(1))) inst_request;
+	`endif
+	interface Put#(Tuple3#(Bit#(32),Bool,Bit#(1))) inst_response;//addr of the given inst
     // rs1,rs2,rd,fn,funct3,instruction_type will be passed on to opfetch and execute unit
     interface TXe#(PIPE1_DS) to_opfetch_unit;
     method Action flush_from_wb( Bit#(PADDR) newpc, Bool fence);
@@ -59,7 +63,9 @@ package fetch_new;
     Wire#(CSRtoDecode) wr_csr <-mkWire();
 
     Reg#(Bit#(PADDR)) rg_icache_request <- mkReg('h1000);
-	Reg#(Bool) rg_fence <- mkReg(False); //fence integration
+	`ifdef icache
+		Reg#(Bool) rg_fence <- mkReg(False); //fence integration
+    `endif
     Reg#(Bit#(PADDR)) rg_pc <- mkReg('h1000);
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
     Reg#(ActionType) rg_action <-mkReg(None);
@@ -140,32 +146,42 @@ package fetch_new;
 	// when fence has to to initiated, we send fence=true along with the address of instruction following fence-instruction, but
 	// this instr wont get fetched as it is tagged fence=true.
 	// In this situation, so to actually fetch instruction following fence-instr, we should not increment icache_request by 4
-    interface inst_request=interface Get
+    `ifdef icache
+	interface inst_request=interface Get
       method ActionValue#(Tuple4#(Bit#(PADDR),Bool,Bit#(1),Bool)) get;
-		    if(rg_fence==True)
-			    rg_fence<=False; // reset fence once the command is sent
-			else
+		   		if(rg_fence==True)
+			    	rg_fence<=False; // reset fence once the command is sent
+				else
 				rg_icache_request<=rg_icache_request+4; 
         return tuple4(rg_icache_request,rg_fence,rg_epoch,False);
       endmethod
     endinterface;
 
-		interface inst_response= interface Put
-			method Action put (Tuple3#(Bit#(32),Bool,Bit#(1)) resp);
+    `else
+    interface inst_request=interface Get
+      method ActionValue#(Tuple2#(Bit#(PADDR),Bit#(1))) get;
+				rg_icache_request<=rg_icache_request+4; 
+        return tuple2(rg_icache_request,rg_epoch);
+      endmethod
+    endinterface;
+    `endif
+
+
+	interface inst_response= interface Put
+	  method Action put (Tuple3#(Bit#(32),Bool,Bit#(1)) resp);
         ff_memory_response.enq(resp);
-			endmethod
+	  endmethod
     endinterface;
     
 
     //providing the output of the decoder function to the opfetch unit via tx interface
 		interface to_opfetch_unit=tx.e;
-    method Action flush_from_wb( Bit#(PADDR) newpc, Bool fence); //fence integration
-		  if(fence) begin
+    method Action flush_from_wb( Bit#(PADDR) newpc, Bool fence); 
+		`ifdef icache
+		  if(fence) //fence integration
 		  	rg_fence<=True;
-            rg_pc<=newpc;
-      end
-      else
-        rg_pc<=newpc;
+		`endif
+      rg_pc<=newpc;
       rg_epoch<=~rg_epoch;
       rg_icache_request<={truncateLSB(newpc),2'b0};
       if(newpc[1:0]!=0)

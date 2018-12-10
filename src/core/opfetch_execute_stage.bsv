@@ -135,8 +135,9 @@ package opfetch_execute_stage;
       
       // If its a fence instruction, we need op3 to be pc to compute effective address (PC+4)
 	  Bit#(XLEN) op3=zeroExtend(pc);
-      if((insttype==MEMORY && memaccess!=Fencei) || insttype==JALR) // fence integration
-        op3=rs1irf;
+	  if(insttype==JALR || (insttype==MEMORY `ifdef icache && memaccess!=Fencei `endif ))begin //fence integration
+		  op3=rs1irf;
+	  end
     
 
 	  // Operand arrangement for short circuiting JAL/JALR 

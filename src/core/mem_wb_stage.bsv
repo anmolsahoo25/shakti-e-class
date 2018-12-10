@@ -125,11 +125,13 @@ package mem_wb_stage;
             if (wr_memory_response matches tagged Valid .resp)begin
               let {data, err, access_type}=resp;
 			  if(!err) begin
+				`ifdef icache
 				  if(access_type==Fencei) begin // fence integration
 				        fen=FENCE;
 						if(verbosity!=0)
 						$display($time, "\tStage3: Fence instruction, Initiating flush");
 				  end
+			   `endif
 					  if(rd==0)
 						  data=0;
                `ifdef atomic

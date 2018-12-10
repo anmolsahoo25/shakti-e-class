@@ -12,6 +12,7 @@ DIVSTAGES=64
 FPGA=xc7a100tcsg324-1
 SYNTHTOP=mkriscv
 COUNTERS=0
+ICACHE=False
 
 # Verilator options
 COVERAGE=none

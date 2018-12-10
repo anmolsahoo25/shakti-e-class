@@ -42,7 +42,11 @@ package riscv;
   import FIFOF::*;
 
   interface Ifc_riscv;
+	`ifdef icache  
   	interface Get#(Tuple4#(Bit#(PADDR),Bool, Bit#(1), Bool)) inst_request;//instruction whose addr is needed
+	`else 
+	interface Get#(Tuple2#(Bit#(PADDR), Bit#(1))) inst_request;
+	`endif
     interface Put#(Tuple3#(Bit#(32),Bool,Bit#(1))) inst_response;//addr of the given inst
     interface Get#(MemoryRequest) memory_request;
     interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) memory_response;
