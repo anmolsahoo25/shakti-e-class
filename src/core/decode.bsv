@@ -242,6 +242,7 @@ package decode;
       bit0=0;
 
     Bit#(4) bit1_4=inst[24:21]; // I/J-type instructions
+    
     `ifdef atomic
       if(atomictype)
         bit1_4=0;
@@ -447,18 +448,28 @@ package decode;
   endfunction
 
 `ifdef compressed
+ 
  function PIPE1_DS decoder_func_16(Bit#(16) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch, Bool err, 
                                                                                CSRtoDecode csrs );
-    let {prv, mip, csr_mie, mideleg, misa, counteren, mie}=csrs;
-
+    let {prv,mip,csr_mie,mideleg,misa,counteren,mie}=csrs;
     Trap_type exception = tagged None;
     Trap_type interrupt = chk_interrupt(prv, mip, csr_mie, mideleg, mie);
     
 		Bit#(2) op_comp=inst[1:0];
 		Bit#(3) funct3_comp=inst[15:13];
     let opcode = {op_comp,funct3_comp};
-    Bool t_CL_LOAD = (opcode=='b00010||`ifdef RV64 opcode=='b00011`endif);
-    Bool t_CL_STORE = (opcode=='b00110||`ifdef RV64 opcode=='b00111`endif);
+    Bool t_CL_LOAD = (opcode=='b00010);
+    
+    `ifndef RV32
+      t_CL_LOAD = (opcode=='b00010||opcode=='b00011);
+    `endif
+
+    Bool t_CL_STORE =(opcode == 'b00110);
+    
+    `ifndef RV32
+      t_CL_STORE =(opcode=='b00110||opcode=='b00111);
+    `endif
+
     Bool t_CL=t_CL_LOAD ||t_CL_STORE;
     Bool t_ADDI_LUI=(opcode=='b01011);
     Bool t_ADDI16SP= t_ADDI_LUI && inst[11:7]==2;
@@ -477,14 +488,26 @@ package decode;
     Bool t_ADD =((opcode =='b10100)&&inst[6:2]!=0);
     Bool t_BR  =((opcode=='b01110)||opcode =='b01111);
     Bool t_ARITH_W=(t_ADDIW||(t_CS &&inst[12]==1'b1));
-    Bool t_SP_OP=(opcode=='b10001||opcode=='b10010||opcode=='b10011||opcode=='b10101||opcode=='b10110||opcode=='b10111||opcode=='b00000||t_ADDI16SP);
-    Bool t_CJ=(`ifdef RV32 (opcode =='b01001) || `endif opcode=='b01101);
+    Bool t_SP_OP=(opcode=='b10001||opcode=='b10010||opcode=='b10011||opcode=='b10101
+    ||opcode=='b10110||opcode=='b10111||opcode=='b00000||t_ADDI16SP);
+    Bool t_CJ=(`ifdef RV32 (opcode =='b01001) ||`endif opcode=='b01101);
     Bool t_LUI = t_ADDI_LUI && inst[11:7]!=2;
     Bool t_LI = (opcode =='b01010);
-    Bool t_LWSP = (opcode =='b10010); 
-    Bool t_LDSP =`ifdef RV64 (opcode =='b10011)`endif;
+    Bool t_LWSP = (opcode =='b10010);
+    Bool t_LDSP = False;
+   
+    `ifndef RV32
+     t_LDSP = (opcode =='b10011); 
+    `endif 
+
+
     Bool t_SWSP =(opcode =='b10110);
-    Bool t_SDSP = `ifdef RV64(opcode =='b10111)`endif;
+    Bool t_SDSP =False;
+   
+     `ifndef RV32
+       t_SDSP =(opcode =='b10111); 
+     `endif
+
     Bool t_CI =(t_ADDI||t_ADDIW||t_LUI||t_LI||t_LWSP||t_LDSP||t_ADDI16SP);
     Bool t_CB =(t_BR);
     Bool t_CIW =(opcode =='b00000);
@@ -607,7 +630,7 @@ package decode;
         (opcode==5'b10001)||(opcode==5'b10101))
       exception = tagged Exception Illegal_inst;
     //Illegal instruction
-    if (opcode=5'b00000 && inst[4:2] == 3'b000)
+    if (opcode==5'b00000 && inst[4:2] == 3'b000)
 		  exception = tagged Exception Illegal_inst;  
     //Generate exceptions on nzimm in case of ADDI,ADDI14SP,ADDI16SP,SLLI,SRLI,SRAI,LUI
     if(t_CIW||t_ADDI16SP||t_LUI||t_SLLI||((opcode=='b01100) && (inst[11]==0)))
@@ -666,5 +689,4 @@ package decode;
     `endif
 
   endfunction
-`endif
 endpackage
