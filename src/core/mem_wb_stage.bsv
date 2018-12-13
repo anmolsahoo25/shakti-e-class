@@ -46,7 +46,7 @@ package mem_wb_stage;
     interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) memory_response;
     interface Get#(Tuple2#(Bit#(5), Bit#(XLEN))) commit_rd;
     interface Get#(OpFwding) operand_fwding;
-    method Tuple2#(Bit#(PADDR), Bool) flush;
+    method Tuple3#(Bit#(PADDR), Bool, Bool) flush;
     method CSRtoDecode csrs_to_decode;
 	  method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
@@ -77,7 +77,7 @@ package mem_wb_stage;
     Wire#(Maybe#(Tuple2#(Bit#(5), Bit#(XLEN)))) wr_commit <- mkDWire(tagged Invalid);
 
     // wire which signals the entire pipe to be flushed.
-    Wire#(Tuple2#(Bit#(PADDR), Bool)) wr_flush <- mkDWire(tuple2(?, False));
+    Wire#(Tuple3#(Bit#(PADDR), Bool, Bool)) wr_flush <- mkDWire(tuple3(?, False, False)); // fence integration
 
     // the local epoch register
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
@@ -100,11 +100,12 @@ package mem_wb_stage;
       end
       Bit#(PADDR) jump_address=truncate(effaddr_csrdata);
       Flush_type fl = unpack(effaddr_csrdata[valueOf(PADDR)]);
+      Set_fence fen = NOFENCE;
       // continue commit only if epochs match. Else deque the ex fifo
       if(rg_epoch==epoch)begin
         if(trap matches tagged Interrupt .in)begin
           let newpc<-  csr.take_trap(trap, pc, ?);
-          wr_flush<=tuple2(newpc, True);
+          wr_flush<=tuple3(newpc, True, False);
           rg_epoch <= ~rg_epoch;
           rx.u.deq;
           if(verbosity!=0)
@@ -123,18 +124,25 @@ package mem_wb_stage;
           else if(committype == MEMORY) begin
             if (wr_memory_response matches tagged Valid .resp)begin
               let {data, err, access_type}=resp;
-              if(!err)begin // no bus error
-                if(rd==0)
-                  data=0;
-                `ifdef atomic
-                  else if(access_type==Store)
-                    data=reslt;
-                `endif
-                wr_operand_fwding <= tuple3(rd, True, data);
-                wr_commit <= tagged Valid (tuple2(rd, data));
-                `ifdef rtldump 
-                  dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
-                `endif
+			  if(!err) begin
+				`ifdef icache
+				  if(access_type==Fencei) begin // fence integration
+				        fen=FENCE;
+						if(verbosity!=0)
+						$display($time, "\tStage3: Fence instruction, Initiating flush");
+				  end
+			   `endif
+					  if(rd==0)
+						  data=0;
+               `ifdef atomic
+                      else if(access_type==Store)
+						  data=reslt;
+               `endif
+               wr_operand_fwding <= tuple3(rd, True, data);
+               wr_commit <= tagged Valid (tuple2(rd, data));
+               `ifdef rtldump 
+                 dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
+               `endif
               end
               else begin
                 if(verbosity!=0)
@@ -146,7 +154,7 @@ package mem_wb_stage;
                 jump_address<- csr.take_trap(trap, pc, truncate(effaddr_csrdata));
                 fl= Flush;
               end
-              rx.u.deq;
+              rx.u.deq; // this will happen when wr_memory_resp is tagged valid
             end
             else begin
               // is response is not available then indicate that the rd is not yet available.
@@ -179,14 +187,20 @@ package mem_wb_stage;
             `endif
           end
           
-          // if it is a branch/JAL_R instruction generate a flush signal to the pipe. 
-          wr_flush<=tuple2(jump_address, (fl==Flush));
-          if(fl==Flush)begin
-            rg_epoch <= ~rg_epoch;
-          end
-          if(fl==Flush || committype==SYSTEM_INSTR)
-            wr_csr_updated<= True;
-
+          // if it is a branch/JAL_R/fencei instruction generate a flush signal to the pipe.
+		  // In case of Fencei, we get the eff_addr and flush signal from execute stage.
+		  // Flush would be initiated when its a Fencei or a branch/JAL or an Exception.
+		  Bool except=False;
+		  if(trap matches tagged Exception .ex) except=True;
+		  Bool memresp = isValid(wr_memory_response);
+		  if(committype!=MEMORY || (committype==MEMORY && memresp==True) || except==True )begin
+	          wr_flush<=tuple3(jump_address, (fl==Flush), (fen==FENCE));
+    	      if(fl==Flush)begin
+        	      rg_epoch <= ~rg_epoch;
+	          end
+    	      if(fl==Flush || committype==SYSTEM_INSTR)
+        	    wr_csr_updated<= True;
+		  end
         end
       end
       else begin

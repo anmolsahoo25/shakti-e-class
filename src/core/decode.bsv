@@ -98,7 +98,6 @@ package decode;
 			default:return False;
 		endcase
 	endfunction
-`ifdef compressed
   function Bit#(3) gen_funct3(Bit#(5) opcode,Bit #(16) inst);
     Bit #(3) funct3 =3'b000;
     
@@ -143,7 +142,6 @@ package decode;
     return funct3;
 
  endfunction
-`endif
 	
   function Bool hasCSRPermission(Bit#(12) address, Bool write,  Privilege_mode prv);
     Bit#(12) csr_index = pack(address);
@@ -216,8 +214,12 @@ package decode;
 
 		//memory access type
 		Access_type mem_access=Load;
-		if(opcode[3]=='b1 && opcode[1]==0)
+		if(opcode=='b01000)
 			mem_access=Store;
+	`ifdef icache
+		else if(opcode=='b00011 && funct3=='b001) // fence integration
+			mem_access=Fencei;
+	`endif
     `ifdef atomic
       else if(opcode=='b01011)
         mem_access=Atomic;
@@ -229,6 +231,7 @@ package decode;
     Bool utype= (opcode=='b01101 || opcode=='b00101);
     Bool jtype= (opcode=='b11011);
     Bool atomictype=(opcode=='b01011);
+	`ifdef icache Bool fencetype=(opcode=='b00011); `endif //fence integration
 
     Bit#(1) bit0 = inst[20]; // because of I-type instructions
     `ifdef atomic
@@ -248,6 +251,11 @@ package decode;
         bit1_4=0;
       else
     `endif
+	`ifdef icache
+	if(fencetype) // fence integration
+		bit1_4='b0010;
+	else
+	`endif
     if(stype || btype) // S/B-Type
       bit1_4=inst[11:8];
     else if(utype) // U type
@@ -345,7 +353,12 @@ package decode;
     		'b001:inst_type=JALR; 
         'b011:inst_type=JAL;
     		'b000:inst_type=BRANCH;
-    		'b100:inst_type=(funct7=='b001000)?WFI:SYSTEM_INSTR;
+    		'b100:begin
+            if(funct3==0 && funct7=='b001000)
+              inst_type=WFI;
+            else
+              inst_type=SYSTEM_INSTR;
+        end
     	endcase
     end
     else if(opcode[4:3]=='b01)begin 
@@ -366,6 +379,7 @@ package decode;
     else if(opcode[4:3]=='b00)begin
     	case(opcode[2:0])
     		'b000: `ifdef RV32 if(funct3!='b011) `endif inst_type=MEMORY;
+			`ifdef icache'b011: if(funct3=='b001) inst_type=MEMORY; `endif // fence integration
     		'b101,'b100,'b110:inst_type=ALU;
     	endcase
     end
@@ -404,8 +418,8 @@ package decode;
              `ifdef muldiv (inst_type==MULDIV && misa[12]==0) || `endif
              `ifdef RV32 (opcode==`IMM_ARITH_op && funct3=='b001 && inst[31:25]!=0) || `endif
              `ifdef RV64 (opcode==`IMM_ARITH_op && funct3=='b001 && inst[31:26]!=0) || `endif
-             (inst_type==ALU && misa[8]==0) 
-             `ifndef compressed || inst[1:0]!='b11 `endif )
+             (inst_type==ALU && misa[8]==0) ||
+             (inst[1:0]!='b11 && misa[2]==0 ))
       exception=tagged Exception Illegal_inst; 
     else if(inst_type == SYSTEM_INSTR)begin
       if(funct3 == 0)
@@ -447,8 +461,6 @@ package decode;
     `endif
   endfunction
 
-`ifdef compressed
- 
  function PIPE1_DS decoder_func_16(Bit#(16) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch, Bool err, 
                                                                                CSRtoDecode csrs );
     let {prv,mip,csr_mie,mideleg,misa,counteren,mie}=csrs;
@@ -670,11 +682,12 @@ package decode;
     if(interrupt matches tagged None)
       interrupt =  exception;
     
-    `ifdef rtldump 
-      Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
+    `ifdef rtldump
+	 Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
         `ifdef atomic Bit#(6) `else Bit#(1) `endif , Bit#(32) ) 
         type_tuple = tuple8(rs1type, rs2type, inst_type, mem_access, pc, interrupt, 
           `ifdef atomic {0,epoch} `else epoch `endif , zeroExtend(inst));
+	  
     `else
       Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
           `ifdef atomic Bit#(6) `else Bit#(1) `endif ) type_tuple = 

@@ -42,13 +42,14 @@ package common_types;
 
   // Define all enums here 
 	typedef enum {ALU, MEMORY, BRANCH, JAL, JALR, SYSTEM_INSTR, WFI `ifdef muldiv , MULDIV `endif }
-      Instruction_type deriving(Bits, Eq, FShow); // the type of the decoded instruction.
-	typedef enum {Load=0, Store=1 `ifdef atomic ,Atomic=2 `endif } Access_type deriving (Bits, Eq, FShow);
+      Instruction_type deriving(Bits, Eq, FShow); // the type of the decoded instruction.// Adding fence
+	  typedef enum {Load=0, Store=1 `ifdef icache ,Fencei=3 `endif `ifdef atomic ,Atomic=2 `endif } Access_type deriving (Bits, Eq, FShow);
 	typedef enum {Flush= 1, None= 0} Flush_type deriving (Bits, Eq, FShow);
 	typedef enum {IntegerRF, PC} Operand1_type deriving(Bits, Eq, FShow);
-	typedef enum {IntegerRF, Immediate, Constant4 `ifdef compressed ,Constant2 `endif } Operand2_type deriving(Bits, Eq, FShow);
+	typedef enum {IntegerRF, Immediate, Constant4, Constant2} Operand2_type deriving(Bits, Eq, FShow);
   typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq, Bits, FShow);
   typedef enum {Machine=3, User=0} Privilege_mode deriving(Eq, Bits, FShow);
+  typedef enum {NOFENCE=0, FENCE=1} Set_fence deriving(Eq, Bits, FShow);
 
   typedef Tuple8#(Bit#(4), Bit#(XLEN), Bit#(XLEN), Bit#(PADDR), Bit#(XLEN), Instruction_type, Funct3,
         Access_type)  ALU_Inputs;
@@ -84,9 +85,8 @@ package common_types;
   typedef Tuple4#(Bit#(PADDR), Access_type, Bit#(2), Bit#(1)) CoreRequest;
 
   typedef Tuple3#(Bit#(5), Bool, Bit#(XLEN)) OpFwding;
-  // rg_prv,  csr_mip, csr_mie, csr_mideleg, csr_misa, csr_counteren, rg_mie
-  typedef Tuple7#(Privilege_mode, Bit#(12), Bit#(12), Bit#(12), Bit#(26), Bit#(3), 
-                   Bit#(1)) CSRtoDecode;
+                  // rg_prv,      csr_mip,   csr_mie, mideleg,  misa,   counteren, rg_mie
+  typedef Tuple7#(Privilege_mode, Bit#(12), Bit#(12), Bit#(12), Bit#(26), Bit#(3), Bit#(1)) CSRtoDecode;
 
   typedef Tuple5#(Privilege_mode, Bit#(XLEN), Bit#(32), Bit#(5), Bit#(XLEN)) DumpType;
 

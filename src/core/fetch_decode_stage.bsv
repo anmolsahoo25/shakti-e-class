@@ -39,150 +39,156 @@ package fetch_decode_stage;
 	import common_types::*;
   `include "common_params.bsv"
   import decode::*;
+  import cache_types::*;
 
+  typedef enum {CheckPrev, None} ActionType deriving(Bits,Eq,FShow);
 
   // Interface for the fetch and decode unit
 	interface Ifc_fetch_decode_stage;
-    `ifdef compressed
-  	  interface Get#(Tuple2#(Bit#(32),Bit#(1))) inst_request;//instruction whose addr is needed
-      interface Put#(Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1))) inst_response;//addr of the given inst
-    `else
-      interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
- 	    interface Put#(Tuple2#(Bit#(32),Bool)) inst_response;//addr of the given inst
-    `endif
+	`ifdef icache 
+	 interface Get#(Tuple4#(Bit#(PADDR),Bool,Bit#(1),Bool)) inst_request; //instruction whose addr is needed
+    `else 
+	interface Get#(Tuple2#(Bit#(PADDR),Bit#(1))) inst_request;
+	`endif
+	interface Put#(Tuple3#(Bit#(32),Bool,Bit#(1))) inst_response;//addr of the given inst
     // rs1,rs2,rd,fn,funct3,instruction_type will be passed on to opfetch and execute unit
     interface TXe#(PIPE1_DS) to_opfetch_unit;
-    method Action flush_from_wb( Bit#(PADDR) newpc, Bool fl);
+    method Action flush_from_wb( Bit#(PADDR) newpc, Bool fence);
     method Action csrs (CSRtoDecode csr);
 	endinterface:Ifc_fetch_decode_stage
 	(*synthesize*)
 	module mkfetch_decode_stage(Ifc_fetch_decode_stage);
 
-    Reg#(Bit#(PADDR)) pc[2] <- mkCReg(2,'h1000);  //making program counter
-    Reg#(Bit#(1)) rg_epoch[2] <- mkCReg(2,0);
-		Reg#(Bit#(1)) shadow_epoch <- mkReg(0);  //shadow pc to preserve it
+    let verbosity = valueOf(`VERBOSITY);
     Wire#(CSRtoDecode) wr_csr <-mkWire();
-    Integer verbosity = valueOf(`VERBOSITY);
-    `ifdef compressed
-    	Reg#(Maybe#(Bit#(16)))buff<-mkReg(tagged Invalid);
-    	Reg#(Bit#(1)) epoch_buff<-mkReg(0);
-     	FIFOF#(Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1))) ff_response_from_memory <-mkSizedBypassFIFOF(1);
-    `else 
-    	Reg#(Bit#(PADDR)) shadow_pc <-mkRegU;  //shadow pc to preserve it
+
+    Reg#(Bit#(PADDR)) rg_icache_request <- mkReg('h1000);
+	`ifdef icache
+		Reg#(Bool) rg_fence <- mkReg(False); //fence integration
     `endif
-    //instantiating the tx interface with name tx
+    Reg#(Bit#(PADDR)) rg_pc <- mkReg('h1000);
+    Reg#(Bit#(1)) rg_epoch <- mkReg(0);
+    Reg#(ActionType) rg_action <-mkReg(None);
+    Reg#(Bool) rg_discard_lower <-mkReg(False);
+    Reg#(Bit#(16)) rg_instruction <- mkReg(0);
+
+    FIFOF#(Tuple3#(Bit#(32),Bool,Bit#(1))) ff_memory_response<-mkSizedFIFOF(2);
 		TX#(PIPE1_DS) tx<-mkTX;
-    `ifdef compressed
-      rule inst_response_to_decode;
-        Bit#(32) inst_decode = 0;
-        Bool compressed = False;
-        let {inst,err,shadow_pc,shadow_epoch}=ff_response_from_memory.first;
-         
-        if(shadow_pc[1:0] == 2'b10 && inst[17:16]==2'b11) begin//upon a jump inst to pc+2
-          ff_response_from_memory.deq;
-          buff      <= tagged Valid inst[31:16];
-          epoch_buff<= shadow_epoch;
+
+    rule decode_instruction;
+        let {prv, mip, csr_mie, mideleg, misa, counteren, mie}=wr_csr;
+        let {cache_response,err,epoch}=ff_memory_response.first;
+        Bit#(32) final_instruction=0;
+        Bool compressed=False;
+        Bool perform_decode=True;
+        if(rg_epoch!=epoch)begin
+          ff_memory_response.deq;
+          rg_action<=None;
+          perform_decode=False;
+          $display($time,"\tSTAGE1: Dropping Instruction from Cache");
+        end
+        else if(rg_discard_lower && misa[2]==1)begin
+          rg_discard_lower<=False;
+          ff_memory_response.deq;
+          if(cache_response[17:16]==2'b11)begin
+            rg_instruction<=cache_response[31:16];
+            rg_action<=CheckPrev;
+            perform_decode=False;
+          end
+          else begin
+            compressed=True;
+            final_instruction=zeroExtend(cache_response[31:16]);
+          end
+        end
+        else if(rg_action == None)begin
+          ff_memory_response.deq;
+          if(cache_response[1:0]=='b11)begin
+            final_instruction=cache_response;
+          end
+          else if(misa[2]==1) begin
+            compressed=True;
+            final_instruction=zeroExtend(cache_response[15:0]);
+            rg_instruction<=truncateLSB(cache_response);
+            rg_action<=CheckPrev;
+          end
         end
         else begin
-          if(shadow_pc[1:0] == 2'b10 && inst[17:16]!=2'b11) begin
-            inst_decode =  zeroExtend(inst[31:16]);
-            ff_response_from_memory.deq;
+          if(rg_instruction[1:0]==2'b11)begin
+            final_instruction={cache_response[15:0],rg_instruction};
+            rg_instruction<=truncateLSB(cache_response);
+            ff_memory_response.deq;
+          end
+          else begin
             compressed=True;
-            buff       <= tagged Invalid;
+            final_instruction=zeroExtend(rg_instruction);
+            rg_action<=None;
           end
-          else if(!isValid(buff) && inst[1:0]==2'b11)begin
-            inst_decode=inst;
-            buff <= tagged Invalid;
-            ff_response_from_memory.deq;
-          end
-          else if(buff matches tagged Valid .d) begin
-            if(d[1:0]==2'b11 && (epoch_buff==shadow_epoch)) begin
-              inst_decode={inst[15:0],d};
-              buff <= tagged Valid inst[31:16];
-              epoch_buff<=shadow_epoch;
-              ff_response_from_memory.deq;
-            end
-            else begin
-              inst_decode=zeroExtend(d);
-              compressed = True;
-              buff <= tagged Invalid;
-            end
-          end
-          else if(!(isValid(buff)) && inst[1:0]!=2'b11) begin
-            inst_decode=zeroExtend(inst[15:0]);
-            buff <= tagged Valid inst[31:16];
-            compressed = True;
-            epoch_buff<=shadow_epoch;
-            ff_response_from_memory.deq;
-          end
-//              TO DO WFI
-          if(verbosity!=0)
-            $display($time,"\tSTAGE1: PC: %h Inst: %h, Err: %b Epoch: %b", shadow_pc,
-                inst_decode, err, shadow_epoch);
-
-          let pc_inst =((!isValid(buff)||shadow_pc[1:0]==2'b10))?shadow_pc:shadow_pc-2;
-          let epoch_inst=((!isValid(buff)||shadow_pc[1:0]==2'b10))?shadow_epoch:epoch_buff;
-          PIPE1_DS x = decoder_func_16(inst_decode[15:0],pc_inst,epoch_inst,err,wr_csr);
-          PIPE1_DS y = decoder_func(inst_decode,pc_inst,epoch_inst,err,wr_csr);
-          if (compressed)
-            tx.u.enq(x);
-          else
-            tx.u.enq(y);
         end
-      endrule
-    `endif
-    //getting response from bus  
-    //instruction whose addr is needed
-		`ifdef compressed
-		  interface inst_request = interface Get
-			  method ActionValue#(Tuple2#(Bit#(PADDR),Bit#(1))) get;
-				  if(pc[0][1:0]==2'b10)
-				    pc[0]<=pc[0]+2;
-				  else
-            pc[0]<=pc[0]+4;
-          if(verbosity!=0)
-            $display($time, "\tSTAGE1: Sending Instruction Addr: %h", pc[0]);
-		      return tuple2(pc[0],rg_epoch[0]);
-        endmethod
-      endinterface;
-		  interface inst_response= interface Put
-		  	method Action put (Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1)) resp);
-          ff_response_from_memory.enq(resp);
-		  	endmethod
-		  endinterface;
-    `else 
-		  interface inst_request = interface Get
-			  method ActionValue#(Bit#(PADDR)) get;
-          pc[0]<=pc[0]+4;
-          if(verbosity!=0)
-            $display($time, "\tSTAGE1: Sending Instruction Addr: %h", pc[0]);
-				  shadow_pc<=pc[0];
-          shadow_epoch<=rg_epoch[0];
-			    return pc[0];
-		    endmethod
-		  endinterface;
-		  interface inst_response= interface Put
-		  	method Action put (Tuple2#(Bit#(32),Bool) resp);
-          let {inst,err}=resp;
-		  	  PIPE1_DS x= decoder_func(inst,shadow_pc,shadow_epoch, err, wr_csr);
-          // TODO WFI
-          if(verbosity!=0)
-            $display($time, "\tSTAGE1: PC: %h Inst: %h, Err: %b Epoch: %b", shadow_pc, inst, err, 
-                shadow_epoch);
-		  		tx.u.enq(x);  //enq the output of the decoder function in the tx interface
-		  	endmethod
-		  endinterface;
-    `endif
+        $display($time,"\tSTAGE1: rg_action: ",fshow(rg_action)," compressed: %b final_instruction:\
+  %h rg_instruction: %h perform_decode: %b rg_epoch: %b",compressed,final_instruction,rg_instruction,
+  perform_decode,rg_epoch);
+
+        PIPE1_DS x = decoder_func_16(final_instruction[15:0],rg_pc,epoch,err,wr_csr);
+        PIPE1_DS y = decoder_func(final_instruction,rg_pc,epoch,err,wr_csr);
+        if(compressed  && perform_decode && misa[2]==1)begin
+          rg_pc<=rg_pc+2;
+          tx.u.enq(x);
+        end
+        else if(perform_decode)begin
+          rg_pc<=rg_pc+4;
+          tx.u.enq(y);
+        end
+        if(verbosity!=0)
+          $display($time, "\tSTAGE1: PC: %h Inst: %h, Err: %b Epoch: %b", rg_pc, final_instruction,
+                                                                                        err, epoch);
+    endrule
     
+	// when fence has to to initiated, we send fence=true along with the address of instruction following fence-instruction, but
+	// this instr wont get fetched as it is tagged fence=true.
+	// In this situation, so to actually fetch instruction following fence-instr, we should not increment icache_request by 4
+    `ifdef icache
+	interface inst_request=interface Get
+      method ActionValue#(Tuple4#(Bit#(PADDR),Bool,Bit#(1),Bool)) get;
+		   		if(rg_fence==True)
+			    	rg_fence<=False; // reset fence once the command is sent
+				else
+				rg_icache_request<=rg_icache_request+4; 
+        return tuple4(rg_icache_request,rg_fence,rg_epoch,False);
+      endmethod
+    endinterface;
+
+    `else
+    interface inst_request=interface Get
+      method ActionValue#(Tuple2#(Bit#(PADDR),Bit#(1))) get;
+				rg_icache_request<=rg_icache_request+4; 
+        return tuple2(rg_icache_request,rg_epoch);
+      endmethod
+    endinterface;
+    `endif
+
+
+	interface inst_response= interface Put
+	  method Action put (Tuple3#(Bit#(32),Bool,Bit#(1)) resp);
+        ff_memory_response.enq(resp);
+	  endmethod
+    endinterface;
+    
+
     //providing the output of the decoder function to the opfetch unit via tx interface
 		interface to_opfetch_unit=tx.e;
-    method Action flush_from_wb( Bit#(PADDR) newpc, Bool fl);
-      if(fl)begin
-        rg_epoch[1]<=~rg_epoch[1];
-        pc[1]<=newpc;
-        if(verbosity>1)
-          $display($time, "\tSTAGE1: Received Flush. PC: %h Flush: ",newpc, fshow(fl)); 
-      end
+    method Action flush_from_wb( Bit#(PADDR) newpc, Bool fence); 
+		`ifdef icache
+		  if(fence) //fence integration
+		  	rg_fence<=True;
+		`endif
+      rg_pc<=newpc;
+      rg_epoch<=~rg_epoch;
+      rg_icache_request<={truncateLSB(newpc),2'b0};
+      if(newpc[1:0]!=0)
+        rg_discard_lower<=True;
+      if(verbosity>1)
+        $display($time, "\tSTAGE1: Received Flush. PC: %h Flush: ",newpc); 
+      ff_memory_response.clear();
     endmethod
 
     method Action csrs (CSRtoDecode csr);

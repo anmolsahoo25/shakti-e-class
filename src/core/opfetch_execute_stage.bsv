@@ -58,7 +58,7 @@ package opfetch_execute_stage;
     // memory request interface in case of Load/Store instruction
     interface Get#(MemoryRequest) memory_request;
   
-    method Action flush_from_wb(Bool fl);
+    method Action flush_from_wb;
     method Action csr_updated (Bool upd);
     method Action interrupt(Bool i);
     method Action misa_c_from_csr (Bit#(1) c);
@@ -121,7 +121,7 @@ package opfetch_execute_stage;
   
     function (Tuple4#(Bit#(XLEN),Bit#(XLEN),Bit#(XLEN), Bool)) operand_provider(Bit#(5) rs1_addr, 
         Operand1_type rs1_type, Bit#(5) rs2_addr, Operand2_type rs2_type, Bit#(PADDR) pc, 
-        Instruction_type insttype, Bit#(32) imm);
+        Instruction_type insttype, Bit#(32) imm, Access_type memaccess);
      
       let {rd,valid,rd_value}=wr_opfwding;
       Bit#(XLEN) rs1irf=(rs1_addr==rd)?rd_value:integer_rf.sub(rs1_addr);
@@ -133,11 +133,20 @@ package opfetch_execute_stage;
       else 
         rs1=rs1irf;
       
-      Bit#(XLEN) op3=zeroExtend(pc);
-      if(insttype==MEMORY || insttype==JALR)
-        op3=rs1irf;
+      // If its a fence instruction, we need op3 to be pc to compute effective address (PC+4)
+	  Bit#(XLEN) op3=zeroExtend(pc);
+	  if(insttype==JALR || (insttype==MEMORY `ifdef icache && memaccess!=Fencei `endif ))begin //fence integration
+		  op3=rs1irf;
+	  end
     
 
+	  // Operand arrangement for short circuiting JAL/JALR 
+	  //updates. rs2 is set to 4/2 depending on whether 
+	  //compressed is enabled or not. the results of of
+	  //rs1 + rs2 are stored into rd as required for
+	  //JAL and JALR to be PC + 4. 
+
+	  //Refer to the table in decode.bsv
       if(rs2_type==Constant4)
         rs2='d4;
       `ifdef compressed
@@ -202,7 +211,7 @@ package opfetch_execute_stage;
       end
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
-      let {op1, op2, op3, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, insttype, imm);
+      let {op1, op2, op3, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, insttype, imm, mem_access);
       ALU_Inputs inp1=tuple8(fn, op1, op2, imm, op3, insttype, funct3,mem_access);
       if(verbosity!=0)
         $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
@@ -441,13 +450,11 @@ package opfetch_execute_stage;
       endinterface;
     `endif
 
-    method Action flush_from_wb(Bool fl);
-      if(fl)begin
+    method Action flush_from_wb; //fence integration
         rg_epoch[1]<=~rg_epoch[1];
         ff_memory_request.clear();
         if(verbosity>1)
           $display($time, "\tSTAGE2: Received Flush");
-      end
     endmethod
     method Action csr_updated (Bool upd);
       if(upd) begin
