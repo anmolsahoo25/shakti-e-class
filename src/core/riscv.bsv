@@ -31,7 +31,7 @@ Details:
 package riscv;
   // project imports
   import common_types::*;
-  import fetch_new::*;
+  import fetch_decode_stage::*;
   import opfetch_execute_stage::*;
   import mem_wb_stage::*;
 
