@@ -72,9 +72,15 @@ endif
 ifeq ($(TRACE), enable)
   trace := --trace
 endif
-define_macros += -D VERBOSITY=$(VERBOSITY) -D CORE_$(COREFABRIC)=True -D MULSTAGES=$(MULSTAGES) -D DIVSTAGES=$(DIVSTAGES) -D Counters=$(COUNTERS) -D $(MAINMEM)=True
+ifeq ($(ICACHE), enable)
+  define_macros += -D icache=True
+endif
+define_macros += -D VERBOSITY=$(VERBOSITY) -D CORE_$(COREFABRIC)=True -D MULSTAGES=$(MULSTAGES) \
+								 -D DIVSTAGES=$(DIVSTAGES) -D Counters=$(COUNTERS) -D $(MAINMEM)=True \
+								 -D iwords=$(IWORDS) -D iblocks=$(IBLOCKS) -D iways=$(IWAYS) -D isets=$(ISETS) \
+								 -D ifbsize=$(IFBSIZE) -D irepl=$(IREPL)
 
-CORE:=./src/core/:./src/caches/:./src/core/m_ext/
+CORE:=./src/core/:./src/caches_mmu/src/:./src/core/m_ext/
 FABRIC:=./src/fabrics/axi4:./src/fabrics/axi4lite:./src/fabrics/tilelink_lite
 UNCORE:=./src/uncore
 TESTBENCH:=./src/testbench/
@@ -149,6 +155,11 @@ generate_verilog: check-restore check-env
 	@cp ${BLUESPECDIR}/Verilog.Vivado/RegFile.v ./verilog/  
 	@cp ${BLUESPECDIR}/Verilog.Vivado/BRAM1Load.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog.Vivado/BRAM2BELoad.v ./verilog/
+	@cp ${BLUESPECDIR}/Verilog.Vivado/BRAM2.v ./verilog/
+	@cp src/common_verilog/bram_1rw.v ./verilog/
+	@cp src/common_verilog/bram_1r1w.v ./verilog/
+	@cp src/common_verilog/BRAM1.v ./verilog/
+	@cp src/common_verilog/BRAM1Load.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFO2.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/FIFO1.v ./verilog/
 	@cp ${BLUESPECDIR}/Verilog/RevertReg.v ./verilog/

@@ -42,13 +42,12 @@ package riscv;
   import FIFOF::*;
 
   interface Ifc_riscv;
-	`ifdef compressed
-  	interface Get#(Tuple2#(Bit#(32),Bit#(1))) inst_request;//instruction whose addr is needed
-	  interface Put#(Tuple4#(Bit#(32),Bool,Bit#(32),Bit#(1))) inst_response;//addr of the given inst
-	`else
-  	interface Get#(Bit#(32)) inst_request;//instruction whose addr is needed
-	  interface Put#(Tuple2#(Bit#(32),Bool)) inst_response;//addr of the given inst
+	`ifdef icache  
+  	interface Get#(Tuple4#(Bit#(PADDR),Bool, Bit#(1), Bool)) inst_request;//instruction whose addr is needed
+	`else 
+	interface Get#(Tuple2#(Bit#(PADDR), Bit#(1))) inst_request;
 	`endif
+    interface Put#(Tuple3#(Bit#(32),Bool,Bit#(1))) inst_response;//addr of the given inst
     interface Get#(MemoryRequest) memory_request;
     interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) memory_response;
 	  method Action clint_msip(Bit#(1) intrpt);
@@ -79,7 +78,7 @@ package riscv;
     mkConnection(stage2.to_mem_wb_unit, pipe2);  // connect stage-2 output to pipe-2
     mkConnection(pipe2,stage3.from_execute);
 
-    let {newpc, fl}=stage3.flush;
+    let {newpc, fl, fence}=stage3.flush; //fence integration
     Bool clear_csr_stall=stage3.csr_updated||fl;
 
     mkConnection(stage3.commit_rd,stage2.commit_rd);
@@ -91,9 +90,9 @@ package riscv;
       stage2.interrupt(stage3.interrupt);
     endrule
 
-    rule flush_from_writeback(fl);
-      stage1.flush_from_wb(newpc, fl);
-      stage2.flush_from_wb(fl);
+    rule flush_from_writeback(fl); // fence integration
+      stage1.flush_from_wb(newpc, fence);
+      stage2.flush_from_wb;
     endrule
 
     rule connect_csrs;

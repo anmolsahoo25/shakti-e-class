@@ -34,6 +34,7 @@ package csrfile;
   import common_types::*;
   `include "common_params.bsv"
   import ConcatReg::*;
+  import BUtils::*;
 
   interface Ifc_csrfile;
     method Bit#(XLEN) read_csr (Bit#(12) addr);
@@ -58,8 +59,8 @@ package csrfile;
   endfunction
 
   (*synthesize*)
-  (*mutually_exclusive="upd_on_ret, write_csr"*)
-  (*mutually_exclusive="upd_on_trap, write_csr"*)
+  (*conflict_free="upd_on_ret, write_csr"*)
+  (*conflict_free="upd_on_trap, write_csr"*)
   (*preempts="write_csr, increment_cycle_counter"*)
   (*preempts="write_csr, incr_minstret"*)
   module mkcsrfile(Ifc_csrfile);
@@ -447,8 +448,6 @@ package csrfile;
             spp <= 0;
             rg_prv <= unpack({1'b0, spp});
 	  		    sie<=spie;
-            if(verbosity>1)
-              $display($time,"\tCSRFILE: SRET Function sepc: %h",sepc);
             let lv_sepc=rg_sepc;
             if(misa_c==0)
               lv_sepc[0]=0;
@@ -495,34 +494,10 @@ package csrfile;
             if(delegateM && rg_prv==User && misa_n==1)
               prv= User;
           `endif
-          if(verbosity>1)begin
-            $display($time,"\tCSRFILE: Cause: %d, pc: %h, tval: %h, rg_medeleg: %h", cause, pc, tval,
-              rg_medeleg);
-            $display($time,"\tCSRFILE:rg_prv: ",fshow(rg_prv)," prv: ", fshow(prv), " delegateM:%b\
-            delegateS:%b misa_s: %b", delegateM, delegateS, misa_s);
-            $display($time,"\tCSRFILE: rg_mtvec:%h rg_stvec:%h", rg_mtvec, rg_stvec);
-          end
-          
-        `ifdef supervisor
-          if(prv==Supervisor) begin
-            stval<=signExtend(tval);
-			      sepc<=pc;
-			      scause<=cause[4:0];
-            sinterrupt<= cause[5];
-			      sie <= 0;
-			      spie <= sie;
-            spp<= pack(rg_prv)[0];
-			      rg_prv <= Supervisor;
-            if(rg_smode==1 && cause[5]==1)
-              return ({(rg_stvec+ zeroExtend(cause[4:0])),2'b0}); // pc jumps to base+(4*cause)
-            else
-              return {rg_stvec, 2'b0}; // pc jumps to base
-          end else
-        `endif
         `ifdef usertraps
           if(prv==User) begin
             rg_utval<=signExtend(tval);
-			      rg_uepc<=pc;
+			      rg_uepc<=truncateLSB(pc);
 			      rg_ucause<=cause[4:0];
             rg_uinterrupt<= cause[5];
 			      rg_uie <= 0;

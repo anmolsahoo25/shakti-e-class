@@ -97,7 +97,7 @@ package alu;
 
 		// Generate flush if prediction was wrong
 		Flush_type flush=None;
-		if((inst_type==BRANCH && final_output[0]==1) || inst_type==JALR || inst_type==JAL )begin
+		if((inst_type==BRANCH && final_output[0]==1) || inst_type==JALR || inst_type==JAL `ifdef icache || memaccess==Fencei `endif )begin //fence integration
 			flush=Flush;
 		end
 		
