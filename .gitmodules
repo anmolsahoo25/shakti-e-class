@@ -10,3 +10,6 @@
 [submodule "src/devices"]
 	path = src/devices
 	url = https://gitlab.com/shaktiproject/uncore/devices.git
+[submodule "src/caches_mmu"]
+	path = src/caches_mmu
+	url = https://gitlab.com/shaktiproject/uncore/caches_mmu.git
