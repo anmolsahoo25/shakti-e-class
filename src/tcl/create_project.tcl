@@ -70,7 +70,7 @@ if {[string equal [get_runs -quiet core_synth_1] ""]} {
 }
 # do not flatten design
 #set_property STEPS.SYNTH_DESIGN.ARGS.FLATTEN_HIERARCHY none [get_runs core_synth_1]
-
+set_property -name "steps.synth_design.args.more options" -value {-verilog_define BSV_RESET_FIFO_HEAD -verilog_define BSV_RESET_FIFO_ARRAY} -objects $obj
 current_run -synthesis [get_runs core_synth_1]
 #et_property strategy Flow_PerfOptimized_high [get_runs core_synth_1]
 
