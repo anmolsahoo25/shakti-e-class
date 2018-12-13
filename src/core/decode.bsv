@@ -245,6 +245,7 @@ package decode;
       bit0=0;
 
     Bit#(4) bit1_4=inst[24:21]; // I/J-type instructions
+    
     `ifdef atomic
       if(atomictype)
         bit1_4=0;
@@ -462,18 +463,25 @@ package decode;
 
  function PIPE1_DS decoder_func_16(Bit#(16) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch, Bool err, 
                                                                                CSRtoDecode csrs );
-    let {prv, mip, csr_mie, mideleg, misa, counteren, mie}=csrs;
-
+    let {prv,mip,csr_mie,mideleg,misa,counteren,mie}=csrs;
     Trap_type exception = tagged None;
     Trap_type interrupt = chk_interrupt(prv, mip, csr_mie, mideleg, mie);
     
 		Bit#(2) op_comp=inst[1:0];
 		Bit#(3) funct3_comp=inst[15:13];
     let opcode = {op_comp,funct3_comp};
-  
+    Bool t_CL_LOAD = (opcode=='b00010);
+    
+    `ifndef RV32
+      t_CL_LOAD = (opcode=='b00010||opcode=='b00011);
+    `endif
 
-    Bool t_CL_LOAD = (opcode=='b00010||opcode =='b00001||opcode=='b00011);
-    Bool t_CL_STORE = (opcode=='b00101||opcode=='b00110||opcode=='b00111);
+    Bool t_CL_STORE =(opcode == 'b00110);
+    
+    `ifndef RV32
+      t_CL_STORE =(opcode=='b00110||opcode=='b00111);
+    `endif
+
     Bool t_CL=t_CL_LOAD ||t_CL_STORE;
     Bool t_ADDI_LUI=(opcode=='b01011);
     Bool t_ADDI16SP= t_ADDI_LUI && inst[11:7]==2;
@@ -481,22 +489,37 @@ package decode;
     Bool t_ADDI_EQ=(opcode=='b00000||opcode=='b01010||opcode=='b01000||t_ADDI16SP);
     Bool t_ADDI = (opcode == 'b01000);
     Bool t_ADDIW=False;
+
     `ifndef RV32
       t_ADDIW= ((opcode=='b01001)&&(inst[11:7]!=0));
     `endif
+
+
     Bool t_SLLI=(opcode=='b10000);
     Bool t_J_R =((opcode =='b10100)&&inst[6:2]==0);
     Bool t_ADD =((opcode =='b10100)&&inst[6:2]!=0);
     Bool t_BR  =((opcode=='b01110)||opcode =='b01111);
     Bool t_ARITH_W=(t_ADDIW||(t_CS &&inst[12]==1'b1));
-    Bool t_SP_OP=(opcode=='b10001||opcode=='b10010||opcode=='b10011||opcode=='b10101||opcode=='b10110||opcode=='b10111||opcode=='b00000||t_ADDI16SP);
-    Bool t_CJ=(`ifdef RV32 (opcode =='b01001) || `endif opcode=='b01101);
+    Bool t_SP_OP=(opcode=='b10001||opcode=='b10010||opcode=='b10011||opcode=='b10101
+    ||opcode=='b10110||opcode=='b10111||opcode=='b00000||t_ADDI16SP);
+    Bool t_CJ=(`ifdef RV32 (opcode =='b01001) ||`endif opcode=='b01101);
     Bool t_LUI = t_ADDI_LUI && inst[11:7]!=2;
     Bool t_LI = (opcode =='b01010);
-    Bool t_LWSP = (opcode =='b10010); 
-    Bool t_LDSP = (opcode =='b10011);
-    Bool t_SWSP = (opcode =='b10110);
-    Bool t_SDSP = (opcode =='b10111);
+    Bool t_LWSP = (opcode =='b10010);
+    Bool t_LDSP = False;
+   
+    `ifndef RV32
+     t_LDSP = (opcode =='b10011); 
+    `endif 
+
+
+    Bool t_SWSP =(opcode =='b10110);
+    Bool t_SDSP =False;
+   
+     `ifndef RV32
+       t_SDSP =(opcode =='b10111); 
+     `endif
+
     Bool t_CI =(t_ADDI||t_ADDIW||t_LUI||t_LI||t_LWSP||t_LDSP||t_ADDI16SP);
     Bool t_CB =(t_BR);
     Bool t_CIW =(opcode =='b00000);
@@ -504,11 +527,10 @@ package decode;
     Bool t_IMM=((funct3_comp=='b000)||(op_comp=='b01 && inst[15]==1'b0)||(opcode=='b01100 &&
     inst[11:10]!='b11)); 
     Bool t_BREAK=((opcode =='b10100) && inst[11:2]==0);
-
     Bit#(5) rs1={2'b01,inst[9:7]};
     Bit#(5) rs2={2'b01,inst[4:2]};
     Bit#(5) rd={2'b01,inst[4:2]};
-
+    
     if((t_CL)||(t_CB)||(t_CS)||(opcode=='b01100 && inst[11:10]!='b11))//Memory,branch and logical
            rs1={2'b01,inst[9:7]};
     else if((opcode==5'b01000)||t_ADDIW||(t_ADD&&inst[12]==1)||t_J_R||t_SLLI)//SLLI,JUMP,ADDI and ADDIW
@@ -615,11 +637,12 @@ package decode;
       inst_type=ALU;
     
     Bit#(3) funct3=gen_funct3(opcode,inst);
-    if((op_comp==2'b11)||(opcode==5'b00100)||(opcode==5'b00101)||
+    //Illegal opcodes:-FLD||LQ,FSD||SQ,Reserved,FLDSP||LQ,FSDSP||SQ
+    if((op_comp==2'b11)||(opcode==5'b00001)||(opcode==5'b00100)||(opcode==5'b00101)||
         (opcode==5'b10001)||(opcode==5'b10101))
       exception = tagged Exception Illegal_inst;
-
-    if (inst==0)
+    //Illegal instruction
+    if (opcode==5'b00000 && inst[4:2] == 3'b000)
 		  exception = tagged Exception Illegal_inst;  
     //Generate exceptions on nzimm in case of ADDI,ADDI14SP,ADDI16SP,SLLI,SRLI,SRAI,LUI
     if(t_CIW||t_ADDI16SP||t_LUI||t_SLLI||((opcode=='b01100) && (inst[11]==0)))
