@@ -69,9 +69,9 @@ package eclass;
     endfunction
 
     (*synthesize*)
-    module mkicache(Ifc_l1icache#(`iwords, `iblocks, `isets, `iways, PADDR, `ifbsize ));
+    module mkicache(Ifc_l1icache#(`iwords, `iblocks, `isets, `iways, PADDR, `ifbsize, 1));
        let ifc();
-	   mkl1icache#(isIO) _temp(ifc);
+	   mkl1icache#(isIO,"PLRU") _temp(ifc);
 	   return (ifc);
     endmodule
   `endif
