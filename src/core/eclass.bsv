@@ -53,14 +53,7 @@ package eclass;
 	import Connectable 				:: *;
   import GetPut:: *;
   import BUtils::*;
-
-  `define sets 64
-  `define wordsize 4
-  `define blocksize 8
-	`define ways 4
-	`define repl PLRU
-  `define fbsize 4
-
+  
   export Ifc_eclass_axi4    (..);
   //export Ifc_eclass_axi4lite  (..);
   export mkeclass_axi4;
@@ -76,7 +69,7 @@ package eclass;
     endfunction
 
     (*synthesize*)
-    module mkicache(Ifc_l1icache#(`wordsize, `blocksize, `sets, `ways, PADDR, `fbsize ));
+    module mkicache(Ifc_l1icache#(`iwords, `iblocks, `isets, `iways, PADDR, `ifbsize ));
        let ifc();
 	   mkl1icache#(isIO) _temp(ifc);
 	   return (ifc);

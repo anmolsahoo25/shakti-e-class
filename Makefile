@@ -72,10 +72,13 @@ endif
 ifeq ($(TRACE), enable)
   trace := --trace
 endif
-ifeq ($(ICACHE), True)
+ifeq ($(ICACHE), enable)
   define_macros += -D icache=True
 endif
-define_macros += -D VERBOSITY=$(VERBOSITY) -D CORE_$(COREFABRIC)=True -D MULSTAGES=$(MULSTAGES) -D DIVSTAGES=$(DIVSTAGES) -D Counters=$(COUNTERS) -D $(MAINMEM)=True 
+define_macros += -D VERBOSITY=$(VERBOSITY) -D CORE_$(COREFABRIC)=True -D MULSTAGES=$(MULSTAGES) \
+								 -D DIVSTAGES=$(DIVSTAGES) -D Counters=$(COUNTERS) -D $(MAINMEM)=True \
+								 -D iwords=$(IWORDS) -D iblocks=$(IBLOCKS) -D iways=$(IWAYS) -D isets=$(ISETS) \
+								 -D ifbsize=$(IFBSIZE) -D irepl=$(IREPL)
 
 CORE:=./src/core/:./src/caches/:./src/core/m_ext/
 FABRIC:=./src/fabrics/axi4:./src/fabrics/axi4lite:./src/fabrics/tilelink_lite
