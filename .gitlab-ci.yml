@@ -46,7 +46,7 @@ gen_artifacts:
             - verilog_eclassrv64imac.tar.gz
             - verilog_eclassrv32imac.tar.gz
     only:
-        - 35-generating_artifcats
+        - 35-generating_artifacts
     tags:
         - e-class-build-regression
 
