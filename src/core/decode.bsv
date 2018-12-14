@@ -216,10 +216,8 @@ package decode;
 		Access_type mem_access=Load;
 		if(opcode=='b01000)
 			mem_access=Store;
-	`ifdef icache
 		else if(opcode=='b00011 && funct3=='b001) // fence integration
 			mem_access=Fencei;
-	`endif
     `ifdef atomic
       else if(opcode=='b01011)
         mem_access=Atomic;
@@ -231,7 +229,7 @@ package decode;
     Bool utype= (opcode=='b01101 || opcode=='b00101);
     Bool jtype= (opcode=='b11011);
     Bool atomictype=(opcode=='b01011);
-	`ifdef icache Bool fencetype=(opcode=='b00011); `endif //fence integration
+    Bool fencetype=(opcode=='b00011); //fence integration
 
     Bit#(1) bit0 = inst[20]; // because of I-type instructions
     `ifdef atomic
@@ -251,12 +249,9 @@ package decode;
         bit1_4=0;
       else
     `endif
-	`ifdef icache
 	if(fencetype) // fence integration
 		bit1_4='b0010;
-	else
-	`endif
-    if(stype || btype) // S/B-Type
+	else if(stype || btype) // S/B-Type
       bit1_4=inst[11:8];
     else if(utype) // U type
       bit1_4=0;
@@ -379,7 +374,7 @@ package decode;
     else if(opcode[4:3]=='b00)begin
     	case(opcode[2:0])
     		'b000: `ifdef RV32 if(funct3!='b011) `endif inst_type=MEMORY;
-			`ifdef icache'b011: if(funct3=='b001) inst_type=MEMORY; `endif // fence integration
+			'b011: if(funct3=='b001) inst_type=MEMORY; // fence integration
     		'b101,'b100,'b110:inst_type=ALU;
     	endcase
     end

@@ -95,10 +95,11 @@ package eclass;
     Ifc_riscv riscv <- mkriscv();
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
-    Reg#(TxnState) fetch_state<- mkReg(Request);
+    // Reg#(TxnState) fetch_state<- mkReg(Request);
     Reg#(TxnState) memory_state<- mkReg(Request);
     Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
-	  Reg#(Bit#(1)) rg_epoch <- mkReg(0);
+	//Reg#(Bit#(1)) rg_epoch <- mkReg(0);
+	FIFOF#(Bit#(1)) ff_epoch <- mkSizedFIFOF(4);
 
     //`ifdef compressed
      // FIFOF#(Bit#(32)) ff_inst <-mkFIFOF;
@@ -134,23 +135,24 @@ package eclass;
 
   `else 
 	
-	  rule handle_fetch_request(fetch_state == Request) ;
+	  rule handle_fetch_request(ff_epoch.notFull);
       //let {inst_addr `ifdef compressed ,epoch `endif }<- riscv.inst_request.get;
 	    let {inst_addr ,epoch} <- riscv.inst_request.get; 
 			AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: inst_addr, aruser: ?, arlen: 0, 
 			arsize: 2, arburst: 'b01, arid:`Fetch_master_num}; // arburst: 00-FIXED 01-INCR 10-WRAP
   		fetch_xactor.i_rd_addr.enq(read_request);
-	  	rg_epoch<=epoch;
-      fetch_state<= Response;
+	  	ff_epoch.enq(epoch);
+      //fetch_state<= Response;
       if(verbosity!=0)
         $display($time, "\tCORE: Fetch Request ", fshow(read_request));
     endrule
 
-    rule handle_fetch_response(fetch_state == Response);
+    rule handle_fetch_response;
 	  	let response <- pop_o (fetch_xactor.o_rd_data);	
   		Bool bus_error = !(response.rresp==AXI4_OKAY);
-      riscv.inst_response.put(tuple3(truncate(response.rdata), bus_error, rg_epoch));
-      fetch_state<= Request; 
+      riscv.inst_response.put(tuple3(truncate(response.rdata), bus_error, ff_epoch.first));
+	  ff_epoch.deq;
+      //fetch_state<= Request; 
 		  if(verbosity!=0)
         $display($time, "\tCORE: Fetch Response ", fshow(response));
     endrule
@@ -164,7 +166,7 @@ package eclass;
     rule handle_memory_request(memory_state ==  Request);
       let {address, data, access, size, sign}<- riscv.memory_request.get;
       memory_request<= tuple4(address, access, size, sign);
-	  `ifdef icache if(access != Fencei) begin `endif
+	 if(access != Fencei) begin
       if(size==0)
         data=duplicate(data[7:0]);
       else if(size==1)
@@ -194,7 +196,7 @@ package eclass;
 	  		memory_xactor.i_wr_addr.enq(aw);
 		  	memory_xactor.i_wr_data.enq(w);
       end
-	  `ifdef icache end `endif
+	 end
       memory_state<= Response;
     endrule
     
@@ -236,7 +238,6 @@ package eclass;
 
     
 	// rule to handle fence reponse.Contents of memory_request register are sent back.
-	`ifdef icache
 	  rule handle_fence_response(memory_state == Response && tpl_2(memory_request) == Fencei);
 		  let {address, access, size, sign}=  memory_request;
   		riscv.memory_response.put(tuple3(0, False, access)); // data is dont care, bus error is false.
@@ -244,7 +245,6 @@ package eclass;
 		  if(verbosity!=0)
 			  $display($time, "\tCORE: Data memory serviced fence request");
   	endrule
-  `endif
 
     interface sb_clint_msip = interface Put
   	  method Action put(Bit#(1) intrpt);
