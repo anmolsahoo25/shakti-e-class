@@ -42,8 +42,9 @@ gen_artifacts:
         - make generate_verilog SYNTH=SIM MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32 RTLDUMP=False
         - tar -cvzf verilog_eclassrv32imac.tar.gz verilog/
     artifacts:
-        - verilog_eclassrv64imac.tar.gz
-        - verilog_eclassrv32imac.tar.gz
+        paths:
+            - verilog_eclassrv64imac.tar.gz
+            - verilog_eclassrv32imac.tar.gz
     only:
         - 35-generating_artifcats
     tags:
