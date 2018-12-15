@@ -96,10 +96,11 @@ package eclass;
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
     // Reg#(TxnState) fetch_state<- mkReg(Request);
-    Reg#(TxnState) memory_state<- mkReg(Request);
-    Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
+    //Reg#(TxnState) memory_state<- mkReg(Request);
+    //Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
 	//Reg#(Bit#(1)) rg_epoch <- mkReg(0);
 	FIFOF#(Bit#(1)) ff_epoch <- mkSizedFIFOF(4);
+	FIFOF#(CoreRequest) ff_mem_request <- mkSizedFIFOF(2);
 
     //`ifdef compressed
      // FIFOF#(Bit#(32)) ff_inst <-mkFIFOF;
@@ -163,9 +164,9 @@ package eclass;
     // if its a fence instruction, the request is simply stored in memory_request register and is not
 	// latched on to the bus. This is done because we are only concerned about access_type being 
 	// propagated to mem_wb stage.
-    rule handle_memory_request(memory_state ==  Request);
+    rule handle_memory_request;
       let {address, data, access, size, sign}<- riscv.memory_request.get;
-      memory_request<= tuple4(address, access, size, sign);
+      ff_mem_request.enq(tuple4(address, access, size, sign));
 	 if(access != Fencei) begin
       if(size==0)
         data=duplicate(data[7:0]);
@@ -197,12 +198,11 @@ package eclass;
 		  	memory_xactor.i_wr_data.enq(w);
       end
 	 end
-      memory_state<= Response;
     endrule
     
 	// Rule to handle memory response of Load and Atomic type instr 
-    rule handle_memoryRead_response(memory_state == Response && (tpl_2(memory_request) == Load || tpl_2(memory_request) ==Atomic));
-      let {address, access, size, sign}=  memory_request;
+    rule handle_memoryRead_response( tpl_2(ff_mem_request.first) == Load || tpl_2(ff_mem_request.first) ==Atomic);
+      let {address, access, size, sign}=  ff_mem_request.first;
 			let response <- pop_o (memory_xactor.o_rd_data);	
 			let bus_error = !(response.rresp==AXI4_OKAY);
       let rdata=response.rdata;
@@ -221,27 +221,27 @@ package eclass;
   			riscv.memory_response.put(tuple3(rdata, bus_error, access));
       if(verbosity!=0)
         $display($time, "\tCORE: Memory Read Response ", fshow(response));
-      memory_state<= Request;
-    endrule
+		ff_mem_request.deq;
+	endrule
 
 
 	// Rule to hande memory response of Store type instr
-	rule handle_memoryWrite_response(memory_state == Response && tpl_2(memory_request) == Store);
-      let {address, access, size, sign}=  memory_request;
+	rule handle_memoryWrite_response(tpl_2(ff_mem_request.first) == Store);
+      let {address, access, size, sign}=  ff_mem_request.first;
 			let response<-pop_o(memory_xactor.o_wr_resp);
 			let bus_error = !(response.bresp==AXI4_OKAY);
 			riscv.memory_response.put(tuple3(0, bus_error, access));
+			ff_mem_request.deq;
       if(verbosity!=0)
         $display($time, "\tCORE: Memory Write Response ", fshow(response));
-      memory_state<= Request;
     endrule
 
     
 	// rule to handle fence reponse.Contents of memory_request register are sent back.
-	  rule handle_fence_response(memory_state == Response && tpl_2(memory_request) == Fencei);
-		  let {address, access, size, sign}=  memory_request;
+	  rule handle_fence_response(tpl_2(ff_mem_request.first) == Fencei);
+		  let {address, access, size, sign}=  ff_mem_request.first;
   		riscv.memory_response.put(tuple3(0, False, access)); // data is dont care, bus error is false.
-	  	memory_state <= Request;
+		ff_mem_request.deq;
 		  if(verbosity!=0)
 			  $display($time, "\tCORE: Data memory serviced fence request");
   	endrule
