@@ -135,7 +135,7 @@ package eclass;
 
   `else 
 	
-	  rule handle_fetch_request(ff_epoch.notFull);
+	  rule handle_fetch_request;
       //let {inst_addr `ifdef compressed ,epoch `endif }<- riscv.inst_request.get;
 	    let {inst_addr ,epoch} <- riscv.inst_request.get; 
 			AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: inst_addr, aruser: ?, arlen: 0, 
