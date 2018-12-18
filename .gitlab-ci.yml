@@ -25,6 +25,9 @@ build32:
         - make link_verilator generate_boot_files MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
         - make regress opts='--filter=rv32 --sub --parallel=90' CONFIG_ISA=RV32IMAC
         - make regress opts='--filter=rv32 --final'
+        - make test opts="--test=hello_world --suite=zephyr --nospike" CONFIG_ISA=RV32IMAC
+        - make test opts="--test=philosophers --suite=zephyr --nospike" CONFIG_ISA=RV32IMAC
+        - make test opts="--test=synchronization --suite=zephyr --nospike" CONFIG_ISA=RV32IMAC
     only:
         - master
     tags:
