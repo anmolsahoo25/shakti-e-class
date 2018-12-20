@@ -60,7 +60,6 @@ package opfetch_execute_stage;
   
     method Action flush_from_wb;
     method Action csr_updated (Bool upd);
-    method Action interrupt(Bool i);
     method Action misa_c_from_csr (Bit#(1) c);
     `ifdef atomic
       interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) atomic_response;
@@ -72,8 +71,6 @@ package opfetch_execute_stage;
 
     let verbosity = `VERBOSITY;
 
-    Wire#(Bool) wr_interrupt<-mkWire();
-    Reg#(Bool) rg_wfi <- mkReg(False);
     Wire#(Bit#(1)) wr_misa_c <- mkWire();
      
     // generating the register file
@@ -184,13 +181,8 @@ package opfetch_execute_stage;
     RX#(PIPE1_DS) rx<-mkRX;
     TX#(PIPE2_DS) tx<-mkTX;
 
-    rule resume_from_wfi(rg_wfi && wr_interrupt);
-      rg_wfi<= False;
-    endrule
-
     rule fetch_execute_pass(!initialize `ifdef muldiv && !rg_stall `elsif atomic && !rg_stall 
-        `endif && !rg_csr_stall[0] &&
-    !rg_wfi);
+        `endif && !rg_csr_stall[0] );
       // receiving the decoded data from the previous stage
       let {fn, rs1, rs2, rd, imm `ifdef RV64, word32 `endif , funct3, rs1_type, rs2_type, 
           insttype, mem_access, pc, trap, epoch_atomicop `ifdef rtldump , inst `endif }=rx.u.first;
@@ -288,17 +280,13 @@ package opfetch_execute_stage;
                      "effaddr :%h op1_reslt: %h", effaddr_csrdata,  op1_reslt);
           if(done) begin 
             rx.u.deq;
-            if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
-              `ifdef rtldump
-                tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
-                    final_trap, inst));
-              `else
-                tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
-                    final_trap));
-              `endif
-            end
-            else
-              rg_wfi<= True;
+          `ifdef rtldump
+            tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
+                final_trap, inst));
+          `else
+            tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
+                final_trap));
+          `endif
           end
           else begin
             if(verbosity>1)
@@ -322,17 +310,13 @@ package opfetch_execute_stage;
             else begin
           `endif
               rx.u.deq;
-              if(insttype!=WFI) begin // in case current instruction is WFI then drop it.
-                `ifdef rtldump
-                  tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
-                      final_trap, inst));
-                `else
-                  tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
-                      final_trap));
-                `endif
-              end
-              else
-                rg_wfi<= True;
+            `ifdef rtldump
+              tx.u.enq(tuple8(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
+                  final_trap, inst));
+            `else
+              tx.u.enq(tuple7(committype,op1_reslt, effaddr_csrdata, pc, rd, rg_epoch[0], 
+                  final_trap));
+            `endif
           `ifdef atomic
             end
           `endif
@@ -460,9 +444,6 @@ package opfetch_execute_stage;
       if(upd) begin
         rg_csr_stall[1]<= False;
       end
-    endmethod
-    method Action interrupt(Bool i);
-      wr_interrupt<= i;
     endmethod
     method Action misa_c_from_csr (Bit#(1) c);
       wr_misa_c<=c;
