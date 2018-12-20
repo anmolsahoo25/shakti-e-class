@@ -87,7 +87,7 @@ package riscv;
       stage2.csr_updated(clear_csr_stall);
     endrule
     rule indicate_interrupt_for_wfi;
-      stage2.interrupt(stage3.interrupt);
+      stage1.interrupt(stage3.interrupt);
     endrule
 
     rule flush_from_writeback(fl); // fence integration

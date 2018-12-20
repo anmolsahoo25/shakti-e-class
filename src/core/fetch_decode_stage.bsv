@@ -46,15 +46,16 @@ package fetch_decode_stage;
   // Interface for the fetch and decode unit
 	interface Ifc_fetch_decode_stage;
 	`ifdef icache 
-	 interface Get#(Tuple4#(Bit#(PADDR),Bool,Bit#(1),Bool)) inst_request; //instruction whose addr is needed
-    `else 
-	interface Get#(Tuple2#(Bit#(PADDR),Bit#(1))) inst_request;
+	  interface Get#(Tuple4#(Bit#(PADDR),Bool,Bit#(1),Bool)) inst_request; //instruction whose addr is needed
+  `else 
+	  interface Get#(Tuple2#(Bit#(PADDR),Bit#(1))) inst_request;
 	`endif
-	interface Put#(Tuple3#(Bit#(32),Bool,Bit#(1))) inst_response;//addr of the given inst
+	  interface Put#(Tuple3#(Bit#(32),Bool,Bit#(1))) inst_response;//addr of the given inst
     // rs1,rs2,rd,fn,funct3,instruction_type will be passed on to opfetch and execute unit
     interface TXe#(PIPE1_DS) to_opfetch_unit;
     method Action flush_from_wb( Bit#(PADDR) newpc, Bool fence);
     method Action csrs (CSRtoDecode csr);
+    method Action interrupt(Bool i);
 	endinterface:Ifc_fetch_decode_stage
 	(*synthesize*)
 	module mkfetch_decode_stage(Ifc_fetch_decode_stage);
@@ -71,11 +72,21 @@ package fetch_decode_stage;
     Reg#(ActionType) rg_action <-mkReg(None);
     Reg#(Bool) rg_discard_lower <-mkReg(False);
     Reg#(Bit#(16)) rg_instruction <- mkReg(0);
+    // This wire will be set if any interrupts have been detected by the core
+    Wire#(Bool) wr_interrupt<-mkWire();
+    Reg#(Bool) rg_wfi <- mkReg(False);
 
     FIFOF#(Tuple3#(Bit#(32),Bool,Bit#(1))) ff_memory_response<-mkSizedFIFOF(2);
 		TX#(PIPE1_DS) tx<-mkTX;
 
-    rule decode_instruction;
+    rule wait_for_interrupt(rg_wfi);
+      if(wr_interrupt)
+        rg_wfi<=False;
+      $display($time,"\tSTAGE1: Waiting for Interrupt. wr_interrupt: %b",wr_interrupt);
+    endrule
+
+
+    rule decode_instruction(!rg_wfi);
         let {prv, mip, csr_mie, mideleg, misa, counteren, mie}=wr_csr;
         let {cache_response,err,epoch}=ff_memory_response.first;
         Bit#(32) final_instruction=0;
@@ -130,6 +141,11 @@ package fetch_decode_stage;
 
         PIPE1_DS x = decoder_func_16(final_instruction[15:0],rg_pc,epoch,err,wr_csr);
         PIPE1_DS y = decoder_func(final_instruction,rg_pc,epoch,err,wr_csr);
+        if(!compressed && final_instruction[14:12]==0 && final_instruction[31:25]=='b001000 &&
+              final_instruction[6:2]=='b11100 && perform_decode) begin
+          rg_wfi<=True;
+          perform_decode=False;
+        end
         if(compressed  && perform_decode && misa[2]==1)begin
           rg_pc<=rg_pc+2;
           tx.u.enq(x);
@@ -193,6 +209,9 @@ package fetch_decode_stage;
 
     method Action csrs (CSRtoDecode csr);
       wr_csr <= csr;
+    endmethod
+    method Action interrupt(Bool i);
+      wr_interrupt<= i;
     endmethod
 	endmodule:mkfetch_decode_stage
 endpackage:fetch_decode_stage

@@ -348,12 +348,7 @@ package decode;
     		'b001:inst_type=JALR; 
         'b011:inst_type=JAL;
     		'b000:inst_type=BRANCH;
-    		'b100:begin
-            if(funct3==0 && funct7=='b001000)
-              inst_type=WFI;
-            else
-              inst_type=SYSTEM_INSTR;
-        end
+    		'b100:inst_type=SYSTEM_INSTR;
     	endcase
     end
     else if(opcode[4:3]=='b01)begin 
