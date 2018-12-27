@@ -70,8 +70,8 @@ package riscv;
     Ifc_mem_wb_stage stage3 <- mkmem_wb_stage;
 
     // instantiate the pipeline-buffers
-    FIFOF#(PIPE1_DS) pipe1 <- mkSizedFIFOF(2);
-    FIFOF#(PIPE2_DS) pipe2 <- mkSizedFIFOF(2);
+    FIFOF#(PIPE1_DS) pipe1 <- mkSizedFIFOF(`pipe1);
+    FIFOF#(PIPE2_DS) pipe2 <- mkSizedFIFOF(2); //pipe2 depth has to be 2 as the opfwding logic is designed for that configuration. 
 
 		mkConnection(stage1.to_opfetch_unit, pipe1);  // connect stage-1 output to pipe-1
 		mkConnection(pipe1, stage2.from_fetch_decode_unit);  // connect pipe-1 to inputs of stage-2
