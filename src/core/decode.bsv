@@ -632,7 +632,7 @@ package decode;
         (opcode==5'b10001)||(opcode==5'b10101))
       exception = tagged Exception Illegal_inst;
     //Illegal instruction
-    if (opcode==5'b00000 && inst[4:2] == 3'b000)
+    if (inst==0)
 		  exception = tagged Exception Illegal_inst;  
     //Generate exceptions on nzimm in case of ADDI,ADDI14SP,ADDI16SP,SLLI,SRLI,SRAI,LUI
     if(t_CIW||t_ADDI16SP||t_LUI||t_SLLI||((opcode=='b01100) && (inst[11]==0)))
