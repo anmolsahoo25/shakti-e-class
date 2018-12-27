@@ -99,13 +99,18 @@ package eclass;
     //Reg#(TxnState) memory_state<- mkReg(Request);
     //Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
 	//Reg#(Bit#(1)) rg_epoch <- mkReg(0);
+
+	// this fifo stores the epochs of instruction addresses latched onto fabric.
+	// fifo size indicates no. of consecutive requests that can be made. The optimum size depends on internals of fabric.
 	FIFOF#(Bit#(1)) ff_epoch <- mkSizedFIFOF(2);
-	FIFOF#(CoreRequest) ff_mem_request <- mkFIFOF1;
+
+	// fifo of size 1 effectively enables only one data request to be be latched & served at a time.
+	FIFOF#(CoreRequest) ff_mem_request <- mkFIFOF1; 
 
     //`ifdef compressed
-     // FIFOF#(Bit#(32)) ff_inst <-mkFIFOF;
-      //FIFOF#(Bit#(1))  ff_epoch <-mkFIFOF;
-     //`endif
+    // FIFOF#(Bit#(32)) ff_inst <-mkFIFOF;
+    // FIFOF#(Bit#(1))  ff_epoch <-mkFIFOF;
+    //`endif
     Integer verbosity = `VERBOSITY;
 
 	`ifdef icache
