@@ -99,8 +99,8 @@ package eclass;
     //Reg#(TxnState) memory_state<- mkReg(Request);
     //Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
 	//Reg#(Bit#(1)) rg_epoch <- mkReg(0);
-	FIFOF#(Bit#(1)) ff_epoch <- mkSizedFIFOF(4);
-	FIFOF#(CoreRequest) ff_mem_request <- mkSizedFIFOF(2);
+	FIFOF#(Bit#(1)) ff_epoch <- mkSizedFIFOF(2);
+	FIFOF#(CoreRequest) ff_mem_request <- mkFIFOF1;
 
     //`ifdef compressed
      // FIFOF#(Bit#(32)) ff_inst <-mkFIFOF;
