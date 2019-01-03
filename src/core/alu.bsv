@@ -41,8 +41,10 @@ package alu;
   `ifdef muldiv
     `ifdef muldiv_fpga
       import muldiv_fpga::*; 
-    `else
+    `elsif RV64
       import muldiv_asic::*;
+    `else
+      import muldiv_asic_32bit::*;
     `endif
   `endif
   import common_types::*;
