@@ -44,9 +44,10 @@ package muldiv_asic_32bit;
 		Bool acc_15to0_is_zero = acc_15to8_is_zero  && acc_7to0_is_zero;
 
 		Bool earlyout= False;
-		if((count==3) || (count==2))
+        if((count==3) || (count==2)) begin
 			if(acc_23to16_is_zero && acc_15to0_is_zero)
 				earlyout= True;
+        end
 		else begin 
 			if(acc_15to0_is_zero)
 				earlyout= True;
