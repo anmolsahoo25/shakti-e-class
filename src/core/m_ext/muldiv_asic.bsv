@@ -51,21 +51,26 @@ package muldiv_asic;
 		Bool acc_31to0_is_zero = acc_31to16_is_zero && acc_15to0_is_zero;
 
 		Bool earlyout= False;
-		if(count[2:1]=='b11)	//==6 or ==7
+        if(count[2:1]=='b11) begin	//==6 or ==7
 			if(acc_55to48_is_zero && acc_47to32_is_zero && acc_31to0_is_zero)
 				earlyout= True;
-		else if(count==5)
+        end
+        else if(count==5) begin
 			if(acc_47to32_is_zero && acc_31to0_is_zero)
 				earlyout= True;
-		else if(count==4)
+        end
+        else if(count==4) begin
 			if(acc_39to32_is_zero && acc_31to0_is_zero)
 				earlyout= True;
-		else if(count==3)
+        end
+        else if(count==3) begin
 			if(acc_31to0_is_zero)
 				earlyout= True;
-		else if(count==2)
+        end
+        else if(count==2) begin
 			if(acc_23to16_is_zero && acc_15to0_is_zero)
 				earlyout= True;
+        end
 		else begin 
 			if(acc_15to0_is_zero)
 				earlyout= True;
