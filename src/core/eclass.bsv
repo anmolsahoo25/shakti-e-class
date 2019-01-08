@@ -48,6 +48,7 @@ package eclass;
 
   `define Mem_master_num 0
   `define Fetch_master_num 1
+  `define IO_master_num 2
 
   // package imports
 	import Connectable 				:: *;
@@ -81,6 +82,9 @@ package eclass;
   interface Ifc_eclass_axi4;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master_d;
 		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master_i;
+  `ifdef cache_control
+	interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master_io;
+  `endif
     interface Put#(Bit#(1)) sb_clint_msip;
     interface Put#(Bit#(1)) sb_clint_mtip;
     interface Put#(Bit#(64)) sb_clint_mtime;
@@ -95,6 +99,7 @@ package eclass;
     Ifc_riscv riscv <- mkriscv();
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
 		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
+		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) io_xactor <- mkAXI4_Master_Xactor;
     // Reg#(TxnState) fetch_state<- mkReg(Request);
     //Reg#(TxnState) memory_state<- mkReg(Request);
     //Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
@@ -119,7 +124,7 @@ package eclass;
 	  mkConnection(icache.core_resp, riscv.inst_response); // icache integration
      
     rule drive_constants;
-		  icache.cache_enable(True);
+		  icache.cache_enable(unpack(riscv.mv_cacheenable[0]));
     endrule
 
 	  rule handle_icache_request;
@@ -138,6 +143,25 @@ package eclass;
 	  	if(verbosity!=0)
 	  	  $display($time, "\ticache: icache receiving Response ", fshow(fab_resp));
 	  endrule
+
+	  rule handle_icache_nc_request;
+		  let {inst_addr, burst_len, burst_size} <- icache.nc_read_req.get;
+		  AXI4_Rd_Addr#(PADDR, 0) icache_request = AXI4_Rd_Addr {araddr: inst_addr , aruser: ?, arlen: 7,
+		  arsize: 2, arburst: 'b10, arid:`IO_master_num};
+		  io_xactor.i_rd_addr.enq(icache_request);
+		  	  	if(verbosity!=0)
+						  	  $display($time, "\tCORE: Icache IO Requesting ", fshow(icache_request));
+	  endrule
+
+	  rule handle_icache_nc_resp;
+		  let fab_resp <- pop_o (io_xactor.o_rd_data);
+		  Bool bus_error = !(fab_resp.rresp==AXI4_OKAY);
+		  icache.nc_read_resp.put(tuple3(truncate(fab_resp.rdata), fab_resp.rlast, bus_error));
+		        if(verbosity!=0)
+						      $display($time, "\tCORE: ICACHE Line Response ", fshow(fab_resp));
+	  endrule
+
+
 
   `else 
 	
@@ -271,8 +295,11 @@ package eclass;
         riscv.externalinterrupt(intrpt);
       endmethod
     endinterface;
-		interface master_i= fetch_xactor.axi_side;
-		interface master_d= memory_xactor.axi_side;
+	interface master_i= fetch_xactor.axi_side;
+	interface master_d= memory_xactor.axi_side;
+	`ifdef cache_control
+	interface master_io = io_xactor.axi_side;
+	`endif
     `ifdef rtldump
       interface io_dump=riscv.dump;
     `endif

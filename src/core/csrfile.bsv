@@ -49,6 +49,9 @@ package csrfile;
     method Action incr_minstret;
     method Bool interrupt;
     method Bit#(1) mv_misa_c;
+	`ifdef cache_control
+	 method Bit#(2) mv_cacheenable;
+	`endif
   endinterface
   
   function Reg#(t) readOnlyReg(t r);
@@ -223,7 +226,16 @@ package csrfile;
   	  Reg#(Bit#(TSub#(PADDR,2))) rg_utvec <- mkReg(0);
     `endif
     //MTVEC trap vector fields
-	  //////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////
+	  ///////////////////////////Non standard user CSRs///////////////////////////////////////////
+	  `ifdef cache_control
+	  // 0-bit is cache enable for instruction cache
+	  // 1-bit is cache enable for data cache
+	  // Address: 'h800
+		Reg#(Bit#(2)) rg_cachecontrol <- mkReg(`icachereset ); 
+	  `endif
+	  //////////////////////////////////////////////////////////////
+
     
     Bit#(12) csr_mip= {rg_meip, heip, seip, rg_ueip, rg_mtip, htie, stie, rg_utip, rg_msip,
                           hsip, ssip, rg_usip};
@@ -318,7 +330,14 @@ package csrfile;
         `endif
         if (addr == `USCRATCH) data= rg_uscratch;
         if (addr == `UTIME) data= truncate(rg_clint_mtime);
-        return data;
+
+		//=========== Non standard user CSRs =========== //
+
+		`ifdef cache_control
+		   if (addr ==`CACHECNTRL ) data = zeroExtend(rg_cachecontrol);
+		`endif
+		return data;
+
     endmethod
 
     method Action write_csr(Bit#(12) addr,  Bit#(XLEN) word, Bit#(2) lpc);
@@ -423,6 +442,11 @@ package csrfile;
             rg_ucause<= truncate(word);
           end
         `endif
+		`ifdef cache_control
+		    `CACHECNTRL:
+				 rg_cachecontrol <= truncate(word);
+		`endif
+
         default: noAction;
       endcase
     endmethod
@@ -552,5 +576,8 @@ package csrfile;
     endmethod
     method interrupt = unpack(|(csr_mie&csr_mip));
     method mv_misa_c=misa_c;
-  endmodule
+	`ifdef cache_control
+	    method mv_cacheenable = rg_cachecontrol;
+	`endif
+ endmodule
 endpackage

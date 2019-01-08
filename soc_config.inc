@@ -22,13 +22,15 @@ THREADS=1
 RTLDUMP=True
 
 # Instruction cache
-ICACHE=disable
+ICACHE=enable
 ISETS=64
 IWORDS=4
 IBLOCKS=8
 IWAYS=4
 IFBSIZE=4
 IREPL=PLRU
+IRESET=1
+CCNTRL=True
 
 #Pipe depths
 PIPE1=6
