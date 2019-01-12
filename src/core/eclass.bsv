@@ -129,8 +129,8 @@ package eclass;
 
 	  rule handle_icache_request;
 	  	let {inst_addr, burst_len, burst_size} <- icache.read_mem_req.get;
-	  	AXI4_Rd_Addr#(PADDR, 0) icache_request = AXI4_Rd_Addr {araddr: inst_addr , aruser: ?, arlen: 7, 
-	  	arsize: 2, arburst: 'b10, arid:`Fetch_master_num}; // arburst: 00-FIXED 01-INCR 10-WRAP
+	  	AXI4_Rd_Addr#(PADDR, 0) icache_request = AXI4_Rd_Addr {araddr: inst_addr , aruser: ?, arlen: burst_len, 
+	  	arsize: burst_size, arburst: 'b10, arid:`Fetch_master_num}; // arburst: 00-FIXED 01-INCR 10-WRAP
 	    fetch_xactor.i_rd_addr.enq(icache_request);
 	  	if(verbosity!=0)
 	  	  $display($time, "\ticache: icache Requesting ", fshow(icache_request));
@@ -146,8 +146,8 @@ package eclass;
 
 	  rule handle_icache_nc_request;
 		  let {inst_addr, burst_len, burst_size} <- icache.nc_read_req.get;
-		  AXI4_Rd_Addr#(PADDR, 0) icache_request = AXI4_Rd_Addr {araddr: inst_addr , aruser: ?, arlen: 7,
-		  arsize: 2, arburst: 'b10, arid:`IO_master_num};
+		  AXI4_Rd_Addr#(PADDR, 0) icache_request = AXI4_Rd_Addr {araddr: inst_addr , aruser: ?, arlen: burst_len,
+		  arsize: 2, arburst: 'b01, arid:`IO_master_num};
 		  io_xactor.i_rd_addr.enq(icache_request);
 		  	  	if(verbosity!=0)
 						  	  $display($time, "\tCORE: Icache IO Requesting ", fshow(icache_request));
