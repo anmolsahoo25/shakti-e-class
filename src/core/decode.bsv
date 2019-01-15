@@ -95,7 +95,15 @@ package decode;
 				else
 					return True;
 			end
-			default:return False;
+			`ifdef cache_control
+			'h8: begin
+				    if(csr_address[7:0]!=0)
+							return False;
+					else
+							return True;
+				end
+			`endif
+           default:return False;
 		endcase
 	endfunction
   function Bit#(3) gen_funct3(Bit#(5) opcode,Bit #(16) inst);

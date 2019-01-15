@@ -106,3 +106,4 @@
 `define UTIMEH		'hC81 // Upper 32bits of UTIME
 `define UINSTRETH 'hC82 // Upper 32bits of UINSTRET
 ////////////////////////////////////////////////////////////////////////////////////
+`define CACHECNTRL 'h800 // cache control register

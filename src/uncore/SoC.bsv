@@ -122,6 +122,7 @@ package SoC;
 
    	mkConnection(eclass.master_d,	fabric.v_from_masters[`Mem_master_num ]);
    	mkConnection(eclass.master_i, fabric.v_from_masters[`Fetch_master_num ]);
+	mkConnection(eclass.master_io, fabric.v_from_masters[`IO_master_num ]);
    	mkConnection(signature.master, fabric.v_from_masters[`Sign_master_num ]);
 
   		mkConnection(fabric.v_to_slaves[`Memory_slave_num],main_memory.slave);

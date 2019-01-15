@@ -58,6 +58,9 @@ package mem_wb_stage;
       interface Get#(DumpType) dump;
     `endif
     method Bit#(1) mv_misa_c;
+    `ifdef cache_control
+	method Bit#(2) mv_cacheenable;
+	`endif
   endinterface:Ifc_mem_wb_stage
 
   (*synthesize*)
@@ -260,5 +263,8 @@ package mem_wb_stage;
     `endif
     method interrupt=csr.interrupt;
     method mv_misa_c=csr.mv_misa_c;
+	`ifdef cache_control
+	method mv_cacheenable=csr.mv_cacheenable;
+	`endif
   endmodule:mkmem_wb_stage
 endpackage:mem_wb_stage

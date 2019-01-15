@@ -60,6 +60,9 @@ package riscv;
     `ifdef atomic
       interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) atomic_response;
     `endif
+	`ifdef cache_control
+	method Bit#(2) mv_cacheenable;
+	`endif
   endinterface:Ifc_riscv
 
   (*synthesize*)
@@ -126,5 +129,8 @@ package riscv;
     `ifdef atomic
       interface atomic_response=stage2.atomic_response;
     `endif
+	`ifdef cache_control
+	 method mv_cacheenable = stage3.mv_cacheenable;
+	`endif
   endmodule:mkriscv
 endpackage: riscv
