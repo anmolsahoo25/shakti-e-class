@@ -16,7 +16,7 @@ If you wish to contribute please make a pull-request. You can also reach out to 
 
 ## Quick Start
 
-        $ git clone https://gitlab.com/shaktiproject/cores/e-class
+        $ git clone --recursive https://gitlab.com/shaktiproject/cores/e-class
         $ make patch
         
 It is important to set the SHAKTI_HOME variable for generation of the core and relevant other surrounding tools and software. It is recommended
