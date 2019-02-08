@@ -99,7 +99,9 @@ package eclass;
     Ifc_riscv riscv <- mkriscv();
 		AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
 		AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
+		`ifdef cache_control
 		AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) io_xactor <- mkAXI4_Master_Xactor;
+	    `endif
     // Reg#(TxnState) fetch_state<- mkReg(Request);
     //Reg#(TxnState) memory_state<- mkReg(Request);
     //Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
