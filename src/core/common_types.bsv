@@ -36,7 +36,7 @@ package common_types;
 	`else
 		typedef 32 XLEN;
 	`endif
-	typedef 32 PADDR ;
+//	typedef 32 `paddr ;
 
 	typedef Bit #(3)  Funct3;
 
@@ -51,38 +51,38 @@ package common_types;
   typedef enum {Machine=3, User=0} Privilege_mode deriving(Eq, Bits, FShow);
   typedef enum {NOFENCE=0, FENCE=1} Set_fence deriving(Eq, Bits, FShow);
 
-  typedef Tuple8#(Bit#(4), Bit#(XLEN), Bit#(XLEN), Bit#(PADDR), Bit#(XLEN), Instruction_type, Funct3,
+  typedef Tuple8#(Bit#(4), Bit#(XLEN), Bit#(XLEN), Bit#(`paddr), Bit#(XLEN), Instruction_type, Funct3,
         Access_type)  ALU_Inputs;
   // define all tuples here
   `ifdef rtldump
     `ifdef RV64
     typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
-              Tuple8#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
+              Tuple8#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(`paddr),
                 Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif , Bit#(32))) PIPE1_DS;
     `else
     typedef Tuple7#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bit#(3),
-              Tuple8#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
+              Tuple8#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(`paddr),
                 Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif , Bit#(32))) PIPE1_DS;
     `endif
-    typedef Tuple8#(Commit_type, Bit#(XLEN), Bit#(TAdd#(PADDR, 1)), Bit#(PADDR), Bit#(5), Bit#(1), 
+    typedef Tuple8#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Bit#(`paddr), Bit#(5), Bit#(1), 
                     Trap_type, Bit#(32)) PIPE2_DS;
   `else
     `ifdef RV64
     typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
-              Tuple7#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
+              Tuple7#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(`paddr),
                 Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif )) PIPE1_DS;
     `else
     typedef Tuple7#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bit#(3),
-              Tuple7#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(PADDR),
+              Tuple7#(Operand1_type, Operand2_type, Instruction_type, Access_type, Bit#(`paddr),
                 Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif )) PIPE1_DS;
     `endif
-    typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(TAdd#(PADDR, 1)), Bit#(PADDR), Bit#(5), Bit#(1), 
+    typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Bit#(`paddr), Bit#(5), Bit#(1), 
                     Trap_type) PIPE2_DS;
   `endif
-  typedef Tuple4#(Commit_type, Bit#(XLEN), Bit#(TAdd#(PADDR, 1)), Trap_type) ALU_OUT;
+  typedef Tuple4#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Trap_type) ALU_OUT;
   
-  typedef Tuple5#(Bit#(PADDR), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
-  typedef Tuple4#(Bit#(PADDR), Access_type, Bit#(2), Bit#(1)) CoreRequest;
+  typedef Tuple5#(Bit#(`paddr), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
+  typedef Tuple4#(Bit#(`paddr), Access_type, Bit#(2), Bit#(1)) CoreRequest;
 
   typedef Tuple3#(Bit#(5), Bool, Bit#(XLEN)) OpFwding;
                   // rg_prv,      csr_mip,   csr_mie, mideleg,  misa,   counteren, rg_mie

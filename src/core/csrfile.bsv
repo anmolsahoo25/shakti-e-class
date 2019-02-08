@@ -44,8 +44,8 @@ package csrfile;
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(64) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
-    method ActionValue#(Bit#(PADDR)) upd_on_ret `ifdef non_m_traps (Privilege_mode prv) `endif ;
-    method ActionValue#(Bit#(PADDR)) upd_on_trap(Bit#(6) cause, Bit#(PADDR) pc, Bit#(PADDR) tval);
+    method ActionValue#(Bit#(`paddr)) upd_on_ret `ifdef non_m_traps (Privilege_mode prv) `endif ;
+    method ActionValue#(Bit#(`paddr)) upd_on_trap(Bit#(6) cause, Bit#(`paddr) pc, Bit#(`paddr) tval);
     method Action incr_minstret;
     method Bool interrupt;
     method Bit#(1) mv_misa_c;
@@ -68,7 +68,7 @@ package csrfile;
   (*preempts="write_csr, incr_minstret"*)
   module mkcsrfile(Ifc_csrfile);
     let maxIndex=valueOf(XLEN);
-    let paddr=valueOf(PADDR);
+    let paddr=valueOf(`paddr);
 
   
     /////////////////////////////// Machine level register /////////////////////////
@@ -132,7 +132,7 @@ package csrfile;
      
     //MTVEC trap vector fields
 	  Reg#(Bit#(2)) rg_mode <- mkReg(0); //0 if pc to base or 1 if pc to base + 4xcause
-	  Reg#(Bit#(TSub#(PADDR,2))) rg_mtvec <- mkReg(0);
+	  Reg#(Bit#(TSub#(`paddr,2))) rg_mtvec <- mkReg(0);
 
     // mstatus fields
     Bit#(1) sd = 0;
@@ -203,8 +203,8 @@ package csrfile;
 	  `endif
 
 	  // Machine Trap Handling
-	  Reg#(Bit#(TSub#(PADDR,1))) rg_mepc  		<- mkReg(0);
-	  Reg#(Bit#(PADDR))rg_mtval  		<- mkReg(0);
+	  Reg#(Bit#(TSub#(`paddr,1))) rg_mepc  		<- mkReg(0);
+	  Reg#(Bit#(`paddr))rg_mtval  		<- mkReg(0);
 	  Reg#(Bit#(XLEN)) rg_mscratch <- mkReg(0);
     
     Reg#(Bit#(1)) rg_minterrupt <-mkReg(0);
@@ -218,12 +218,12 @@ package csrfile;
     Reg#(Bit#(2)) rg_uxl = readOnlyReg(fromInteger(valueOf(XLEN)/32));
 
     `ifdef usertraps
-  	  Reg#(Bit#(TSub#(PADDR,1))) rg_uepc  		<- mkReg(0);
-	    Reg#(Bit#(PADDR))rg_utval  		<- mkReg(0);
+  	  Reg#(Bit#(TSub#(`paddr,1))) rg_uepc  		<- mkReg(0);
+	    Reg#(Bit#(`paddr))rg_utval  		<- mkReg(0);
       Reg#(Bit#(1)) rg_uinterrupt <-mkReg(0);
   	  Reg#(Bit#(5)) rg_ucause   <- mkReg(0);
 	    Reg#(Bit#(2)) rg_umode <- mkReg(0); //0 if pc to base or 1 if pc to base + 4xcause
-  	  Reg#(Bit#(TSub#(PADDR,2))) rg_utvec <- mkReg(0);
+  	  Reg#(Bit#(TSub#(`paddr,2))) rg_utvec <- mkReg(0);
     `endif
     //MTVEC trap vector fields
 	/////////////////////////////////////////////////////////////
@@ -464,7 +464,7 @@ package csrfile;
       rg_meip<= intrpt;
     endmethod
     
-    method ActionValue#(Bit#(PADDR)) upd_on_ret `ifdef non_m_traps (Privilege_mode prv) `endif ;
+    method ActionValue#(Bit#(`paddr)) upd_on_ret `ifdef non_m_traps (Privilege_mode prv) `endif ;
       `ifdef non_m_traps 
         `ifdef supervisor
           if(prv==Supervisor)begin
@@ -501,7 +501,7 @@ package csrfile;
         return {lv_mepc,1'b0};
       end
     endmethod
-    method ActionValue#(Bit#(PADDR)) upd_on_trap(Bit#(6) cause, Bit#(PADDR) pc, Bit#(PADDR) tval);
+    method ActionValue#(Bit#(`paddr)) upd_on_trap(Bit#(6) cause, Bit#(`paddr) pc, Bit#(`paddr) tval);
 
       `ifdef non_m_traps
           Privilege_mode prv=Machine;

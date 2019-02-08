@@ -172,7 +172,7 @@ package Tb_alu;
   	rule test12(fire12);
   		Bit#(XLEN) op1='h8000000000001234;
   		Bit#(XLEN) op2='h8000000000001234;
-  		Bit#(PADDR) npc='h07000000+4;
+  		Bit#(`paddr) npc='h07000000+4;
   		let {a,b,c,d,e} =fn_alu(`FNADD,op1,op2,op1,'h07000000,JAL_R,f3_MUL,Load,'h07,word32);
   		Bit#(XLEN) correct_output12=signExtend(npc);
   		if(!(b==correct_output12))

@@ -199,7 +199,7 @@ package decode;
   `endif
 
   (*noinline*)
-  function PIPE1_DS decoder_func(Bit#(32) inst, Bit#(PADDR) pc, Bit#(1) epoch, Bool err, 
+  function PIPE1_DS decoder_func(Bit#(32) inst, Bit#(`paddr) pc, Bit#(1) epoch, Bool err, 
                                                                                CSRtoDecode csrs);
     let {prv, mip, csr_mie, mideleg, misa, counteren, mie}=csrs;
 
@@ -307,7 +307,7 @@ package decode;
     Bit#(32) immediate_value={bit31, bit20_30, bit12_19, bit11, bit5_10, bit1_4, bit0};
 
     // Following table describes what the ALU will need for some critical operations. Based on this
-    // the next set of logic is implemented. rs1+ rs2 is a XLEN bit adder. rs3+ rs4 is PADDR bit
+    // the next set of logic is implemented. rs1+ rs2 is a XLEN bit adder. rs3+ rs4 is `paddr bit
     // adder.
     //
     //          rs1   rs2   rs3   rs4
@@ -442,12 +442,12 @@ package decode;
       Bit#(5) atomic_op = fn_atomic(inst[31:27]);
     `endif
     `ifdef rtldump 
-      Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
+      Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(`paddr), Trap_type, 
         `ifdef atomic Bit#(6) `else Bit#(1) `endif , Bit#(32)) 
         type_tuple = tuple8(rs1type, rs2type, inst_type, mem_access, pc, interrupt, 
           `ifdef atomic {atomic_op,epoch} `else epoch `endif , inst);
     `else
-      Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
+      Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(`paddr), Trap_type, 
           `ifdef atomic Bit#(6) `else Bit#(1) `endif ) type_tuple = 
           tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt,  
           `ifdef atomic {atomic_op,epoch} `else epoch `endif );
@@ -459,7 +459,7 @@ package decode;
     `endif
   endfunction
 
- function PIPE1_DS decoder_func_16(Bit#(16) inst,Bit#(PADDR) shadow_pc, Bit#(1) epoch, Bool err, 
+ function PIPE1_DS decoder_func_16(Bit#(16) inst,Bit#(`paddr) shadow_pc, Bit#(1) epoch, Bool err, 
                                                                                CSRtoDecode csrs );
     let {prv,mip,csr_mie,mideleg,misa,counteren,mie}=csrs;
     Trap_type exception = tagged None;
@@ -562,7 +562,7 @@ package decode;
 
   //  Bit#(7) funct7=inst[31:25]; 
 		`ifdef RV64 Bool word32 =False; `endif
-		Bit#(PADDR) pc=shadow_pc;
+		Bit#(`paddr) pc=shadow_pc;
     
 		//operand types
 		Operand1_type rs1type=IntegerRF;
@@ -681,13 +681,13 @@ package decode;
       interrupt =  exception;
     
     `ifdef rtldump
-	 Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
+	 Tuple8#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(`paddr), Trap_type, 
         `ifdef atomic Bit#(6) `else Bit#(1) `endif , Bit#(32) ) 
         type_tuple = tuple8(rs1type, rs2type, inst_type, mem_access, pc, interrupt, 
           `ifdef atomic {0,epoch} `else epoch `endif , zeroExtend(inst));
 	  
     `else
-      Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(PADDR), Trap_type, 
+      Tuple7#(Operand1_type,Operand2_type,Instruction_type,Access_type,Bit#(`paddr), Trap_type, 
           `ifdef atomic Bit#(6) `else Bit#(1) `endif ) type_tuple = 
           tuple7(rs1type, rs2type, inst_type, mem_access, pc, interrupt,  
           `ifdef atomic {0,epoch} `else epoch `endif );

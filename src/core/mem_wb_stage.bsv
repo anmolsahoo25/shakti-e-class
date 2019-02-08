@@ -46,7 +46,7 @@ package mem_wb_stage;
     interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) memory_response;
     interface Get#(Tuple2#(Bit#(5), Bit#(XLEN))) commit_rd;
     interface Get#(OpFwding) operand_fwding;
-    method Tuple3#(Bit#(PADDR), Bool, Bool) flush;
+    method Tuple3#(Bit#(`paddr), Bool, Bool) flush;
     method CSRtoDecode csrs_to_decode;
 	  method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
@@ -80,7 +80,7 @@ package mem_wb_stage;
     Wire#(Maybe#(Tuple2#(Bit#(5), Bit#(XLEN)))) wr_commit <- mkDWire(tagged Invalid);
 
     // wire which signals the entire pipe to be flushed.
-    Wire#(Tuple3#(Bit#(PADDR), Bool, Bool)) wr_flush <- mkDWire(tuple3(?, False, False)); // fence integration
+    Wire#(Tuple3#(Bit#(`paddr), Bool, Bool)) wr_flush <- mkDWire(tuple3(?, False, False)); // fence integration
 
     // the local epoch register
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
@@ -101,8 +101,8 @@ package mem_wb_stage;
         $display($time, "\t        csr_data: %h", effaddr_csrdata, " rd: %d", rd, " epoch: %b", 
             epoch, " trap: ", fshow(trap));
       end
-      Bit#(PADDR) jump_address=truncate(effaddr_csrdata);
-      Flush_type fl = unpack(effaddr_csrdata[valueOf(PADDR)]);
+      Bit#(`paddr) jump_address=truncate(effaddr_csrdata);
+      Flush_type fl = unpack(effaddr_csrdata[valueOf(`paddr)]);
       Set_fence fen = NOFENCE;
       // continue commit only if epochs match. Else deque the ex fifo
       if(rg_epoch==epoch)begin

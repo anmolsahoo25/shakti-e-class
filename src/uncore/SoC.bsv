@@ -55,7 +55,7 @@ package SoC;
  
  `ifdef CORE_TLU
     function Tuple2 #(Bool, Bit#(TLog#(`Num_Slaves))) fn_slave_map (A_Opcode_lite cmd, 
-                                                                                 Bit#(PADDR) addr);
+                                                                                 Bit#(`paddr) addr);
       Bool slave_exist = True;
       Bit#(TLog#(`Num_Slaves)) slave_num = 0;
       if(addr >= `MemoryBase && addr<= `MemoryEnd)
@@ -74,7 +74,7 @@ package SoC;
       return tuple2(slave_exist, slave_num);
     endfunction:fn_slave_map
  `else
-    function Tuple2 #(Bool, Bit#(TLog#(`Num_Slaves))) fn_slave_map (Bit#(PADDR) addr);
+    function Tuple2 #(Bool, Bit#(TLog#(`Num_Slaves))) fn_slave_map (Bit#(`paddr) addr);
       Bool slave_exist = True;
       Bit#(TLog#(`Num_Slaves)) slave_num = 0;
       if(addr >= `MemoryBase && addr<= `MemoryEnd)
@@ -100,7 +100,7 @@ package SoC;
       interface Get#(DumpType) io_dump;
     `endif
     `ifdef EXTERNAL
-      interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) mem_master;
+      interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) mem_master;
     `endif
     interface RS232 uart_io;
   endinterface
@@ -112,13 +112,13 @@ package SoC;
     let curr_reset<-exposeCurrentReset;
     Ifc_eclass_axi4 eclass <- mkeclass_axi4();
     Ifc_sign_dump signature<- mksign_dump();
-    AXI4_Fabric_IFC #(`Num_Masters, `Num_Slaves, PADDR, XLEN, USERSPACE) 
+    AXI4_Fabric_IFC #(`Num_Masters, `Num_Slaves, `paddr, XLEN, USERSPACE) 
                                                     fabric <- mkAXI4_Fabric(fn_slave_map);
-  		Ifc_memory_AXI4#(PADDR, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4(`MemoryBase, 
+  		Ifc_memory_AXI4#(`paddr, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4(`MemoryBase, 
                                                 "code.mem.MSB", "code.mem.LSB");
-			Ifc_bootrom_axi4#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_axi4(`BootRomBase);
-	  Ifc_uart_axi4#(PADDR,XLEN,0, 16) uart <- mkuart_axi4(curr_clk,curr_reset, 5);
-    Ifc_clint_axi4#(PADDR,XLEN,0,1) clint <- mkclint_axi4();
+			Ifc_bootrom_axi4#(`paddr, XLEN, USERSPACE) bootrom <-mkbootrom_axi4(`BootRomBase);
+	  Ifc_uart_axi4#(`paddr,XLEN,0, 16) uart <- mkuart_axi4(curr_clk,curr_reset, 5);
+    Ifc_clint_axi4#(`paddr,XLEN,0,1) clint <- mkclint_axi4();
 
    	mkConnection(eclass.master_d,	fabric.v_from_masters[`Mem_master_num ]);
    	mkConnection(eclass.master_i, fabric.v_from_masters[`Fetch_master_num ]);
@@ -145,12 +145,12 @@ package SoC;
 //  (*synthesize*)
 //  module mkSoC(Ifc_SoC);
 //    Ifc_eclass_axi4lite eclass <- mkeclass_axi4lite();
-//    AXI4_Lite_Fabric_IFC #(`Num_Masters, `Num_Slaves, PADDR, XLEN, USERSPACE) 
+//    AXI4_Lite_Fabric_IFC #(`Num_Masters, `Num_Slaves, `paddr, XLEN, USERSPACE) 
 //                                                    fabric <- mkAXI4_Lite_Fabric(fn_slave_map);
-//		Ifc_memory_AXI4Lite#(PADDR, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4Lite(
+//		Ifc_memory_AXI4Lite#(`paddr, XLEN, USERSPACE, `Addr_space) main_memory <- mkmemory_AXI4Lite(
 //                                                      `MemoryBase, "code.mem.MSB", "code.mem.LSB");
 //		`ifdef BOOTROM
-//			Ifc_bootrom_axi4lite#(PADDR, XLEN, USERSPACE) bootrom <-mkbootrom_axi4lite(`BootRomBase);
+//			Ifc_bootrom_axi4lite#(`paddr, XLEN, USERSPACE) bootrom <-mkbootrom_axi4lite(`BootRomBase);
 //		`endif
 //
 //
@@ -177,13 +177,13 @@ package SoC;
 //	  master_route[valueOf(`Memory_wr_slave_num)]                 = truncate(2'b01);
 //	  `ifdef BOOTROM master_route[valueOf(`BootRom_slave_num)]     = truncate(2'b11); `endif
 //
-//    Tilelink_Fabric_IFC_lite#(`Num_Masters, `Num_Slaves, 1, PADDR, TDiv#(XLEN, 8), 2) fabric <- 
+//    Tilelink_Fabric_IFC_lite#(`Num_Masters, `Num_Slaves, 1, `paddr, TDiv#(XLEN, 8), 2) fabric <- 
 //                                                                      mkTilelinkLite(fn_slave_map,
 //                                                                      master_route);
-//	  Ifc_memory_TLU#(PADDR, TDiv#(XLEN, 8), 2, `Addr_space) main_memory <- mkmemory_TLU(`MemoryBase,
+//	  Ifc_memory_TLU#(`paddr, TDiv#(XLEN, 8), 2, `Addr_space) main_memory <- mkmemory_TLU(`MemoryBase,
 //                                                                    "code.mem.MSB", "code.mem.LSB");	
 //		`ifdef BOOTROM
-//			Ifc_bootrom_TLU#(PADDR, TDiv#(XLEN, 8), 2) bootrom <-mkbootrom_TLU(`BootRomBase);
+//			Ifc_bootrom_TLU#(`paddr, TDiv#(XLEN, 8), 2) bootrom <-mkbootrom_TLU(`BootRomBase);
 //		`endif
 //
 //   	mkConnection(eclass.mem_master,	fabric.v_from_masters[`Mem_master_num]);

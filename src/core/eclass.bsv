@@ -62,7 +62,7 @@ package eclass;
   export DumpType (..);
 
   `ifdef icache
-    function Bool isIO(Bit#(PADDR) addr, Bool cacheable);
+    function Bool isIO(Bit#(`paddr) addr, Bool cacheable);
 	    if(!cacheable)
 	  	  return True;
 	    else
@@ -70,7 +70,7 @@ package eclass;
     endfunction
 
     (*synthesize*)
-    module mkicache(Ifc_l1icache#(`iwords, `iblocks, `isets, `iways, PADDR, `ifbsize, 1));
+    module mkicache(Ifc_l1icache#(`iwords, `iblocks, `isets, `iways, `paddr, `ifbsize, 1));
        let ifc();
 	   mkl1icache#(isIO,"PLRU") _temp(ifc);
 	   return (ifc);
@@ -80,10 +80,10 @@ package eclass;
   
   typedef enum {Request, Response} TxnState deriving(Bits, Eq, FShow);
   interface Ifc_eclass_axi4;
-		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master_d;
-		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master_i;
+		interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) master_d;
+		interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) master_i;
   `ifdef cache_control
-	interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master_io;
+	interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) master_io;
   `endif
     interface Put#(Bit#(1)) sb_clint_msip;
     interface Put#(Bit#(1)) sb_clint_mtip;
@@ -97,9 +97,9 @@ package eclass;
   (*synthesize*)
   module mkeclass_axi4(Ifc_eclass_axi4);
     Ifc_riscv riscv <- mkriscv();
-		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
-		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
-		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) io_xactor <- mkAXI4_Master_Xactor;
+		AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
+		AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
+		AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) io_xactor <- mkAXI4_Master_Xactor;
     // Reg#(TxnState) fetch_state<- mkReg(Request);
     //Reg#(TxnState) memory_state<- mkReg(Request);
     //Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
@@ -129,7 +129,7 @@ package eclass;
 
 	  rule handle_icache_request;
 	  	let {inst_addr, burst_len, burst_size} <- icache.read_mem_req.get;
-	  	AXI4_Rd_Addr#(PADDR, 0) icache_request = AXI4_Rd_Addr {araddr: inst_addr , aruser: ?, arlen: burst_len, 
+	  	AXI4_Rd_Addr#(`paddr, 0) icache_request = AXI4_Rd_Addr {araddr: inst_addr , aruser: ?, arlen: burst_len, 
 	  	arsize: burst_size, arburst: 'b10, arid:`Fetch_master_num}; // arburst: 00-FIXED 01-INCR 10-WRAP
 	    fetch_xactor.i_rd_addr.enq(icache_request);
 	  	if(verbosity!=0)
@@ -146,7 +146,7 @@ package eclass;
 
 	  rule handle_icache_nc_request;
 		  let {inst_addr, burst_len, burst_size} <- icache.nc_read_req.get;
-		  AXI4_Rd_Addr#(PADDR, 0) icache_request = AXI4_Rd_Addr {araddr: inst_addr , aruser: ?, arlen: burst_len,
+		  AXI4_Rd_Addr#(`paddr, 0) icache_request = AXI4_Rd_Addr {araddr: inst_addr , aruser: ?, arlen: burst_len,
 		  arsize: 2, arburst: 'b01, arid:`IO_master_num};
 		  io_xactor.i_rd_addr.enq(icache_request);
 		  	  	if(verbosity!=0)
@@ -168,7 +168,7 @@ package eclass;
 	  rule handle_fetch_request;
       //let {inst_addr `ifdef compressed ,epoch `endif }<- riscv.inst_request.get;
 	    let {inst_addr ,epoch} <- riscv.inst_request.get; 
-			AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: inst_addr, aruser: ?, arlen: 0, 
+			AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr: inst_addr, aruser: ?, arlen: 0, 
 			arsize: 2, arburst: 'b01, arid:`Fetch_master_num}; // arburst: 00-FIXED 01-INCR 10-WRAP
   		fetch_xactor.i_rd_addr.enq(read_request);
 	  	ff_epoch.enq(epoch);
@@ -209,14 +209,14 @@ package eclass;
 				write_strobe=write_strobe<<byte_offset;
 			end
       if(access != Store) begin
-        AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: address, aruser: 0, arlen: 0, 
+        AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr: address, aruser: 0, arlen: 0, 
             arsize: zeroExtend(size), arburst:'b01, arid:`Mem_master_num}; //arburst: 00-FIXED 01-INCR 10-WRAP
    	   		memory_xactor.i_rd_addr.enq(read_request);	
         if(verbosity!=0)
           $display($time, "\tCORE: Memory Read Request ", fshow(read_request));
       end
       else begin
-			   AXI4_Wr_Addr#(PADDR, 0) aw = AXI4_Wr_Addr {awaddr: truncate(address), awuser:0, awlen: 0, 
+			   AXI4_Wr_Addr#(`paddr, 0) aw = AXI4_Wr_Addr {awaddr: truncate(address), awuser:0, awlen: 0, 
             awsize: zeroExtend(size), awburst: 'b01, awid:`Mem_master_num}; //arburst: 00-FIXED 01-INCR 10-WRAP
   			let w  = AXI4_Wr_Data {wdata: data, wstrb: write_strobe, wlast:True, wid:`Mem_master_num};
         if(verbosity!=0)begin
@@ -306,8 +306,8 @@ package eclass;
   endmodule: mkeclass_axi4
   //=================== Interface and module for a eclass- master on the AXI4 fabric ============= //
 //  interface Ifc_eclass_axi4lite;
-//		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) master_i;
-//		interface AXI4_Lite_Master_IFC#(PADDR, XLEN, USERSPACE) master_d;
+//		interface AXI4_Lite_Master_IFC#(`paddr, XLEN, USERSPACE) master_i;
+//		interface AXI4_Lite_Master_IFC#(`paddr, XLEN, USERSPACE) master_d;
 //    interface Put#(Bit#(1)) sb_clint_msip;
 //    interface Put#(Bit#(1)) sb_clint_mtip;
 //    interface Put#(Bit#(64)) sb_clint_mtime;
@@ -320,8 +320,8 @@ package eclass;
 //  (*synthesize*)
 //  module mkeclass_axi4lite(Ifc_eclass_axi4lite);
 //    Ifc_riscv riscv <- mkriscv();
-//		AXI4_Lite_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) fetch_xactor<- mkAXI4_Lite_Master_Xactor;
-//		AXI4_Lite_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) memory_xactor<- mkAXI4_Lite_Master_Xactor;
+//		AXI4_Lite_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) fetch_xactor<- mkAXI4_Lite_Master_Xactor;
+//		AXI4_Lite_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) memory_xactor<- mkAXI4_Lite_Master_Xactor;
 //    Reg#(TxnState) fetch_state<- mkReg(Request);
 //    Reg#(TxnState) memory_state<- mkReg(Request);
 //    Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
@@ -336,7 +336,7 @@ package eclass;
 //
 //    rule handle_fetch_request(fetch_state == Request) ;
 //      let {inst_addr `ifdef compressed ,epoch `endif }<- riscv.inst_request.get;
-//			AXI4_Lite_Rd_Addr#(PADDR, 0) read_request = AXI4_Lite_Rd_Addr {araddr:{inst_addr `ifdef compressed [31:2],2'b00 `endif }, aruser: ?, 
+//			AXI4_Lite_Rd_Addr#(`paddr, 0) read_request = AXI4_Lite_Rd_Addr {araddr:{inst_addr `ifdef compressed [31:2],2'b00 `endif }, aruser: ?, 
 //          arsize: 2}; // arburst: 00-FIXED 01-INCR 10-WRAP
 //			fetch_xactor.i_rd_addr.enq(read_request);	
 //      `ifdef compressed
@@ -376,14 +376,14 @@ package eclass;
 //				write_strobe=write_strobe<<byte_offset;
 //			end
 //      if(access == Load) begin
-//        AXI4_Lite_Rd_Addr#(PADDR, 0) read_request = AXI4_Lite_Rd_Addr {araddr: address, aruser:?, 
+//        AXI4_Lite_Rd_Addr#(`paddr, 0) read_request = AXI4_Lite_Rd_Addr {araddr: address, aruser:?, 
 //            arsize: zeroExtend(size)}; //arburst: 00-FIXED 01-INCR 10-WRAP
 //   	   	memory_xactor.i_rd_addr.enq(read_request);	
 //        if(verbosity!=0)
 //          $display($time, "\tCORE: Memory Read Request ", fshow(read_request));
 //      end
 //      else begin
-//			   AXI4_Lite_Wr_Addr#(PADDR, 0) aw = AXI4_Lite_Wr_Addr {awaddr: truncate(address), awuser:?, 
+//			   AXI4_Lite_Wr_Addr#(`paddr, 0) aw = AXI4_Lite_Wr_Addr {awaddr: truncate(address), awuser:?, 
 //            awsize: zeroExtend(size)}; //arburst: 00-FIXED 01-INCR 10-WRAP
 //  			let w  = AXI4_Lite_Wr_Data {wdata: data, wstrb: write_strobe};
 //        if(verbosity!=0)begin
@@ -449,8 +449,8 @@ package eclass;
 //  endmodule: mkeclass_axi4lite
 //
 //  interface Ifc_eclass_TLU;
-//		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(XLEN, 8), 2) fetch_master;
-//		interface Ifc_fabric_side_master_link_lite#(PADDR, TDiv#(XLEN, 8), 2) mem_master;
+//		interface Ifc_fabric_side_master_link_lite#(`paddr, TDiv#(XLEN, 8), 2) fetch_master;
+//		interface Ifc_fabric_side_master_link_lite#(`paddr, TDiv#(XLEN, 8), 2) mem_master;
 //    interface Put#(Bit#(1)) sb_clint_msip;
 //    interface Put#(Bit#(1)) sb_clint_mtip;
 //    interface Put#(Bit#(64)) sb_clint_mtime;
@@ -461,8 +461,8 @@ package eclass;
 //  endinterface: Ifc_eclass_TLU
 //  (*synthesize*)
 //  module mkeclass_TLU(Ifc_eclass_TLU);
-//    Ifc_Master_link_lite#(PADDR, TDiv#(XLEN, 8), 2)  fetch_xactor <- mkMasterXactorLite(True, True);
-//    Ifc_Master_link_lite#(PADDR, TDiv#(XLEN, 8), 2)  dmem_xactor <- mkMasterXactorLite(True, True);
+//    Ifc_Master_link_lite#(`paddr, TDiv#(XLEN, 8), 2)  fetch_xactor <- mkMasterXactorLite(True, True);
+//    Ifc_Master_link_lite#(`paddr, TDiv#(XLEN, 8), 2)  dmem_xactor <- mkMasterXactorLite(True, True);
 //    Ifc_riscv riscv <- mkriscv();
 //    Reg#(TxnState) fetch_state<- mkReg(Request);
 //    Reg#(Bit#(1)) memory_request <- mkReg(0);
@@ -476,7 +476,7 @@ package eclass;
 //
 //    rule handle_fetch_request(fetch_state == Request) ;
 //      let {inst_addr `ifdef compressed ,epoch `endif }<- riscv.inst_request.get;
-//      A_channel_lite#(PADDR, TDiv#(XLEN, 8), 2) lite_request = 
+//      A_channel_lite#(`paddr, TDiv#(XLEN, 8), 2) lite_request = 
 //            A_channel_lite { a_opcode : Get_data, a_size :2, a_source: `Fetch_master_num, a_address
 //                      :{inst_addr `ifdef compressed [31:2],2'b00 `endif }, a_mask : ?, a_data : ?};
 //	  	fetch_xactor.core_side.master_request.put(lite_request);	
@@ -515,7 +515,7 @@ package eclass;
 //			if(size!=3)begin			// 8-bit write;
 //				write_strobe=write_strobe<<byte_offset;
 //			end
-//      A_channel_lite#(PADDR, TDiv#(XLEN, 8), 2) lite_request= A_channel_lite{a_opcode:
+//      A_channel_lite#(`paddr, TDiv#(XLEN, 8), 2) lite_request= A_channel_lite{a_opcode:
 //      unpack({1'b0,truncate(pack(access))}), 
 //          a_size: size,  a_source: `Mem_master_num, a_address : address, a_mask : write_strobe, a_data: data};
 //   	  dmem_xactor.core_side.master_request.put(lite_request);	

@@ -43,8 +43,8 @@ package sign_dump;
 	import Semi_FIFOF:: *;
 
   interface Ifc_sign_dump;
-		interface AXI4_Master_IFC#(PADDR, XLEN, USERSPACE) master;
-		interface AXI4_Slave_IFC#(PADDR, XLEN, USERSPACE) slave;
+		interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) master;
+		interface AXI4_Slave_IFC#(`paddr, XLEN, USERSPACE) slave;
   endinterface
 
   (*synthesize*)
@@ -53,12 +53,12 @@ package sign_dump;
 
     Reg#(Bool) rg_start<- mkReg(False);
     Reg#(Bit#(TLog#(TDiv#(128,XLEN)))) rg_word_count <- mkReg(fromInteger(word_count-1));
-    Reg#(Bit#(PADDR)) rg_total_count <- mkReg(0);
-		AXI4_Master_Xactor_IFC #(PADDR, XLEN, USERSPACE) m_xactor <- mkAXI4_Master_Xactor;
-		AXI4_Slave_Xactor_IFC #(PADDR, XLEN, USERSPACE) s_xactor <- mkAXI4_Slave_Xactor;
+    Reg#(Bit#(`paddr)) rg_total_count <- mkReg(0);
+		AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) m_xactor <- mkAXI4_Master_Xactor;
+		AXI4_Slave_Xactor_IFC #(`paddr, XLEN, USERSPACE) s_xactor <- mkAXI4_Slave_Xactor;
 
-    Reg#(Bit#(PADDR)) rg_start_address<- mkReg(0);    // 0x2000
-    Reg#(Bit#(PADDR)) rg_end_address<- mkReg(0);      // 0x2008
+    Reg#(Bit#(`paddr)) rg_start_address<- mkReg(0);    // 0x2000
+    Reg#(Bit#(`paddr)) rg_end_address<- mkReg(0);      // 0x2008
 
 
     Reg#(Bit#(32)) dataarray[word_count];
@@ -90,7 +90,7 @@ package sign_dump;
         rg_end_address<=truncate(w.wdata);
         rg_start<=True;
         b.bresp=AXI4_OKAY;
-        Bit#(PADDR) total_bytes=truncate(w.wdata)-rg_start_address;
+        Bit#(`paddr) total_bytes=truncate(w.wdata)-rg_start_address;
         rg_total_count<=total_bytes>>2;
       end
       else if (aw.awaddr[3:0]=='hc) begin
@@ -101,7 +101,7 @@ package sign_dump;
     
     rule send_request(rg_start);
       if(rg_start_address<rg_end_address) begin
-  			AXI4_Rd_Addr#(PADDR, 0) read_request = AXI4_Rd_Addr {araddr: rg_start_address, aruser: ?, 
+  			AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr: rg_start_address, aruser: ?, 
           arlen:0, arsize: 2, arburst: 'b01, arid:2}; // arburst: 00-FIXED 01-INCR 10-WRAP
   			m_xactor.i_rd_addr.enq(read_request);	
         rg_start_address<=rg_start_address+4;

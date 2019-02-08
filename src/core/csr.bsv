@@ -41,10 +41,10 @@ package csr;
   import ConfigReg::*;
 	
   interface Ifc_csr;
-	  method ActionValue#(Tuple3#(Bool, Bit#(PADDR), Bit#(XLEN))) system_instruction( Bit#(5) rd, 
+	  method ActionValue#(Tuple3#(Bool, Bit#(`paddr), Bit#(XLEN))) system_instruction( Bit#(5) rd, 
             Bit#(12) csr_address, Bit#(5) rs1_addr, Bit#(XLEN) op1, Bit#(3) funct3, Bit#(2) pc);
     method CSRtoDecode csrs_to_decode;
-    method ActionValue#(Bit#(PADDR)) take_trap(Trap_type trap, Bit#(PADDR) pc, Bit#(PADDR) badaddr);
+    method ActionValue#(Bit#(`paddr)) take_trap(Trap_type trap, Bit#(`paddr) pc, Bit#(`paddr) badaddr);
 	  method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(64) c_mtime);
@@ -66,14 +66,14 @@ package csr;
   
     Ifc_csrfile csrfile <- mkcsrfile();
     
-	  method ActionValue#(Tuple3#(Bool, Bit#(PADDR), Bit#(XLEN))) system_instruction( Bit#(5) rd, 
+	  method ActionValue#(Tuple3#(Bool, Bit#(`paddr), Bit#(XLEN))) system_instruction( Bit#(5) rd, 
             Bit#(12) csr_address, Bit#(5) rs1_addr, Bit#(XLEN) op1, Bit#(3) funct3, Bit#(2) pc);
       if(verbosity>1)
         $display($time, "\tCSR: csr: %h rs1addr: %d, op1: %h, funct3: %b", csr_address, rs1_addr, 
             op1, funct3);
 
       Bool flush = False;
-      Bit#(PADDR) jump_add=0;
+      Bit#(`paddr) jump_add=0;
 	  	let csrread=csrfile.read_csr(csr_address);
       Bit#(XLEN) writecsrdata=0;
 	  	Bit#(XLEN) destination_value=0;
@@ -102,7 +102,7 @@ package csr;
 	  	return tuple3(flush,jump_add,destination_value);
 	  endmethod
 	
-    method ActionValue#(Bit#(PADDR)) take_trap(Trap_type trap, Bit#(PADDR) pc, Bit#(PADDR) badaddr);
+    method ActionValue#(Bit#(`paddr)) take_trap(Trap_type trap, Bit#(`paddr) pc, Bit#(`paddr) badaddr);
 		  if(trap matches tagged Exception .ex)begin
 		  	if(ex==Inst_access_fault)
 		  		badaddr=pc;
