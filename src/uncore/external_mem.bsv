@@ -122,14 +122,14 @@ package external_mem;
   endmodule
 //
 //  interface Ifc_syn ;
-//    interface AXI4_Slave_IFC#(PADDR, XLEN, 0) slave;
-//    interface AXI4_Master_IFC#(PADDR, XLEN, 0) master;
+//    interface AXI4_Slave_IFC#(`paddr, XLEN, 0) slave;
+//    interface AXI4_Master_IFC#(`paddr, XLEN, 0) master;
 //  endinterface
 //  (*synthesize*)
 //  module mksyn(Ifc_syn);
 //    let def_clk<-exposeCurrentClock;
 //    let def_rst<-exposeCurrentReset;
-//    Ifc_exteral_mem#(PADDR, XLEN, 0) external_mem <-mkexternal_mem(def_clk, def_rst);
+//    Ifc_exteral_mem#(`paddr, XLEN, 0) external_mem <-mkexternal_mem(def_clk, def_rst);
 //    interface slave=external_mem.slave;
 //    interface master=external_mem.master;
 //  endmodule

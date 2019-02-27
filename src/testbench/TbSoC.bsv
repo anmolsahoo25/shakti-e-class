@@ -51,7 +51,7 @@ package TbSoC;
       Ifc_SoC soc <- mkSoC();
     `endif
     
-    UserInterface#(PADDR,XLEN,16) uart <- mkuart_user(5);
+    UserInterface#(`paddr,XLEN,16) uart <- mkuart_user(5);
     Reg#(Bool) rg_read_rx<- mkDReg(False);
 
     let verbosity=`VERBOSITY;

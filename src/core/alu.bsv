@@ -120,8 +120,8 @@ package alu;
                                    tagged Exception Store_addr_misaligned;
     end
     // there is priority implied here.
-    else if(valueOf(XLEN)>valueOf(PADDR)) begin
-      Bit#(TSub#(XLEN, PADDR)) temp=effective_address[valueOf(XLEN)-1:valueOf(PADDR)];
+    else if(valueOf(XLEN)>valueOf(`paddr)) begin
+      Bit#(TSub#(XLEN, `paddr)) temp=effective_address[valueOf(XLEN)-1:valueOf(`paddr)];
       if(inst_type==MEMORY && (|temp)==1)
         if(memaccess==Load)
           exception= tagged Exception Load_access_fault;
@@ -135,9 +135,9 @@ package alu;
     else if(inst_type == SYSTEM_INSTR)
       committype = SYSTEM_INSTR;
 	
-	  Bit#(TAdd#(PADDR, 1)) effaddr_csrdata = (inst_type==SYSTEM_INSTR)? 
+	  Bit#(TAdd#(`paddr, 1)) effaddr_csrdata = (inst_type==SYSTEM_INSTR)? 
                                             zeroExtend({funct3, imm_value[16:0]}): 
-                                            {pack(flush), effective_address[valueOf(PADDR)-1:0]};
+                                            {pack(flush), effective_address[valueOf(`paddr)-1:0]};
 
 		`ifdef simulate
 			if(inst_type==BRANCH)

@@ -89,9 +89,9 @@ package opfetch_execute_stage;
 
     `ifdef atomic
       FIFOF#(Tuple3#(Bit#(XLEN), Bool, Access_type)) ff_atomic_response <- mkSizedFIFOF(2);
-      Reg#(Bit#(PADDR)) rg_atomic_address<- mkReg(0);
+      Reg#(Bit#(`paddr)) rg_atomic_address<- mkReg(0);
       Reg#(Bit#(XLEN)) rg_op2 <- mkReg(0);
-      Reg#(Maybe#(Bit#(PADDR))) rg_loadreserved_addr <- mkReg(tagged Invalid);
+      Reg#(Maybe#(Bit#(`paddr))) rg_loadreserved_addr <- mkReg(tagged Invalid);
     `endif
     // If a CSR operation is detected then you need to stall fetching operands from the regfile
     // untill the csr instruction has been committed. the forwarding path from the csr operation to
@@ -117,7 +117,7 @@ package opfetch_execute_stage;
     `endif
   
     function (Tuple4#(Bit#(XLEN),Bit#(XLEN),Bit#(XLEN), Bool)) operand_provider(Bit#(5) rs1_addr, 
-        Operand1_type rs1_type, Bit#(5) rs2_addr, Operand2_type rs2_type, Bit#(PADDR) pc, 
+        Operand1_type rs1_type, Bit#(5) rs2_addr, Operand2_type rs2_type, Bit#(`paddr) pc, 
         Instruction_type insttype, Bit#(32) imm, Access_type memaccess);
      
       let {rd,valid,rd_value}=wr_opfwding;
