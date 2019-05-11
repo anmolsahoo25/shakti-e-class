@@ -53,6 +53,38 @@ package common_types;
 
   typedef Tuple8#(Bit#(4), Bit#(XLEN), Bit#(XLEN), Bit#(`paddr), Bit#(XLEN), Instruction_type, Funct3,
         Access_type)  ALU_Inputs;
+
+  typedef struct{
+    Bit#(XLEN) op1;
+    Bit#(XLEN) op2;
+  } STAGE1_operands deriving(Bits, FShow, Eq);
+
+  typedef struct{
+    Operand1_type rs1type;
+    Operand2_type rs2type;
+    Instruction_type inst_type;
+    Access_type memaccess;
+  `ifdef atomic
+    Bit#(5) atomic_op;
+  `endif
+  } STAGE1_meta deriving(Bits, FShow, Eq);
+
+  typedef struct{
+    Bit#(4) fn;
+    Bit#(3) funct3;
+    Bit#(5) rd;
+    Bit#(1) epoch;
+    Bit#(`vaddr) pc;
+  `ifdef RV64
+    Bool word32;
+  `endif 
+  } STAGE1_control deriving(Bits, FShow, Eq);
+
+  typedef struct{
+    Bit#(`vaddr) pc;
+    Bit#(32) instruction;
+  } STAGE1_dump deriving(Bits, FShow, Eq);
+
   // define all tuples here
   `ifdef rtldump
     `ifdef RV64
