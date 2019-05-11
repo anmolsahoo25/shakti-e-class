@@ -41,9 +41,6 @@ package eclass;
   import riscv:: * ;
   import common_types:: * ;
   import FIFOF::*;
-  `ifdef icache
-    import l1icache::*;
-  `endif
   `include "common_params.bsv"
 
   `define Mem_master_num 0
@@ -56,35 +53,15 @@ package eclass;
   import BUtils::*;
   
   export Ifc_eclass_axi4    (..);
-  //export Ifc_eclass_axi4lite  (..);
   export mkeclass_axi4;
+  //export Ifc_eclass_axi4lite  (..);
   //export mkeclass_axi4lite;
   export DumpType (..);
 
-  `ifdef icache
-    function Bool isIO(Bit#(`paddr) addr, Bool cacheable);
-	    if(!cacheable)
-	  	  return True;
-	    else
-	  	  return False;
-    endfunction
-
-    (*synthesize*)
-    module mkicache(Ifc_l1icache#(`iwords, `iblocks, `isets, `iways, `paddr, `ifbsize, 1));
-       let ifc();
-	   mkl1icache#(isIO,"PLRU") _temp(ifc);
-	   return (ifc);
-    endmodule
-  `endif
-
-  
   typedef enum {Request, Response} TxnState deriving(Bits, Eq, FShow);
   interface Ifc_eclass_axi4;
 		interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) master_d;
 		interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) master_i;
-  `ifdef cache_control
-	interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) master_io;
-  `endif
     interface Put#(Bit#(1)) sb_clint_msip;
     interface Put#(Bit#(1)) sb_clint_mtip;
     interface Put#(Bit#(64)) sb_clint_mtime;
@@ -99,9 +76,6 @@ package eclass;
     Ifc_riscv riscv <- mkriscv();
 		AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
 		AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
-		`ifdef cache_control
-		AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) io_xactor <- mkAXI4_Master_Xactor;
-	    `endif
     // Reg#(TxnState) fetch_state<- mkReg(Request);
     //Reg#(TxnState) memory_state<- mkReg(Request);
     //Reg#(CoreRequest) memory_request <- mkReg(unpack(0));
@@ -120,53 +94,6 @@ package eclass;
     //`endif
     Integer verbosity = `VERBOSITY;
 
-	`ifdef icache
-	  let icache<-mkicache;
-	  mkConnection(riscv.inst_request, icache.core_req); //icache integration
-	  mkConnection(icache.core_resp, riscv.inst_response); // icache integration
-     
-    rule drive_constants;
-		  icache.cache_enable(unpack(riscv.mv_cacheenable[0]));
-    endrule
-
-	  rule handle_icache_request;
-	  	let {inst_addr, burst_len, burst_size} <- icache.read_mem_req.get;
-	  	AXI4_Rd_Addr#(`paddr, 0) icache_request = AXI4_Rd_Addr {araddr: inst_addr , aruser: ?, arlen: burst_len, 
-	  	arsize: burst_size, arburst: 'b10, arid:`Fetch_master_num}; // arburst: 00-FIXED 01-INCR 10-WRAP
-	    fetch_xactor.i_rd_addr.enq(icache_request);
-	  	if(verbosity!=0)
-	  	  $display($time, "\ticache: icache Requesting ", fshow(icache_request));
-	  endrule
-
-	  rule handle_fabric_resp;
-	    let fab_resp <- pop_o (fetch_xactor.o_rd_data);
-	  	Bool bus_error = !(fab_resp.rresp==AXI4_OKAY);
-      icache.read_mem_resp.put(tuple3(truncate(fab_resp.rdata), fab_resp.rlast, bus_error));
-	  	if(verbosity!=0)
-	  	  $display($time, "\ticache: icache receiving Response ", fshow(fab_resp));
-	  endrule
-
-	  rule handle_icache_nc_request;
-		  let {inst_addr, burst_len, burst_size} <- icache.nc_read_req.get;
-		  AXI4_Rd_Addr#(`paddr, 0) icache_request = AXI4_Rd_Addr {araddr: inst_addr , aruser: ?, arlen: burst_len,
-		  arsize: 2, arburst: 'b01, arid:`IO_master_num};
-		  io_xactor.i_rd_addr.enq(icache_request);
-		  	  	if(verbosity!=0)
-						  	  $display($time, "\tCORE: Icache IO Requesting ", fshow(icache_request));
-	  endrule
-
-	  rule handle_icache_nc_resp;
-		  let fab_resp <- pop_o (io_xactor.o_rd_data);
-		  Bool bus_error = !(fab_resp.rresp==AXI4_OKAY);
-		  icache.nc_read_resp.put(tuple3(truncate(fab_resp.rdata), fab_resp.rlast, bus_error));
-		        if(verbosity!=0)
-						      $display($time, "\tCORE: ICACHE Line Response ", fshow(fab_resp));
-	  endrule
-
-
-
-  `else 
-	
 	  rule handle_fetch_request;
       //let {inst_addr `ifdef compressed ,epoch `endif }<- riscv.inst_request.get;
 	    let {inst_addr ,epoch} <- riscv.inst_request.get; 
@@ -188,9 +115,6 @@ package eclass;
 		  if(verbosity!=0)
         $display($time, "\tCORE: Fetch Response ", fshow(response));
     endrule
-
-  `endif
-
     
     // if its a fence instruction, the request is simply stored in memory_request register and is not
 	// latched on to the bus. This is done because we are only concerned about access_type being 
@@ -299,12 +223,9 @@ package eclass;
     endinterface;
 	interface master_i= fetch_xactor.axi_side;
 	interface master_d= memory_xactor.axi_side;
-	`ifdef cache_control
-	interface master_io = io_xactor.axi_side;
-	`endif
-    `ifdef rtldump
-      interface io_dump=riscv.dump;
-    `endif
+  `ifdef rtldump
+    interface io_dump=riscv.dump;
+  `endif
   endmodule: mkeclass_axi4
   //=================== Interface and module for a eclass- master on the AXI4 fabric ============= //
 //  interface Ifc_eclass_axi4lite;

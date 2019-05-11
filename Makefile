@@ -72,16 +72,12 @@ endif
 ifeq ($(TRACE), enable)
   trace := --trace
 endif
-ifeq ($(ICACHE), enable)
-  define_macros += -D icache=True -D cache_control=True
-endif
+
 define_macros += -D VERBOSITY=$(VERBOSITY) -D CORE_$(COREFABRIC)=True -D MULSTAGES=$(MULSTAGES) \
 								 -D DIVSTAGES=$(DIVSTAGES) -D Counters=$(COUNTERS) -D $(MAINMEM)=True \
-								 -D iwords=$(IWORDS) -D iblocks=$(IBLOCKS) -D iways=$(IWAYS) -D isets=$(ISETS) \
-								 -D ifbsize=$(IFBSIZE) -D irepl=$(IREPL) -D pipe1=$(PIPE1) -D icachereset=$(IRESET) \
-								 -D paddr=$(PADDR) -D resetpc=$(RESETPC)
+								 -D pipe1=$(PIPE1) -D paddr=$(PADDR) -D resetpc=$(RESETPC) -D vaddr=$(XLEN)
 
-CORE:=./src/core/:./src/caches_mmu/src/:./src/core/m_ext/
+CORE:=./src/core/:./src/core/m_ext/
 FABRIC:=./src/fabrics/axi4:./src/fabrics/axi4lite:./src/fabrics/tilelink_lite
 UNCORE:=./src/uncore
 TESTBENCH:=./src/testbench/
@@ -93,6 +89,7 @@ VERILATOR_FLAGS = --stats -O3 -CFLAGS -O3 -LDFLAGS "-static" --x-assign fast --x
 -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY --autoflush $(coverage) $(trace) --threads $(THREADS) \
 -DBSV_RESET_FIFO_HEAD -DBSV_RESET_FIFO_ARRAY
 BSVINCDIR:=.:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(LIB):$(FABRIC):$(UNCORE):$(TESTBENCH):$(PERIPHERALS):$(WRAPPERS):$(M_EXT)
+
 default: generate_verilog link_verilator generate_boot_files
 
 check-env:
