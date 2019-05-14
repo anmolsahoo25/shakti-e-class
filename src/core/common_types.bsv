@@ -7,7 +7,7 @@ provided that the following conditions are met:
 * Redistributions of source code must retain the above copyright notice, this list of conditions
   and the following disclaimer.  
 * Redistributions in binary form must reproduce the above copyright notice, this list of 
-  conditions and the following disclaimer in the documentation and/or other materials provided 
+  conditions and the following disclaimer in the documentation and / or other materials provided 
  with the distribution.  
 * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
@@ -22,8 +22,8 @@ IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISI
 OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------------------------
 
-Author: Neel Gala, Aditya Mathur
-Email id: neelgala@gmail.com
+Author : Neel Gala, Aditya Mathur
+Email id : neelgala@gmail.com
 Details:
 
 --------------------------------------------------------------------------------------------------
@@ -46,17 +46,81 @@ package common_types;
   } Instruction_type deriving(Bits, Eq, FShow);
 
 	typedef enum {Load = 0, Store = 1, Fence = 3 
-                `ifdef atomic , Atomic = 2 `endif 
+                `ifdef atomic, Atomic = 2 `endif 
   } Access_type deriving (Bits, Eq, FShow);
 
-	typedef enum {Flush= 1, None= 0} Flush_type deriving (Bits, Eq, FShow);
+	typedef enum {Flush = 1, None = 0} Flush_type deriving (Bits, Eq, FShow);
 
   typedef enum {SYSTEM_INSTR, MEMORY, REGULAR} Commit_type deriving(Eq, Bits, FShow);
-  typedef enum {Machine=3, User=0} Privilege_mode deriving(Eq, Bits, FShow);
-  typedef enum {NOFENCE=0, FENCE=1} Set_fence deriving(Eq, Bits, FShow);
+  typedef enum {Machine = 3, User = 0} Privilege_mode deriving(Eq, Bits, FShow);
+  typedef enum {NOFENCE = 0, FENCE = 1} Set_fence deriving(Eq, Bits, FShow);
 
   typedef Tuple8#(Bit#(4), Bit#(XLEN), Bit#(XLEN), Bit#(`paddr), Bit#(XLEN), Instruction_type, Funct3,
         Access_type)  ALU_Inputs;
+  // ----------------------------- Trigger based structures -------------------------------------//
+`ifdef triggers
+  typedef struct{
+    Bit#(1) load;
+    Bit#(1) store;
+    Bit#(1) execute;
+  `ifdef user
+    Bit#(1) user;
+  `endif
+    Bit#(1) machine;
+    Bit#(4) matched;
+    Bit#(1) chain;
+    Bit#(4) action_;
+  `ifdef RV64
+    Bit#(4) size;
+  `else
+    Bit#(2) size;
+  `endif
+    Bit#(1) select;
+    Bit#(1) dmode;
+  } MControl deriving(Bits, Eq, FShow);
+
+  typedef struct {
+    Bit#(6) action_;
+  `ifdef user
+    Bit#(1) user;
+  `endif
+    Bit#(1) machine;
+    Bit#(14) count;
+    Bit#(1) dmode;
+  } ICount deriving(Bits, Eq, FShow);
+
+  typedef struct{
+    Bit#(6) action_;
+  `ifdef user
+    Bit#(1) user;
+  `endif
+    Bit#(1) machine;
+    Bit#(1) dmode;
+  } ITrigger deriving(Bits, Eq, FShow);
+
+  typedef struct{
+    Bit#(6) action_;
+  `ifdef user
+    Bit#(1) user;
+  `endif
+    Bit#(1) machine;
+    Bit#(1) dmode;
+  } ETrigger deriving(Bits, Eq, FShow);
+
+  typedef union tagged {
+    MControl MCONTROL;
+    ICount   ICOUNT;
+    ITrigger ITRIGGER;
+    ETrigger ETRIGGER;
+    void NONE;
+  } TriggerData deriving(Bits, Eq, FShow);
+    
+  typedef struct{
+      Bool trap;
+      Bit#(`causesize) cause;
+    } TriggerStatus deriving(Bits, Eq, FShow);
+
+`endif
 
   // ----------------------------- Outputs from the Decode Stage ------------------------------- //
 	typedef enum {IntegerRF, PC} Op1type deriving(Bits, Eq, FShow);
@@ -103,14 +167,6 @@ package common_types;
   } STAGE1_operands deriving(Bits, FShow, Eq);
 
   typedef DecodeOut STAGE1_meta;
-//  typedef struct{
-//    OpAddr    op_addr;
-//    OpType    op_type;
-//    InstrMeta meta;
-//  `ifdef compressed
-//    Bool compressed;
-//  `endif
-//  } STAGE1_meta deriving(Bits, FShow, Eq);
 
   typedef struct{
     Bit#(1) epoch;
@@ -127,11 +183,11 @@ package common_types;
     `ifdef RV64
     typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
               Tuple8#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
-                Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif , Bit#(32))) PIPE1_DS;
+                Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif, Bit#(32))) PIPE1_DS;
     `else
     typedef Tuple7#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bit#(3),
               Tuple8#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
-                Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif , Bit#(32))) PIPE1_DS;
+                Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif, Bit#(32))) PIPE1_DS;
     `endif
     typedef Tuple8#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Bit#(`paddr), Bit#(5), Bit#(1), 
                     Trap_type, Bit#(32)) PIPE2_DS;
@@ -176,32 +232,32 @@ package common_types;
   typedef Tuple5#(Privilege_mode, Bit#(XLEN), Bit#(32), Bit#(5), Bit#(XLEN)) DumpType;
 
 	typedef enum {
-		Inst_addr_misaligned=0,
-		Inst_access_fault=1,
-		Illegal_inst=2,
-		Breakpoint=3,
-		Load_addr_misaligned=4,
-		Load_access_fault=5,
-		Store_addr_misaligned=6,
-		Store_access_fault=7,
-		Ecall_from_user=8,
-		Ecall_from_machine=11
-	} Exception_cause deriving (Bits,Eq,FShow);
+		Inst_addr_misaligned = 0,
+		Inst_access_fault = 1,
+		Illegal_inst = 2,
+		Breakpoint = 3,
+		Load_addr_misaligned = 4,
+		Load_access_fault = 5,
+		Store_addr_misaligned = 6,
+		Store_access_fault = 7,
+		Ecall_from_user = 8,
+		Ecall_from_machine = 11
+	} Exception_cause deriving (Bits, Eq, FShow);
 
 	typedef enum{
-		User_soft_int=0,
-		Machine_soft_int=3,
-		User_timer_int=4,
-		Machine_timer_int=7,
-		User_external_int=8,
-		Machine_external_int=11
-	} Interrupt_cause deriving (Bits,Eq,FShow);
+		User_soft_int = 0,
+		Machine_soft_int = 3,
+		User_timer_int = 4,
+		Machine_timer_int = 7,
+		User_external_int = 8,
+		Machine_external_int = 11
+	} Interrupt_cause deriving (Bits, Eq, FShow);
 
 	typedef union tagged{
 	  Exception_cause Exception;
 	  Interrupt_cause Interrupt;
 	  void None;
-	} Trap_type deriving(Bits,Eq,FShow);
+	} Trap_type deriving(Bits, Eq, FShow);
 
   // fabrics related definitions.
   typedef 0 USERSPACE;
