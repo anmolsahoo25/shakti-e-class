@@ -41,9 +41,9 @@
 `define IMM_ARITH_op	    'b00100
 `define	ARITH_op			    'b01100
 `ifdef RV64
-	`define IMM_ARITHW_op	  'b00110
-	`define	ARITHW_op		    'b01110
-	`define MULDIVW_op		  'b01110
+  `define IMM_ARITHW_op	  'b00110
+  `define	ARITHW_op		    'b01110
+  `define MULDIVW_op		  'b01110
 `endif
 `define	CSR_op				    'b11100
 `define	SYSTEM_INSTR_op		'b11100

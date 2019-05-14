@@ -4,12 +4,12 @@ Copyright (c) 2013, IIT Madras All rights reserved.
 Redistribution and use in source and binary forms, with or without modification, are permitted
 provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this list of conditions
+ * Redistributions of source code must retain the above copyright notice, this list of conditions
   and the following disclaimer.  
-* Redistributions in binary form must reproduce the above copyright notice, this list of 
+ * Redistributions in binary form must reproduce the above copyright notice, this list of 
   conditions and the following disclaimer in the documentation and/or other materials provided 
  with the distribution.  
-* Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
+ * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
@@ -27,7 +27,7 @@ Email id: neelgala@gmail.com
 Details:
 
 --------------------------------------------------------------------------------------------------
-*/
+ */
 package riscv;
   // project imports
   import common_types::*;
@@ -42,17 +42,17 @@ package riscv;
   import FIFOF::*;
 
   interface Ifc_riscv;
-	`ifdef icache  
-  	interface Get#(Tuple4#(Bit#(`paddr),Bool, Bit#(1), Bool)) inst_request;//instruction whose addr is needed
-	`else 
-	interface Get#(Tuple2#(Bit#(`paddr), Bit#(1))) inst_request;
-	`endif
+  `ifdef icache  
+    interface Get#(Tuple4#(Bit#(`paddr),Bool, Bit#(1), Bool)) inst_request;//instruction whose addr is needed
+  `else 
+  interface Get#(Tuple2#(Bit#(`paddr), Bit#(1))) inst_request;
+  `endif
     interface Put#(Tuple3#(Bit#(32),Bool,Bit#(1))) inst_response;//addr of the given inst
     interface Get#(MemoryRequest) memory_request;
     interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) memory_response;
-	  method Action clint_msip(Bit#(1) intrpt);
-		method Action clint_mtip(Bit#(1) intrpt);
-		method Action clint_mtime(Bit#(64) c_mtime);
+    method Action clint_msip(Bit#(1) intrpt);
+    method Action clint_mtip(Bit#(1) intrpt);
+    method Action clint_mtime(Bit#(64) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     `ifdef rtldump
       interface Get#(DumpType) dump;
@@ -60,9 +60,9 @@ package riscv;
     `ifdef atomic
       interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) atomic_response;
     `endif
-	`ifdef cache_control
-	method Bit#(2) mv_cacheenable;
-	`endif
+  `ifdef cache_control
+  method Bit#(2) mv_cacheenable;
+  `endif
   endinterface:Ifc_riscv
 
   (*synthesize*)
@@ -76,8 +76,8 @@ package riscv;
     FIFOF#(PIPE1_DS) pipe1 <- mkSizedFIFOF(`pipe1);
     FIFOF#(PIPE2_DS) pipe2 <- mkSizedFIFOF(2); //pipe2 depth has to be 2 as the opfwding logic is designed for that configuration. 
 
-		mkConnection(stage1.to_opfetch_unit, pipe1);  // connect stage-1 output to pipe-1
-		mkConnection(pipe1, stage2.from_fetch_decode_unit);  // connect pipe-1 to inputs of stage-2
+    mkConnection(stage1.to_opfetch_unit, pipe1);  // connect stage-1 output to pipe-1
+    mkConnection(pipe1, stage2.from_fetch_decode_unit);  // connect pipe-1 to inputs of stage-2
     mkConnection(stage2.to_mem_wb_unit, pipe2);  // connect stage-2 output to pipe-2
     mkConnection(pipe2,stage3.from_execute);
 
@@ -111,13 +111,13 @@ package riscv;
     interface memory_request = stage2.memory_request;
     interface memory_response = stage3.memory_response;
 
-	 	method Action clint_msip(Bit#(1) intrpt);
+    method Action clint_msip(Bit#(1) intrpt);
       stage3.clint_msip(intrpt);
     endmethod
-	  method Action clint_mtip(Bit#(1) intrpt);
+    method Action clint_mtip(Bit#(1) intrpt);
       stage3.clint_mtip(intrpt);
     endmethod
-		method Action clint_mtime(Bit#(64) c_mtime);
+    method Action clint_mtime(Bit#(64) c_mtime);
       stage3.clint_mtime(c_mtime);
     endmethod
     method Action externalinterrupt(Bit#(1) intrpt);
@@ -129,8 +129,8 @@ package riscv;
     `ifdef atomic
       interface atomic_response=stage2.atomic_response;
     `endif
-	`ifdef cache_control
-	 method mv_cacheenable = stage3.mv_cacheenable;
-	`endif
+  `ifdef cache_control
+  method mv_cacheenable = stage3.mv_cacheenable;
+  `endif
   endmodule:mkriscv
 endpackage: riscv

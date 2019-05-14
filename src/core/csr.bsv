@@ -4,12 +4,12 @@ Copyright (c) 2013, IIT Madras All rights reserved.
 Redistribution and use in source and binary forms, with or without modification, are permitted
 provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this list of conditions
+ * Redistributions of source code must retain the above copyright notice, this list of conditions
   and the following disclaimer.  
-* Redistributions in binary form must reproduce the above copyright notice, this list of 
+ * Redistributions in binary form must reproduce the above copyright notice, this list of 
   conditions and the following disclaimer in the documentation and/or other materials provided 
  with the distribution.  
-* Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
+ * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
@@ -28,7 +28,7 @@ Details: This module contains the methods and functions which will perform tasks
 Trap handling and Updating the CSRs for system- instruction
 
 --------------------------------------------------------------------------------------------------
-*/
+ */
 
 package csr;
   // project related imports
@@ -41,20 +41,20 @@ package csr;
   import ConfigReg::*;
 	
   interface Ifc_csr;
-	  method ActionValue#(Tuple3#(Bool, Bit#(`paddr), Bit#(XLEN))) system_instruction( Bit#(5) rd, 
+    method ActionValue#(Tuple3#(Bool, Bit#(`paddr), Bit#(XLEN))) system_instruction( Bit#(5) rd, 
             Bit#(12) csr_address, Bit#(5) rs1_addr, Bit#(XLEN) op1, Bit#(3) funct3, Bit#(2) pc);
     method CSRtoDecode csrs_to_decode;
     method ActionValue#(Bit#(`paddr)) take_trap(Trap_type trap, Bit#(`paddr) pc, Bit#(`paddr) badaddr);
-	  method Action clint_msip(Bit#(1) intrpt);
-		method Action clint_mtip(Bit#(1) intrpt);
-		method Action clint_mtime(Bit#(64) c_mtime);
+    method Action clint_msip(Bit#(1) intrpt);
+    method Action clint_mtip(Bit#(1) intrpt);
+    method Action clint_mtime(Bit#(64) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     method Action incr_minstret;
     method Bool interrupt;
     method Bit#(1) mv_misa_c;
-	`ifdef cache_control
-	    method Bit#(2) mv_cacheenable;
-	`endif
+  `ifdef cache_control
+      method Bit#(2) mv_cacheenable;
+  `endif
 
   endinterface:Ifc_csr
 
@@ -66,7 +66,7 @@ package csr;
   
     Ifc_csrfile csrfile <- mkcsrfile();
     
-	  method ActionValue#(Tuple3#(Bool, Bit#(`paddr), Bit#(XLEN))) system_instruction( Bit#(5) rd, 
+    method ActionValue#(Tuple3#(Bool, Bit#(`paddr), Bit#(XLEN))) system_instruction( Bit#(5) rd, 
             Bit#(12) csr_address, Bit#(5) rs1_addr, Bit#(XLEN) op1, Bit#(3) funct3, Bit#(2) pc);
       if(verbosity>1)
         $display($time, "\tCSR: csr: %h rs1addr: %d, op1: %h, funct3: %b", csr_address, rs1_addr, 
@@ -74,17 +74,17 @@ package csr;
 
       Bool flush = False;
       Bit#(`paddr) jump_add=0;
-	  	let csrread=csrfile.read_csr(csr_address);
+      let csrread=csrfile.read_csr(csr_address);
       Bit#(XLEN) writecsrdata=0;
-	  	Bit#(XLEN) destination_value=0;
-	  	case(funct3)
+      Bit#(XLEN) destination_value=0;
+      case(funct3)
         'd0:case (csr_address[11:8])
               'h0, 'h3:begin // URET,  MRET
                 let temp<-csrfile.upd_on_ret( `ifdef non_m_traps unpack(csr_address[9:8]) `endif );
                 jump_add=temp;
                 flush=True;
               end
-	  		    endcase
+            endcase
         default: begin
           if(funct3[2] == 1)
             op1=zeroExtend(rs1_addr);
@@ -99,46 +99,46 @@ package csr;
           csrfile.write_csr(csr_address, writecsrdata, truncate(pc));
         end
       endcase
-	  	return tuple3(flush,jump_add,destination_value);
-	  endmethod
+      return tuple3(flush,jump_add,destination_value);
+    endmethod
 	
     method ActionValue#(Bit#(`paddr)) take_trap(Trap_type trap, Bit#(`paddr) pc, Bit#(`paddr) badaddr);
-		  if(trap matches tagged Exception .ex)begin
-		  	if(ex==Inst_access_fault)
-		  		badaddr=pc;
-		  	else if(ex==Illegal_inst)
-		  		badaddr=0;
-		  end
-		  Bit#(6) cause = 0;
-		  Bit#(TSub #(6, 1)) cause_code = 0;
-		  Bit#(1) cause_type = 0;
-		  case(trap) matches
-		  	tagged Interrupt .i: begin cause_type = 1; cause_code = zeroExtend(pack(i)); end
-		  	tagged Exception .e: begin cause_type = 0; cause_code = zeroExtend(pack(e)); end
-		  endcase
-			cause = {cause_type, cause_code};
+      if(trap matches tagged Exception .ex)begin
+        if(ex==Inst_access_fault)
+          badaddr=pc;
+        else if(ex==Illegal_inst)
+          badaddr=0;
+      end
+      Bit#(6) cause = 0;
+      Bit#(TSub #(6, 1)) cause_code = 0;
+      Bit#(1) cause_type = 0;
+      case(trap) matches
+        tagged Interrupt .i: begin cause_type = 1; cause_code = zeroExtend(pack(i)); end
+        tagged Exception .e: begin cause_type = 0; cause_code = zeroExtend(pack(e)); end
+      endcase
+      cause = {cause_type, cause_code};
       let jump_address<-csrfile.upd_on_trap(cause, pc, badaddr); 
-		  return jump_address;
-  	endmethod
+      return jump_address;
+    endmethod
 
     method csrs_to_decode = csrfile.csrs_to_decode;
-	  method Action clint_msip(Bit#(1) intrpt);
-	  	csrfile.clint_msip(intrpt);
-	  endmethod
-	  method Action clint_mtip(Bit#(1) intrpt);
-	  	csrfile.clint_mtip(intrpt);
-	  endmethod
-	  method Action clint_mtime(Bit#(64) c_mtime);
-	  	csrfile.clint_mtime(c_mtime);
-	  endmethod
+    method Action clint_msip(Bit#(1) intrpt);
+      csrfile.clint_msip(intrpt);
+    endmethod
+    method Action clint_mtip(Bit#(1) intrpt);
+      csrfile.clint_mtip(intrpt);
+    endmethod
+    method Action clint_mtime(Bit#(64) c_mtime);
+      csrfile.clint_mtime(c_mtime);
+    endmethod
     method Action externalinterrupt(Bit#(1) intrpt);
       csrfile.externalinterrupt(intrpt);
     endmethod
     method incr_minstret=csrfile.incr_minstret;
     method  interrupt=csrfile.interrupt;
     method mv_misa_c=csrfile.mv_misa_c;
-	`ifdef cache_control
-	method mv_cacheenable = csrfile.mv_cacheenable;
-	`endif
+  `ifdef cache_control
+  method mv_cacheenable = csrfile.mv_cacheenable;
+  `endif
   endmodule
 endpackage

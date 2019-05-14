@@ -27,4 +27,4 @@ RTLDUMP=enable
 ASSERTIONS=enable
 
 # Trigger Setup
-TRIGGERS=0
+TRIGGERS=2

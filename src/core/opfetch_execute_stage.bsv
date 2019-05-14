@@ -4,12 +4,12 @@ Copyright (c) 2013, IIT Madras All rights reserved.
 Redistribution and use in source and binary forms, with or without modification, are permitted
 provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this list of conditions
+ * Redistributions of source code must retain the above copyright notice, this list of conditions
   and the following disclaimer.  
-* Redistributions in binary form must reproduce the above copyright notice, this list of 
+ * Redistributions in binary form must reproduce the above copyright notice, this list of 
   conditions and the following disclaimer in the documentation and/or other materials provided 
  with the distribution.  
-* Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
+ * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
@@ -27,7 +27,7 @@ Email id: neelgala@gmail.com
 Details:
 
 --------------------------------------------------------------------------------------------------
-*/
+ */
 package opfetch_execute_stage;
   // packages to be imported
   import GetPut::*;
@@ -131,19 +131,19 @@ package opfetch_execute_stage;
         rs1=rs1irf;
       
       // If its a fence instruction, we need op3 to be pc to compute effective address (PC+4)
-	  Bit#(XLEN) op3=zeroExtend(pc);
-	  if(insttype==JALR || (insttype==MEMORY && memaccess!=Fencei))begin //fence integration
-		  op3=rs1irf;
-	  end
+    Bit#(XLEN) op3=zeroExtend(pc);
+    if(insttype==JALR || (insttype==MEMORY && memaccess!=Fencei))begin //fence integration
+      op3=rs1irf;
+    end
     
 
-	  // Operand arrangement for short circuiting JAL/JALR 
-	  //updates. rs2 is set to 4/2 depending on whether 
-	  //compressed is enabled or not. the results of of
-	  //rs1 + rs2 are stored into rd as required for
-	  //JAL and JALR to be PC + 4. 
+    // Operand arrangement for short circuiting JAL/JALR 
+    //updates. rs2 is set to 4/2 depending on whether 
+    //compressed is enabled or not. the results of of
+    //rs1 + rs2 are stored into rd as required for
+    //JAL and JALR to be PC + 4. 
 
-	  //Refer to the table in decode.bsv
+    //Refer to the table in decode.bsv
       if(rs2_type==Constant4)
         rs2='d4;
       `ifdef compressed
@@ -277,7 +277,7 @@ package opfetch_execute_stage;
         `ifdef muldiv 
           if(verbosity>1)
             $display($time, "\tSTAGE2: CommitType: ", fshow(committype), " done: %b ", done, 
-                     "effaddr :%h op1_reslt: %h", effaddr_csrdata,  op1_reslt);
+                    "effaddr :%h op1_reslt: %h", effaddr_csrdata,  op1_reslt);
           if(done) begin 
             rx.u.deq;
           `ifdef rtldump
@@ -334,7 +334,7 @@ package opfetch_execute_stage;
       rule capture_stalled_output(rg_stall `ifdef atomic && !rg_muldiv_atomic `endif );
         let {fn, rs1, rs2, rd, imm `ifdef RV64 , word32 `endif , funct3, rs1_type, 
         rs2_type, insttype, mem_access, pc, trap, `ifdef atomic epoch_atomicop `else epoch `endif 
-                 `ifdef rtldump , inst `endif }=rx.u.first;
+                `ifdef rtldump , inst `endif }=rx.u.first;
         `ifdef atomic
           Bit#(1) epoch=epoch_atomicop[0];
         `endif
@@ -357,7 +357,7 @@ package opfetch_execute_stage;
         ff_atomic_response.deq;
         let {fn, rs1, rs2, rd, imm `ifdef RV64 , word32 `endif ,funct3, rs1_type, rs2_type, 
             insttype, mem_access, pc, trap, `ifdef atomic epoch_atomicop `else epoch `endif 
-                 `ifdef rtldump , inst `endif }=rx.u.first;
+                `ifdef rtldump , inst `endif }=rx.u.first;
         `ifdef atomic
           Bit#(4) atomic_op=epoch_atomicop[5:2];
           Bit#(1) maxop=epoch_atomicop[1];
@@ -450,4 +450,3 @@ package opfetch_execute_stage;
     endmethod
   endmodule:mkopfetch_execute_stage
 endpackage:opfetch_execute_stage
-

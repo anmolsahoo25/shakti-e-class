@@ -4,12 +4,12 @@ Copyright (c) 2013, IIT Madras All rights reserved.
 Redistribution and use in source and binary forms, with or without modification, are permitted
 provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this list of conditions
+ * Redistributions of source code must retain the above copyright notice, this list of conditions
   and the following disclaimer.  
-* Redistributions in binary form must reproduce the above copyright notice, this list of 
+ * Redistributions in binary form must reproduce the above copyright notice, this list of 
   conditions and the following disclaimer in the documentation and/or other materials provided 
  with the distribution.  
-* Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
+ * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
@@ -27,7 +27,7 @@ Email id: neelgala@gmail.com
 Details:
 
 --------------------------------------------------------------------------------------------------
-*/
+ */
 package csrfile;
   
   // project related imports
@@ -40,24 +40,24 @@ package csrfile;
     method Bit#(XLEN) read_csr (Bit#(12) addr);
     method Action write_csr(Bit#(12) addr,  Bit#(XLEN) word, Bit#(2) lpc);
     method CSRtoDecode csrs_to_decode;
-	  method Action clint_msip(Bit#(1) intrpt);
-		method Action clint_mtip(Bit#(1) intrpt);
-		method Action clint_mtime(Bit#(64) c_mtime);
+    method Action clint_msip(Bit#(1) intrpt);
+    method Action clint_mtip(Bit#(1) intrpt);
+    method Action clint_mtime(Bit#(64) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     method ActionValue#(Bit#(`paddr)) upd_on_ret `ifdef non_m_traps (Privilege_mode prv) `endif ;
     method ActionValue#(Bit#(`paddr)) upd_on_trap(Bit#(6) cause, Bit#(`paddr) pc, Bit#(`paddr) tval);
     method Action incr_minstret;
     method Bool interrupt;
     method Bit#(1) mv_misa_c;
-	`ifdef cache_control
-	 method Bit#(2) mv_cacheenable;
-	`endif
+  `ifdef cache_control
+  method Bit#(2) mv_cacheenable;
+  `endif
   endinterface
   
   function Reg#(t) readOnlyReg(t r);
     return (interface Reg;
-       method t _read = r;
-       method Action _write(t x) = noAction;
+      method t _read = r;
+      method Action _write(t x) = noAction;
     endinterface);
   endfunction
 
@@ -73,18 +73,18 @@ package csrfile;
   
     /////////////////////////////// Machine level register /////////////////////////
     // Current Privilege Level
-	  Reg#(Privilege_mode) rg_prv <- mkReg(Machine); // resets to machine mode
+    Reg#(Privilege_mode) rg_prv <- mkReg(Machine); // resets to machine mode
 	  
-	  Bit#(XLEN) csr_mvendorid  = 0;
+    Bit#(XLEN) csr_mvendorid  = 0;
     Bit#(XLEN) csr_marchid    = `ifdef rtldump 0 `else 6 `endif ; // TODO this is done for spike  dump checking
     Bit#(XLEN) csr_mimpid     = 0;
     Bit#(XLEN) csr_mhartid    = 0;
 
-	  //MISA fields
+    //MISA fields
     // TODO: it is difficult to write a binary which can transition from 64-bit to 32-bit or vice
     // versa. This is achieved by changing the mxl bit. This is doesn't seem to be happening in the
     // near future. So not integrating it right now.
-	  //MISA fields
+    //MISA fields
     Reg#(Bit#(2)) rg_mxl <- mkReg(fromInteger(valueOf(TDiv#(XLEN, 32))));
     `ifdef atomic
       Reg#(Bit#(1)) misa_a <- mkReg(1);
@@ -131,12 +131,12 @@ package csrfile;
           /*misa_i&misa_m&misa_a&misa_f&misa_d*/ 1'b0, misa_f, 1'd0, misa_d, misa_c, 1'd0, misa_a}; 
      
     //MTVEC trap vector fields
-	  Reg#(Bit#(2)) rg_mode <- mkReg(0); //0 if pc to base or 1 if pc to base + 4xcause
-	  Reg#(Bit#(TSub#(`paddr,2))) rg_mtvec <- mkReg(0);
+    Reg#(Bit#(2)) rg_mode <- mkReg(0); //0 if pc to base or 1 if pc to base + 4xcause
+    Reg#(Bit#(TSub#(`paddr,2))) rg_mtvec <- mkReg(0);
 
     // mstatus fields
     Bit#(1) sd = 0;
-	  Bit#(1) tsr	  = 0; // 0 if supervisor not supported
+    Bit#(1) tsr	  = 0; // 0 if supervisor not supported
     Bit#(1) tw	 	= 0; // 0 if supervisor not supported
     Bit#(1) tvm	  = 0; // 0 if supervisor not supported
     Bit#(1) mxr   = 0; // 0 if supervisor not supported
@@ -151,12 +151,12 @@ package csrfile;
     Bit#(1) hpie = 0;
     Bit#(1) spie = 0;
     Reg#(Bit#(1)) rg_upie <- mkReg(0);
-	  Reg#(Bit#(1)) rg_mie	<- mkReg(0);
+    Reg#(Bit#(1)) rg_mie	<- mkReg(0);
     Bit#(1) hie = 0;
     Bit#(1) sie = 0;
     Reg#(Bit#(1)) rg_uie <- mkReg(0);
 
-	  // mie fields
+    // mie fields
     Reg#(Bit#(1)) rg_meie <- mkReg(0);
     Bit#(1) heie = 0;
     Bit#(1) seie = 0;
@@ -170,7 +170,7 @@ package csrfile;
     Bit#(1) ssie = 0;
       Reg#(Bit#(1)) rg_usie <-  mkReg(0);
    
-   `ifdef non_m_traps
+  `ifdef non_m_traps
       Reg#(Bit#(12)) rg_mideleg <- mkReg(0);
       Reg#(Bit#(16)) rg_medeleg <- mkReg(0);
     `else
@@ -178,7 +178,7 @@ package csrfile;
       Bit#(16) rg_medeleg = 0;
     `endif
     
-	  // mip fields
+    // mip fields
     Reg#(Bit#(1)) rg_meip <- mkReg(0);
     Bit#(1) heip = 0;
     Bit#(1) seip = 0; 
@@ -187,54 +187,54 @@ package csrfile;
     Bit#(1) htip = 0;
     Bit#(1) stip = 0;
       Reg#(Bit#(1)) rg_utip <- mkReg(0);
-	  Reg#(Bit#(1)) rg_msip <- mkReg(0);
+    Reg#(Bit#(1)) rg_msip <- mkReg(0);
     Bit#(1) hsip = 0;
     Bit#(1) ssip = 0;
       Reg#(Bit#(1)) rg_usip <- mkReg(0);
 
     `ifdef RV64
-	  	Reg#(Bit#(XLEN)) mcycle <- mkReg(0);
-	  	Reg#(Bit#(XLEN)) minstret<-mkReg(0);
-	  `else
-	  	Reg#(Bit#(XLEN)) mcycle<-mkReg(0);
-	  	Reg#(Bit#(XLEN)) minstret<-mkReg(0);
-	  	Reg#(Bit#(XLEN)) mcycleh<-mkReg(0);
-	  	Reg#(Bit#(XLEN)) minstreth<-mkReg(0);
-	  `endif
+      Reg#(Bit#(XLEN)) mcycle <- mkReg(0);
+      Reg#(Bit#(XLEN)) minstret<-mkReg(0);
+    `else
+      Reg#(Bit#(XLEN)) mcycle<-mkReg(0);
+      Reg#(Bit#(XLEN)) minstret<-mkReg(0);
+      Reg#(Bit#(XLEN)) mcycleh<-mkReg(0);
+      Reg#(Bit#(XLEN)) minstreth<-mkReg(0);
+    `endif
 
-	  // Machine Trap Handling
-	  Reg#(Bit#(TSub#(`paddr,1))) rg_mepc  		<- mkReg(0);
-	  Reg#(Bit#(`paddr))rg_mtval  		<- mkReg(0);
-	  Reg#(Bit#(XLEN)) rg_mscratch <- mkReg(0);
+    // Machine Trap Handling
+    Reg#(Bit#(TSub#(`paddr,1))) rg_mepc  		<- mkReg(0);
+    Reg#(Bit#(`paddr))rg_mtval  		<- mkReg(0);
+    Reg#(Bit#(XLEN)) rg_mscratch <- mkReg(0);
     
     Reg#(Bit#(1)) rg_minterrupt <-mkReg(0);
-	  Reg#(Bit#(5)) rg_mcause   <- mkReg(0);
+    Reg#(Bit#(5)) rg_mcause   <- mkReg(0);
     
-	  Reg#(Bit#(3)) rg_mcounteren<-mkReg(0);
-	  Reg#(Bit#(64)) rg_clint_mtime <-mkReg(0);
-	  //////////////////////////////////////////////////////////////////////////////////////////
-	  //////////////////////////////// USER LEVEL CSRs ////////////////////////////////////////
-	  Reg#(Bit#(XLEN)) rg_uscratch <- mkReg(0);
+    Reg#(Bit#(3)) rg_mcounteren<-mkReg(0);
+    Reg#(Bit#(64)) rg_clint_mtime <-mkReg(0);
+    //////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////// USER LEVEL CSRs ////////////////////////////////////////
+    Reg#(Bit#(XLEN)) rg_uscratch <- mkReg(0);
     Reg#(Bit#(2)) rg_uxl = readOnlyReg(fromInteger(valueOf(XLEN)/32));
 
     `ifdef usertraps
-  	  Reg#(Bit#(TSub#(`paddr,1))) rg_uepc  		<- mkReg(0);
-	    Reg#(Bit#(`paddr))rg_utval  		<- mkReg(0);
+      Reg#(Bit#(TSub#(`paddr,1))) rg_uepc  		<- mkReg(0);
+      Reg#(Bit#(`paddr))rg_utval  		<- mkReg(0);
       Reg#(Bit#(1)) rg_uinterrupt <-mkReg(0);
-  	  Reg#(Bit#(5)) rg_ucause   <- mkReg(0);
-	    Reg#(Bit#(2)) rg_umode <- mkReg(0); //0 if pc to base or 1 if pc to base + 4xcause
-  	  Reg#(Bit#(TSub#(`paddr,2))) rg_utvec <- mkReg(0);
+      Reg#(Bit#(5)) rg_ucause   <- mkReg(0);
+      Reg#(Bit#(2)) rg_umode <- mkReg(0); //0 if pc to base or 1 if pc to base + 4xcause
+      Reg#(Bit#(TSub#(`paddr,2))) rg_utvec <- mkReg(0);
     `endif
     //MTVEC trap vector fields
-	/////////////////////////////////////////////////////////////
-	  ///////////////////////////Non standard user CSRs///////////////////////////////////////////
-	  `ifdef cache_control
-	  // 0-bit is cache enable for instruction cache
-	  // 1-bit is cache enable for data cache
-	  // Address: 'h800
-		Reg#(Bit#(2)) rg_cachecontrol <- mkReg(`icachereset ); 
-	  `endif
-	  //////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////
+    ///////////////////////////Non standard user CSRs///////////////////////////////////////////
+    `ifdef cache_control
+    // 0-bit is cache enable for instruction cache
+    // 1-bit is cache enable for data cache
+    // Address: 'h800
+    Reg#(Bit#(2)) rg_cachecontrol <- mkReg(`icachereset ); 
+    `endif
+    //////////////////////////////////////////////////////////////
 
     
     Bit#(12) csr_mip= {rg_meip, heip, seip, rg_ueip, rg_mtip, htie, stie, rg_utip, rg_msip,
@@ -243,14 +243,14 @@ package csrfile;
                           hsie, ssie, rg_usie};
     
     rule increment_cycle_counter;
-	  	`ifdef RV64
-      	mcycle<=mcycle+1;
-	  	`else
-	  		Bit#(64) new_cycle={mcycleh,mcycle};
-	  		new_cycle=new_cycle+1;
-	  		mcycle<=new_cycle[31:0];
-	  		mcycleh<=new_cycle[63:32];
-	  	`endif
+      `ifdef RV64
+        mcycle<=mcycle+1;
+      `else
+        Bit#(64) new_cycle={mcycleh,mcycle};
+        new_cycle=new_cycle+1;
+        mcycle<=new_cycle[31:0];
+        mcycleh<=new_cycle[63:32];
+      `endif
     endrule
     
     method Bit#(XLEN) read_csr (Bit#(12) addr);
@@ -312,9 +312,9 @@ package csrfile;
           `endif
         `ifdef usertraps
           if (addr == `UIE) data= {'d0, rg_meie, heie, seie, rg_mideleg[8]&rg_ueie, rg_mtie, htie, 
-                         stie, rg_mideleg[4]&rg_utie, rg_msie, hsie, ssie, rg_mideleg[0]&rg_usie}; 
+                        stie, rg_mideleg[4]&rg_utie, rg_msie, hsie, ssie, rg_mideleg[0]&rg_usie}; 
           if (addr == `UIP) data= {'d0, rg_meip, heip, seip, rg_mideleg[8]&rg_ueip, rg_mtip, htie, 
-                         stie, rg_mideleg[4]&rg_utip, rg_msip, hsip, ssip, rg_mideleg[0]&rg_usip};
+                        stie, rg_mideleg[4]&rg_utip, rg_msip, hsip, ssip, rg_mideleg[0]&rg_usip};
         `endif
         if (addr == `UCYCLE) data= mcycle;
         if (addr == `UINSTRET) data= minstret;
@@ -331,12 +331,12 @@ package csrfile;
         if (addr == `USCRATCH) data= rg_uscratch;
         if (addr == `UTIME) data= truncate(rg_clint_mtime);
 
-		//=========== Non standard user CSRs =========== //
+    //=========== Non standard user CSRs =========== //
 
-		`ifdef cache_control
-		   if (addr ==`CACHECNTRL ) data = zeroExtend(rg_cachecontrol);
-		`endif
-		return data;
+    `ifdef cache_control
+      if (addr ==`CACHECNTRL ) data = zeroExtend(rg_cachecontrol);
+    `endif
+    return data;
 
     endmethod
 
@@ -442,24 +442,24 @@ package csrfile;
             rg_ucause<= truncate(word);
           end
         `endif
-		`ifdef cache_control
-		    `CACHECNTRL:
-				 rg_cachecontrol <= truncate(word);
-		`endif
+    `ifdef cache_control
+        `CACHECNTRL:
+        rg_cachecontrol <= truncate(word);
+    `endif
 
         default: noAction;
       endcase
     endmethod
     method csrs_to_decode = tuple7(rg_prv, csr_mip, csr_mie, rg_mideleg, misa, rg_mcounteren, rg_mie);
-  	method Action clint_msip(Bit#(1) intrpt);
-  		rg_msip<=intrpt;
-  	endmethod
-  	method Action clint_mtip(Bit#(1) intrpt);
-  		rg_mtip<=intrpt;
-  	endmethod
-  	method Action clint_mtime(Bit#(64) c_mtime);
-  		rg_clint_mtime<=c_mtime;
-  	endmethod
+    method Action clint_msip(Bit#(1) intrpt);
+      rg_msip<=intrpt;
+    endmethod
+    method Action clint_mtip(Bit#(1) intrpt);
+      rg_mtip<=intrpt;
+    endmethod
+    method Action clint_mtime(Bit#(64) c_mtime);
+      rg_clint_mtime<=c_mtime;
+    endmethod
     method Action externalinterrupt(Bit#(1) intrpt);
       rg_meip<= intrpt;
     endmethod
@@ -471,7 +471,7 @@ package csrfile;
             spie <= 1;
             spp <= 0;
             rg_prv <= unpack({1'b0, spp});
-	  		    sie<=spie;
+            sie<=spie;
             let lv_sepc=rg_sepc;
             if(misa_c==0)
               lv_sepc[0]=0;
@@ -482,7 +482,7 @@ package csrfile;
           if(prv==User)begin
             rg_upie <= 1;
             rg_prv <= User;
-	    	  	rg_uie<=rg_upie;
+            rg_uie<=rg_upie;
             let lv_uepc=rg_uepc;
             if(misa_c==0)
               lv_uepc[0]=0;
@@ -494,7 +494,7 @@ package csrfile;
         rg_mpie <= 1;
         rg_mpp <= pack(User);
         rg_prv <= unpack(rg_mpp);
-	  	  rg_mie<=rg_mpie;
+        rg_mie<=rg_mpie;
         let lv_mepc=rg_mepc;
         if(misa_c==0)
           lv_mepc[0]=0;
@@ -521,12 +521,12 @@ package csrfile;
         `ifdef usertraps
           if(prv==User) begin
             rg_utval<=signExtend(tval);
-			      rg_uepc<=truncateLSB(pc);
-			      rg_ucause<=cause[4:0];
+            rg_uepc<=truncateLSB(pc);
+            rg_ucause<=cause[4:0];
             rg_uinterrupt<= cause[5];
-			      rg_uie <= 0;
-			      rg_upie <= rg_uie;
-			      rg_prv <= User;
+            rg_uie <= 0;
+            rg_upie <= rg_uie;
+            rg_prv <= User;
             if(rg_umode==1 && cause[5]==1)
               return ({(rg_utvec+ zeroExtend(cause[4:0])),2'b0}); // pc jumps to base+(4*cause)
             else
@@ -536,13 +536,13 @@ package csrfile;
         `endif
           begin
             rg_mtval<=signExtend(tval);
-			      rg_mepc<=truncateLSB(pc);
-			      rg_mcause<=cause[4:0];
+            rg_mepc<=truncateLSB(pc);
+            rg_mcause<=cause[4:0];
             rg_minterrupt<= cause[5];
-			      rg_mie <= 0;
-			      rg_mpp <= pack(rg_prv);
-			      rg_mpie <= rg_mie;
-			      rg_prv <= Machine;
+            rg_mie <= 0;
+            rg_mpp <= pack(rg_prv);
+            rg_mpie <= rg_mie;
+            rg_prv <= Machine;
             if(rg_mode==1 && cause[5]==1)
               return ({(rg_mtvec+ zeroExtend(cause[4:0])),2'b0}); // pc jumps to base+(4*cause)
             else
@@ -551,13 +551,13 @@ package csrfile;
       `else
         begin
           rg_mtval<=signExtend(tval);
-			    rg_mepc<=truncateLSB(pc);
-			    rg_mcause<=cause[4:0];
+          rg_mepc<=truncateLSB(pc);
+          rg_mcause<=cause[4:0];
           rg_minterrupt<= cause[5];
-			    rg_mie <= 0;
-			    rg_mpp <= pack(rg_prv);
-			    rg_mpie <= rg_mie;
-			    rg_prv <= Machine;
+          rg_mie <= 0;
+          rg_mpp <= pack(rg_prv);
+          rg_mpie <= rg_mie;
+          rg_prv <= Machine;
           if(rg_mode==1 && cause[5]==1)
             return ({(rg_mtvec+ zeroExtend(cause[4:0])),2'b0}); // pc jumps to base+(4*cause)
           else
@@ -576,8 +576,8 @@ package csrfile;
     endmethod
     method interrupt = unpack(|(csr_mie&csr_mip));
     method mv_misa_c=misa_c;
-	`ifdef cache_control
-	    method mv_cacheenable = rg_cachecontrol;
-	`endif
+  `ifdef cache_control
+      method mv_cacheenable = rg_cachecontrol;
+  `endif
  endmodule
 endpackage

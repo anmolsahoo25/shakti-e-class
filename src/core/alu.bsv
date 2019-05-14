@@ -4,12 +4,12 @@ Copyright (c) 2013, IIT Madras All rights reserved.
 Redistribution and use in source and binary forms, with or without modification, are permitted
 provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this list of conditions
+ * Redistributions of source code must retain the above copyright notice, this list of conditions
   and the following disclaimer.  
-* Redistributions in binary form must reproduce the above copyright notice, this list of 
+ * Redistributions in binary form must reproduce the above copyright notice, this list of 
   conditions and the following disclaimer in the documentation and/or other materials provided 
   with the distribution.  
-* Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
+ * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
@@ -34,7 +34,7 @@ the various operations to be executed.
 
 This module contains single cycle MUL instruction execution.
 
-*/
+ */
 
 package alu;
 
@@ -50,74 +50,74 @@ package alu;
   import common_types::*;
   `include "common_params.bsv"
 
-	(*noinline*)
+  (*noinline*)
     function ALU_OUT fn_alu(ALU_Inputs inp `ifdef RV64 , Bool word32 `endif , Bit#(1) misa_c);
     let {fn, op1, op2, imm_value, op3, inst_type, funct3, memaccess}=inp;
 
-	  /*========= Perform all the arithmetic ===== */
-	  // ADD* ADDI* SUB* 
+    /*========= Perform all the arithmetic ===== */
+    // ADD* ADDI* SUB* 
     Bit#(XLEN) inv = signExtend(fn[3]);
-	  let inv_op2=op2^inv;
-	  let op1_xor_op2=op1^inv_op2;
+    let inv_op2=op2^inv;
+    let op1_xor_op2=op1^inv_op2;
     let op1_add=op1;
     let op2_add=inv_op2;
     let adder_output=op1+ inv_op2+ zeroExtend(fn[3]);
-	  // SLT SLTU
-	  Bit#(1) compare_out=fn[0]^(
-						(fn[3]==0)?pack(op1_xor_op2==0):
-						(op1[valueOf(XLEN)-1]==op2[valueOf(XLEN)-1])?adder_output[valueOf(XLEN)-1]:
-						(fn[1]==1)?op2[valueOf(XLEN)-1]:op1[valueOf(XLEN)-1]);
-	  // SLL SRL SRA
+    // SLT SLTU
+    Bit#(1) compare_out=fn[0]^(
+            (fn[3]==0)?pack(op1_xor_op2==0):
+            (op1[valueOf(XLEN)-1]==op2[valueOf(XLEN)-1])?adder_output[valueOf(XLEN)-1]:
+            (fn[1]==1)?op2[valueOf(XLEN)-1]:op1[valueOf(XLEN)-1]);
+    // SLL SRL SRA
     //word32 is bool, shift_amt is used to describe the amount of shift
-	  Bit#(6) shift_amt={( `ifdef RV64 (!word32)?op2[5]: `endif 0), op2[4:0]};
+    Bit#(6) shift_amt={( `ifdef RV64 (!word32)?op2[5]: `endif 0), op2[4:0]};
 
-	  `ifdef RV64
-	  	Bit#(TDiv#(XLEN, 2)) upper_bits=`ifdef RV64 word32?signExtend(fn[3]&op1[31]): `endif op1[63:32];
-	  	Bit#(XLEN) shift_inright={upper_bits, op1[31:0]};//size of 64 bit
-	  `else
-	  	Bit#(XLEN) shift_inright=zeroExtend(op1[31:0]);//size of 32bit
-	  `endif
-
-	  let shin = (fn==`FNSR || fn==`FNSRA)?shift_inright:reverseBits(shift_inright);
-	  Int#(TAdd#(XLEN, 1)) t=unpack({(fn[3]&shin[valueOf(XLEN)-1]), shin});
-	  Int#(XLEN) shift_r=unpack(pack(t>>shift_amt)[valueOf(XLEN)-1:0]);//shift right by shift_amt
-	  let shift_l=reverseBits(pack(shift_r));//shift left
-	  Bit#(XLEN) shift_output=((fn==`FNSR || fn==`FNSRA)?pack(shift_r):0) | 
-                            ((fn==`FNSL)?pack(shift_l):0); 
-
-	  // AND OR XOR
-	  let logic_output=	((fn==`FNXOR || fn==`FNOR)?op1_xor_op2:0) |
-	  						((fn==`FNOR || fn==`FNAND)?op1&op2:0);
-	  let shift_logic=zeroExtend(pack(fn==`FNSEQ || fn==`FNSNE || fn >= `FNSLT)&compare_out) |
-	  					 logic_output|shift_output;
-
-		Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
     `ifdef RV64
-  		if(word32)
-	  		 final_output=signExtend(final_output[31:0]);
+      Bit#(TDiv#(XLEN, 2)) upper_bits=`ifdef RV64 word32?signExtend(fn[3]&op1[31]): `endif op1[63:32];
+      Bit#(XLEN) shift_inright={upper_bits, op1[31:0]};//size of 64 bit
+    `else
+      Bit#(XLEN) shift_inright=zeroExtend(op1[31:0]);//size of 32bit
     `endif
 
-		// Generate flush if prediction was wrong
-		Flush_type flush=None;
-		if((inst_type==BRANCH && final_output[0]==1) || inst_type==JALR || inst_type==JAL || memaccess==Fencei)begin //fence integration
-			flush=Flush;
-		end
+    let shin = (fn==`FNSR || fn==`FNSRA)?shift_inright:reverseBits(shift_inright);
+    Int#(TAdd#(XLEN, 1)) t=unpack({(fn[3]&shin[valueOf(XLEN)-1]), shin});
+    Int#(XLEN) shift_r=unpack(pack(t>>shift_amt)[valueOf(XLEN)-1:0]);//shift right by shift_amt
+    let shift_l=reverseBits(pack(shift_r));//shift left
+    Bit#(XLEN) shift_output=((fn==`FNSR || fn==`FNSRA)?pack(shift_r):0) | 
+                            ((fn==`FNSL)?pack(shift_l):0); 
+
+    // AND OR XOR
+    let logic_output=	((fn==`FNXOR || fn==`FNOR)?op1_xor_op2:0) |
+                ((fn==`FNOR || fn==`FNAND)?op1&op2:0);
+    let shift_logic=zeroExtend(pack(fn==`FNSEQ || fn==`FNSNE || fn >= `FNSLT)&compare_out) |
+              logic_output|shift_output;
+
+    Bit#(XLEN) final_output=(fn==`FNADD || fn==`FNSUB)?adder_output:shift_logic;
+    `ifdef RV64
+      if(word32)
+        final_output=signExtend(final_output[31:0]);
+    `endif
+
+    // Generate flush if prediction was wrong
+    Flush_type flush=None;
+    if((inst_type==BRANCH && final_output[0]==1) || inst_type==JALR || inst_type==JAL || memaccess==Fencei)begin //fence integration
+      flush=Flush;
+    end
 		
     // generate the effective address to jump to 
-		Bit#(XLEN) effective_address=op3+ signExtend(imm_value);
+    Bit#(XLEN) effective_address=op3+ signExtend(imm_value);
     if(inst_type==JALR)
       effective_address[0]=0;
     // The following can be placed here since we are not using a branch predictor yet.
     Trap_type exception=tagged None;
-	  if((inst_type==JAL || inst_type==JALR || (inst_type==BRANCH && final_output[0]==1)) 
-                                                     && effective_address[1]!=0 && misa_c==0)
-	    exception=tagged Exception Inst_addr_misaligned;
+    if((inst_type==JAL || inst_type==JALR || (inst_type==BRANCH && final_output[0]==1)) 
+                                                    && effective_address[1]!=0 && misa_c==0)
+      exception=tagged Exception Inst_addr_misaligned;
     else
     if(inst_type==MEMORY && ((funct3[1:0]==1 && effective_address[0]!=0) || (funct3[1:0]==2 &&
         effective_address[1:0]!=0) `ifdef RV64 || (funct3[1:0]==3 && effective_address[2:0]!=0)
         `endif ))begin
       exception = memaccess==Load? tagged Exception Load_addr_misaligned: 
-                                   tagged Exception Store_addr_misaligned;
+                                  tagged Exception Store_addr_misaligned;
     end
     // there is priority implied here.
     else if(valueOf(XLEN)>valueOf(`paddr)) begin
@@ -135,23 +135,23 @@ package alu;
     else if(inst_type == SYSTEM_INSTR)
       committype = SYSTEM_INSTR;
 	
-	  Bit#(TAdd#(`paddr, 1)) effaddr_csrdata = (inst_type==SYSTEM_INSTR)? 
+    Bit#(TAdd#(`paddr, 1)) effaddr_csrdata = (inst_type==SYSTEM_INSTR)? 
                                             zeroExtend({funct3, imm_value[16:0]}): 
                                             {pack(flush), effective_address[valueOf(`paddr)-1:0]};
 
-		`ifdef simulate
-			if(inst_type==BRANCH)
-				final_output=0;
-		`endif
+    `ifdef simulate
+      if(inst_type==BRANCH)
+        final_output=0;
+    `endif
 
-	  return tuple4(committype, final_output, effaddr_csrdata, exception);
-	endfunction
+    return tuple4(committype, final_output, effaddr_csrdata, exception);
+  endfunction
 
 `ifdef muldiv
   interface Ifc_alu;
     method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(ALU_Inputs inp 
         `ifdef RV64 , Bool word32 `endif , Bit#(1) misa_c);
-		method ActionValue#(ALU_OUT) delayed_output;
+    method ActionValue#(ALU_OUT) delayed_output;
   endinterface:Ifc_alu
 
   (*synthesize*)
@@ -167,7 +167,7 @@ package alu;
       else
         return tuple2(True, fn_alu(inp `ifdef RV64 , word32 `endif ,misa_c));
     endmethod
-		method delayed_output=muldiv.delayed_output;
+    method delayed_output=muldiv.delayed_output;
   endmodule
 `endif
 endpackage:alu

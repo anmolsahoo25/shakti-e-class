@@ -4,12 +4,12 @@ Copyright (c) 2013, IIT Madras All rights reserved.
 Redistribution and use in source and binary forms, with or without modification, are permitted
 provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this list of conditions
+ * Redistributions of source code must retain the above copyright notice, this list of conditions
   and the following disclaimer.  
-* Redistributions in binary form must reproduce the above copyright notice, this list of 
+ * Redistributions in binary form must reproduce the above copyright notice, this list of 
   conditions and the following disclaimer in the documentation and/or other materials provided 
  with the distribution.  
-* Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
+ * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
@@ -27,7 +27,7 @@ Email id: neelgala@gmail.com
 Details:
 
 --------------------------------------------------------------------------------------------------
-*/
+ */
 package mem_wb_stage;
   // imports related to the project
   import common_types::*;
@@ -48,9 +48,9 @@ package mem_wb_stage;
     interface Get#(OpFwding) operand_fwding;
     method Tuple3#(Bit#(`paddr), Bool, Bool) flush;
     method CSRtoDecode csrs_to_decode;
-	  method Action clint_msip(Bit#(1) intrpt);
-		method Action clint_mtip(Bit#(1) intrpt);
-		method Action clint_mtime(Bit#(64) c_mtime);
+    method Action clint_msip(Bit#(1) intrpt);
+    method Action clint_mtip(Bit#(1) intrpt);
+    method Action clint_mtime(Bit#(64) c_mtime);
     method Action externalinterrupt(Bit#(1) intrpt);
     method Bool csr_updated;
     method Bool interrupt;
@@ -59,8 +59,8 @@ package mem_wb_stage;
     `endif
     method Bit#(1) mv_misa_c;
     `ifdef cache_control
-	method Bit#(2) mv_cacheenable;
-	`endif
+  method Bit#(2) mv_cacheenable;
+  `endif
   endinterface:Ifc_mem_wb_stage
 
   (*synthesize*)
@@ -127,25 +127,25 @@ package mem_wb_stage;
           else if(committype == MEMORY) begin
             if (wr_memory_response matches tagged Valid .resp)begin
               let {data, err, access_type}=resp;
-			  if(!err) begin
-				`ifdef icache
-				  if(access_type==Fencei) begin // fence integration
-				        fen=FENCE;
-						if(verbosity!=0)
-						$display($time, "\tStage3: Fence instruction, Initiating flush");
-				  end
-			   `endif
-					  if(rd==0)
-						  data=0;
-               `ifdef atomic
+        if(!err) begin
+        `ifdef icache
+          if(access_type==Fencei) begin // fence integration
+                fen=FENCE;
+            if(verbosity!=0)
+            $display($time, "\tStage3: Fence instruction, Initiating flush");
+          end
+        `endif
+            if(rd==0)
+              data=0;
+              `ifdef atomic
                       else if(access_type==Store)
-						  data=reslt;
-               `endif
-               wr_operand_fwding <= tuple3(rd, True, data);
-               wr_commit <= tagged Valid (tuple2(rd, data));
-               `ifdef rtldump 
-                 dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
-               `endif
+              data=reslt;
+              `endif
+              wr_operand_fwding <= tuple3(rd, True, data);
+              wr_commit <= tagged Valid (tuple2(rd, data));
+              `ifdef rtldump 
+                dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
+              `endif
               end
               else begin
                 if(verbosity!=0)
@@ -191,19 +191,19 @@ package mem_wb_stage;
           end
           
           // if it is a branch/JAL_R/fencei instruction generate a flush signal to the pipe.
-		  // In case of Fencei, we get the eff_addr and flush signal from execute stage.
-		  // Flush would be initiated when its a Fencei or a branch/JAL or an Exception.
-		  Bool except=False;
-		  if(trap matches tagged Exception .ex) except=True;
-		  Bool memresp = isValid(wr_memory_response);
-		  if(committype!=MEMORY || (committype==MEMORY && memresp==True) || except==True )begin
-	          wr_flush<=tuple3(jump_address, (fl==Flush), (fen==FENCE));
-    	      if(fl==Flush)begin
-        	      rg_epoch <= ~rg_epoch;
-	          end
-    	      if(fl==Flush || committype==SYSTEM_INSTR)
-        	    wr_csr_updated<= True;
-		  end
+      // In case of Fencei, we get the eff_addr and flush signal from execute stage.
+      // Flush would be initiated when its a Fencei or a branch/JAL or an Exception.
+      Bool except=False;
+      if(trap matches tagged Exception .ex) except=True;
+      Bool memresp = isValid(wr_memory_response);
+      if(committype!=MEMORY || (committype==MEMORY && memresp==True) || except==True )begin
+            wr_flush<=tuple3(jump_address, (fl==Flush), (fen==FENCE));
+            if(fl==Flush)begin
+                rg_epoch <= ~rg_epoch;
+            end
+            if(fl==Flush || committype==SYSTEM_INSTR)
+              wr_csr_updated<= True;
+      end
         end
       end
       else begin
@@ -241,16 +241,16 @@ package mem_wb_stage;
     method csrs_to_decode = csr.csrs_to_decode;
     method Bool csr_updated = wr_csr_updated;
 
-	  method Action clint_msip(Bit#(1) intrpt);
+    method Action clint_msip(Bit#(1) intrpt);
       csr.clint_msip(intrpt);
     endmethod
-		method Action clint_mtip(Bit#(1) intrpt);
+    method Action clint_mtip(Bit#(1) intrpt);
       csr.clint_mtip(intrpt);
     endmethod
-		method Action clint_mtime(Bit#(64) c_mtime);
+    method Action clint_mtime(Bit#(64) c_mtime);
       csr.clint_mtime(c_mtime);
     endmethod
-		method Action externalinterrupt(Bit#(1) intrpt);
+    method Action externalinterrupt(Bit#(1) intrpt);
       csr.externalinterrupt(intrpt);
     endmethod
     `ifdef rtldump 
@@ -263,8 +263,8 @@ package mem_wb_stage;
     `endif
     method interrupt=csr.interrupt;
     method mv_misa_c=csr.mv_misa_c;
-	`ifdef cache_control
-	method mv_cacheenable=csr.mv_cacheenable;
-	`endif
+  `ifdef cache_control
+  method mv_cacheenable=csr.mv_cacheenable;
+  `endif
   endmodule:mkmem_wb_stage
 endpackage:mem_wb_stage
