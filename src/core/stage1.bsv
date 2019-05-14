@@ -56,17 +56,25 @@ package stage1;
 	interface Ifc_stage1;
 
     // interface to send request to the fabric
-	  interface Get#(Tuple2#(Bit#(`paddr), Bit#(1))) inst_request;
+	  interface Get#(Tuple2#(Bit#(`vaddr), Bit#(1))) inst_request;
 
     // interface to receive response from fabric
 	  interface Put#(Tuple3#(Bit#(32), Bool, Bit#(1))) inst_response;
 
     // interface to send decoded instruction to the next stage
-    interface TXe#(PIPE1_DS) to_nextstage;
+    interface TXe#(STAGE1_operands) tx_stage1_operands;
+  
+    interface TXe#(STAGE1_meta) tx_stage1_meta;
+
+    interface TXe#(STAGE1_control) tx_stage1_control;
+
+  `ifdef rtldump
+    interface TXe#(STAGE1_dump) tx_stage1_dump ;
+  `endif
 
     // flush from stage3
     (*always_ready*)
-    method Action ma_flush( Bit#(`paddr) newpc);
+    method Action ma_flush( Bit#(`vaddr) newpc);
     
     // csrs from the csrfile.
     (*always_ready,always_enabled*)
@@ -95,9 +103,9 @@ package stage1;
 	(*synthesize*)
   (*preempts = "ma_flush, wait_for_interrupt"*)
   (*preempts = "ma_flush, process_instruction"*)
-	module mkstage1#(parameter Bit#(`paddr) resetpc)(Ifc_stage1);
+	module mkstage1#(parameter Bit#(`vaddr) resetpc)(Ifc_stage1);
 
-    let stage = ""; // for logger
+    let stage1 = ""; // for logger
 
     // ------------------------------------ Start instantiations --------------------------------//
 
@@ -108,10 +116,10 @@ package stage1;
     Wire#(CSRtoDecode) wr_csr_decode <- mkWire();
 
     // register to hold the address of the next request to the fabric.
-    Reg#(Bit#(`paddr)) rg_fabric_request[2] <- mkCReg(2, (resetpc));
+    Reg#(Bit#(`vaddr)) rg_fabric_request[2] <- mkCReg(2, (resetpc));
 
     // register to hold the PC value of the instruction to be decoded.
-    Reg#(Bit#(`paddr)) rg_pc <- mkReg((resetpc));
+    Reg#(Bit#(`vaddr)) rg_pc <- mkReg((resetpc));
 
     // holds the curren epoch values of the pipe.
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
@@ -135,7 +143,13 @@ package stage1;
     FIFOF#(Tuple3#(Bit#(32), Bool, Bit#(1))) ff_memory_response <- mkSizedFIFOF(2);
 
     // the fifo to communicate with the next stage.
-		TX#(PIPE1_DS) tx_nextstage <- mkTX;
+		TX#(STAGE1_operands) ff_stage1_operands <- mkTX;
+    TX#(STAGE1_meta) ff_stage1_meta <- mkTX;
+    TX#(STAGE1_control) ff_stage1_control <- mkTX;
+  `ifdef rtldump
+    TX#(STAGE1_dump) ff_stage1_dump <- mkTX;
+  `endif
+
   
   `ifdef triggers
     Vector#(`trigger_num, Wire#(TriggerData)) v_trigger_data1 <- replicateM(mkWire());
@@ -258,7 +272,9 @@ package stage1;
         Bool compressed = False;
         Bool perform_decode = True;
 
+      `ifdef compressed
         PrevMeta lv_prev = rg_prev;
+      `endif
 
         if(rg_epoch != epoch)begin
           ff_memory_response.deq;
@@ -307,33 +323,48 @@ package stage1;
           end
         `endif
         end
+      `ifdef compressed
         lv_prev.epoch = rg_epoch;
+        rg_prev <= lv_prev;
         `logLevel( stage1, 1, $format("STAGE1 : rg_action: ",fshow(rg_action), " Prev: ",fshow(rg_prev)))
-        `logLevel( stage1, 1, $format("STAGE1 : compressed: %b perform_decode: %b rg_epoch: %b",
-                                        compressed, perform_decode, rg_epoch))
-
         PIPE1_DS x = decoder_func_16(final_instruction[15 : 0], rg_pc, epoch, err, wr_csr_decode);
-        PIPE1_DS y = decoder_func(final_instruction, rg_pc, epoch, err, wr_csr_decode);
+      `endif
+
+        let y <- decoder_func(final_instruction, err, wr_csr_decode);
         if(!compressed && final_instruction[14 : 12] == 0 && final_instruction[31 : 25] == 'b001000 &&
               final_instruction[6 : 2] == 'b11100 && perform_decode) begin
           rg_wfi <= True;
           perform_decode = False;
         end
+      Bit#(`vaddr) offset = 4;
+      `ifdef compressed
         if(compressed  && perform_decode && wr_csr_misa_c == 1)begin
-          rg_pc <= rg_pc + 2;
-          tx_nextstage.u.enq(x);
+          offset = 2;
         end
-        else if(perform_decode)begin
-          rg_pc <= rg_pc + 4;
-          tx_nextstage.u.enq(y);
-        end
+      `endif
+        STAGE1_operands _ops = STAGE1_operands{op1: 0, op2: 0};
+        STAGE1_meta _meta = y;
+        STAGE1_control _ctrl = STAGE1_control{ epoch: rg_epoch, pc: rg_pc};
+      `ifdef rtldump
+        STAGE1_dump _dump = STAGE1_dump {pc: rg_pc, instruction: final_instruction};
+      `endif
+        rg_pc <= rg_pc + offset;
+
+        ff_stage1_operands.u.enq(_ops);
+        ff_stage1_meta.u.enq(_meta);
+        ff_stage1_control.u.enq(_ctrl);
+      `ifdef rtldump
+        ff_stage1_dump.u.enq(_dump);
+      `endif
         `logLevel( stage1, 0, $format("STAGE1 : PC: %h Inst: %h, Err: %b Epoch: %b", 
                                         rg_pc, final_instruction, err, epoch))
-        rg_prev <= lv_prev;
+        `logLevel( stage1, 1, $format("STAGE1 : compressed: %b perform_decode: %b rg_epoch: %b",
+                                        compressed, perform_decode, rg_epoch))
+
     endrule
     
     interface inst_request = interface Get
-      method ActionValue#(Tuple2#(Bit#(`paddr), Bit#(1))) get;
+      method ActionValue#(Tuple2#(Bit#(`vaddr), Bit#(1))) get;
 				rg_fabric_request[1] <= rg_fabric_request[1] + 4; 
         return tuple2(rg_fabric_request[1], rg_epoch);
       endmethod
@@ -345,15 +376,24 @@ package stage1;
 	    endmethod
     endinterface;
 
-    //providing the output of the decoder function to the opfetch unit via TX interface
-		interface to_nextstage = tx_nextstage.e;
+    interface tx_stage1_operands = ff_stage1_operands.e;
+  
+    interface tx_stage1_meta = ff_stage1_meta.e;
 
-    method Action ma_flush( Bit#(`paddr) newpc); 
+    interface tx_stage1_control = ff_stage1_control.e;
+
+  `ifdef rtldump
+    interface tx_stage1_dump = ff_stage1_dump.e;
+  `endif
+
+    method Action ma_flush( Bit#(`vaddr) newpc); 
       rg_pc <= newpc;
       rg_epoch<=~rg_epoch;
       rg_fabric_request[0]<={truncateLSB(newpc), 2'b0};
+    `ifdef compressed
       if(newpc[1 : 0] != 0)
         rg_discard_lower <= True;
+    `endif
       rg_wfi <= False;
       `logLevel( stage1, 0, $format("STAGE1 : Received Flush. PC: %h Flush: ",newpc)) 
     endmethod
