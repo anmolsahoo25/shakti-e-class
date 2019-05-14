@@ -4,12 +4,12 @@ Copyright (c) 2013, IIT Madras All rights reserved.
 Redistribution and use in source and binary forms, with or without modification, are permitted
 provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this list of conditions
+ * Redistributions of source code must retain the above copyright notice, this list of conditions
   and the following disclaimer.  
-* Redistributions in binary form must reproduce the above copyright notice, this list of 
+ * Redistributions in binary form must reproduce the above copyright notice, this list of 
   conditions and the following disclaimer in the documentation and / or other materials provided 
- with the distribution.  
-* Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
+  with the distribution.  
+ * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
@@ -27,18 +27,18 @@ Email id : neelgala@gmail.com
 Details:
 
 --------------------------------------------------------------------------------------------------
-*/
+ */
 package stage1;
 
   // library packages 
-	import GetPut::*;
-	import TxRx	::*;
+  import GetPut::*;
+  import TxRx	::*;
   import FIFOF ::*;
   import SpecialFIFOs ::*;
   import Vector :: *;
 
   // project packages
-	import common_types::*;
+  import common_types::*;
   import decode::*;
   `include "common_params.bsv"
   `include "Logger.bsv"
@@ -54,13 +54,13 @@ package stage1;
   // ------------------------------------------------------------------------------------------- //
 
   // Interface for the fetch and decode unit
-	interface Ifc_stage1;
+  interface Ifc_stage1;
 
     // interface to send request to the fabric
-	  interface Get#(Tuple2#(Bit#(`vaddr), Bit#(1))) inst_request;
+    interface Get#(Tuple2#(Bit#(`vaddr), Bit#(1))) inst_request;
 
     // interface to receive response from fabric
-	  interface Put#(Tuple3#(Bit#(32), Bool, Bit#(1))) inst_response;
+    interface Put#(Tuple3#(Bit#(32), Bool, Bit#(1))) inst_response;
 
     // interface to send decoded instruction to the next stage
     interface TXe#(STAGE1_operands) tx_stage1_operands;
@@ -99,12 +99,12 @@ package stage1;
     // receives the info on which triggers are enabled
     method Action trigger_enable(Vector#(`trigger_num, Bool) t);
   `endif
-	endinterface : Ifc_stage1
+  endinterface : Ifc_stage1
 
-	(*synthesize*)
+  (*synthesize*)
   (*preempts = "ma_flush, wait_for_interrupt"*)
   (*preempts = "ma_flush, process_instruction"*)
-	module mkstage1#(parameter Bit#(`vaddr) resetpc)(Ifc_stage1);
+  module mkstage1#(parameter Bit#(`vaddr) resetpc)(Ifc_stage1);
 
     let stage1 = ""; // for logger
 
@@ -144,7 +144,7 @@ package stage1;
     FIFOF#(Tuple3#(Bit#(32), Bool, Bit#(1))) ff_memory_response <- mkSizedFIFOF(2);
 
     // the fifo to communicate with the next stage.
-		TX#(STAGE1_operands) ff_stage1_operands <- mkTX;
+    TX#(STAGE1_operands) ff_stage1_operands <- mkTX;
     TX#(STAGE1_meta) ff_stage1_meta <- mkTX;
     TX#(STAGE1_control) ff_stage1_control <- mkTX;
   `ifdef rtldump
@@ -162,7 +162,7 @@ package stage1;
   `ifdef triggers
 
     function ActionValue#(Tuple2#(Bool, Bit#(`causesize))) check_trigger (Bit#(`vaddr) pc, 
-                           Bit#(32) instr `ifdef compressed, Bool compressed `endif ) = actionvalue
+                          Bit#(32) instr `ifdef compressed, Bool compressed `endif ) = actionvalue
       Bool trap = False;
       Bit#(`causesize) cause = `Breakpoint;
       Bit#(XLEN) compare_value ;
@@ -174,8 +174,8 @@ package stage1;
         if(v_trigger_enable[i] &&& v_trigger_data1[i] matches tagged MCONTROL .mc &&& 
                               ((!trap && !chain) || (chain && trap)) &&& mc.execute == 1)begin
           Bit#(XLEN) trigger_compare = `ifdef compressed 
-                     (compressed && mc.size == 2) ? zeroExtend(v_trigger_data2[i][15 : 0]) : `endif 
-                                                   v_trigger_data2[i];
+                    (compressed && mc.size == 2) ? zeroExtend(v_trigger_data2[i][15 : 0]) : `endif 
+                                                  v_trigger_data2[i];
           if(mc.select == 0)
             compare_value = pc;
           else
@@ -360,15 +360,15 @@ package stage1;
     
     interface inst_request = interface Get
       method ActionValue#(Tuple2#(Bit#(`vaddr), Bit#(1))) get;
-				rg_fabric_request[1] <= rg_fabric_request[1] + 4; 
+        rg_fabric_request[1] <= rg_fabric_request[1] + 4; 
         return tuple2(rg_fabric_request[1], rg_epoch);
       endmethod
     endinterface;
 
     interface inst_response = interface Put
-	    method Action put (Tuple3#(Bit#(32), Bool, Bit#(1)) resp);
+      method Action put (Tuple3#(Bit#(32), Bool, Bit#(1)) resp);
         ff_memory_response.enq(resp);
-	    endmethod
+      endmethod
     endinterface;
 
     interface tx_stage1_operands = ff_stage1_operands.e;
@@ -417,5 +417,5 @@ package stage1;
         v_trigger_enable[i] <= t[i];
     endmethod
   `endif
-	endmodule : mkstage1
+  endmodule : mkstage1
 endpackage : stage1
