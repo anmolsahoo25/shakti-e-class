@@ -49,6 +49,7 @@
 `define	SYSTEM_INSTR_op		'b11100
 `define	MULDIV_op			    'b01100
 `define	ATOMIC_op			'b01011
+`define FENCE_op          'b00011
 
 ////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////// funct3 defintions for ISA ////////////////////
@@ -107,3 +108,33 @@
 `define UINSTRETH 'hC82 // Upper 32bits of UINSTRET
 ////////////////////////////////////////////////////////////////////////////////////
 `define CACHECNTRL 'h800 // cache control register
+
+`define Inst_addr_misaligned  0 
+`define Inst_access_fault     1 
+`define Illegal_inst          2 
+`define Breakpoint            3 
+`define Load_addr_misaligned  4 
+`define Load_access_fault     5 
+`define Store_addr_misaligned 6 
+`define Store_access_fault    7 
+`define Ecall_from_user       8 
+`define Ecall_from_machine    11
+`define Int_divide_by_zero    17
+`define FP_invalid            18
+`define FP_divide_by_zero     19
+`define FP_overflow           20
+`define FP_underflow          21
+`define FP_inexact            22
+
+`define User_soft_int         0
+`define Machine_soft_int      3
+`define User_timer_int        4
+`define Machine_timer_int     7
+`define User_external_int     8
+`define Machine_external_int  11
+`define HaltEbreak            17
+`define HaltTrigger           18
+`define HaltDebugger          19
+`define HaltStep              20
+`define HaltReset             21
+`define Resume_int            22
