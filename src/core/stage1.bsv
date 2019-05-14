@@ -35,6 +35,7 @@ package stage1;
 	import TxRx	::*;
   import FIFOF ::*;
   import SpecialFIFOs ::*;
+  import Vector :: *;
 
   // project packages
 	import common_types::*;
@@ -77,15 +78,15 @@ package stage1;
     method Action ma_flush( Bit#(`vaddr) newpc);
     
     // csrs from the csrfile.
-    (*always_ready,always_enabled*)
+    (*always_ready, always_enabled*)
     method Action ma_csr_misa_c (Bit#(1) c);
 
     // interrupt from csr mip register
-    (*always_ready,always_enabled*)
+    (*always_ready, always_enabled*)
     method Action ma_interrupt(Bool i);
 
     // csrs for decoder
-    (*always_ready,always_enabled*)
+    (*always_ready, always_enabled*)
     method Action ma_csr_decode (CSRtoDecode c);
   
   `ifdef triggers
@@ -331,8 +332,7 @@ package stage1;
       `endif
 
         let y <- decoder_func(final_instruction, err, wr_csr_decode);
-        if(!compressed && final_instruction[14 : 12] == 0 && final_instruction[31 : 25] == 'b001000 &&
-              final_instruction[6 : 2] == 'b11100 && perform_decode) begin
+        if(y.meta.inst_type == WFI && perform_decode) begin
           rg_wfi <= True;
           perform_decode = False;
         end
@@ -342,25 +342,20 @@ package stage1;
           offset = 2;
         end
       `endif
-        STAGE1_operands _ops = STAGE1_operands{op1: 0, op2: 0};
-        STAGE1_meta _meta = y;
-        STAGE1_control _ctrl = STAGE1_control{ epoch: rg_epoch, pc: rg_pc};
+
+      if(perform_decode) begin
+        ff_stage1_operands.u.enq(STAGE1_operands{op1 : 0, op2 : 0});
+        ff_stage1_meta.u.enq(y);
+        ff_stage1_control.u.enq(STAGE1_control{ epoch : rg_epoch, pc : rg_pc});
       `ifdef rtldump
-        STAGE1_dump _dump = STAGE1_dump {pc: rg_pc, instruction: final_instruction};
+        ff_stage1_dump.u.enq(STAGE1_dump {pc : rg_pc, instruction : final_instruction});
       `endif
         rg_pc <= rg_pc + offset;
-
-        ff_stage1_operands.u.enq(_ops);
-        ff_stage1_meta.u.enq(_meta);
-        ff_stage1_control.u.enq(_ctrl);
-      `ifdef rtldump
-        ff_stage1_dump.u.enq(_dump);
-      `endif
         `logLevel( stage1, 0, $format("STAGE1 : PC: %h Inst: %h, Err: %b Epoch: %b", 
                                         rg_pc, final_instruction, err, epoch))
         `logLevel( stage1, 1, $format("STAGE1 : compressed: %b perform_decode: %b rg_epoch: %b",
                                         compressed, perform_decode, rg_epoch))
-
+      end
     endrule
     
     interface inst_request = interface Get
@@ -410,15 +405,15 @@ package stage1;
     endmethod
   `ifdef triggers
     method Action trigger_data1(Vector#(`trigger_num, TriggerData) t);
-      for(Integer i=0; i<`trigger_num; i=i+1)
+      for(Integer i = 0; i<`trigger_num; i = i+1)
         v_trigger_data1[i] <= t[i];
     endmethod
     method Action trigger_data2(Vector#(`trigger_num, Bit#(XLEN)) t);
-      for(Integer i=0; i<`trigger_num; i=i+1)
+      for(Integer i = 0; i<`trigger_num; i = i+1)
         v_trigger_data2[i] <= t[i];
     endmethod
     method Action trigger_enable(Vector#(`trigger_num, Bool) t);
-      for(Integer i=0; i<`trigger_num; i=i+1)
+      for(Integer i = 0; i<`trigger_num; i = i+1)
         v_trigger_enable[i] <= t[i];
     endmethod
   `endif
