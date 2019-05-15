@@ -42,6 +42,7 @@ package stage1;
   import decode::*;
   `include "common_params.bsv"
   `include "Logger.bsv"
+  import registerfile :: *;
 
   // ----------------------------- local type definitions -------------------------------------- //
   typedef enum {CheckPrev, None} ActionType deriving(Bits, Eq, FShow);
@@ -89,6 +90,9 @@ package stage1;
     (*always_ready, always_enabled*)
     method Action ma_csr_decode (CSRtoDecode c);
   
+    //rd and value given back by the write back unit
+    interface Put#(Tuple2#(Bit#(5),Bit#(XLEN))) commit_rd;
+
   `ifdef triggers
     // receives the TDATA1 from the csrs
     method Action trigger_data1(Vector#(`trigger_num, TriggerData) t);
@@ -125,8 +129,8 @@ package stage1;
     // holds the curren epoch values of the pipe.
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
 
-    // This register implements a simple state - machine which indicates how the instruction should be
-    // extracted from the cache response.
+    // This register implements a simple state - machine which indicates how the instruction should 
+    // be extracted from the cache response.
     Reg#(ActionType) rg_action <- mkReg(None);
   `ifdef compressed
     Reg#(Bool) rg_discard_lower <- mkReg(False);
@@ -142,6 +146,9 @@ package stage1;
 
     // fifo to hold the instruction response from the fabric
     FIFOF#(Tuple3#(Bit#(32), Bool, Bit#(1))) ff_memory_response <- mkSizedFIFOF(2);
+    
+    // operand register file
+    Ifc_registerfile#(Bit#(5), Bit#(XLEN)) integer_rf <- mkregisterfile;
 
     // the fifo to communicate with the next stage.
     TX#(STAGE1_operands) ff_stage1_operands <- mkTX;
@@ -168,9 +175,12 @@ package stage1;
       Bit#(XLEN) compare_value ;
       Bool chain = False;
       for(Integer i = 0; i < `trigger_num; i = i+1)begin
-        `logLevel( stage1, 3, $format("STAGE1 : Trigger[%2d] Data1: ", i, fshow(v_trigger_data1[i])))
-        `logLevel( stage1, 3, $format("STAGE1 : Trigger[%2d] Data2: ", i, fshow(v_trigger_data2[i])))
-        `logLevel( stage1, 3, $format("STAGE1 : Trigger[%2d] Enable: ", i, fshow(v_trigger_enable[i])))
+        `logLevel( stage1, 3, $format("STAGE1 : Trigger[%2d] Data1: ", i, 
+                                      fshow(v_trigger_data1[i])))
+        `logLevel( stage1, 3, $format("STAGE1 : Trigger[%2d] Data2: ", i, 
+                                      fshow(v_trigger_data2[i])))
+        `logLevel( stage1, 3, $format("STAGE1 : Trigger[%2d] Enable: ", i, 
+                                      fshow(v_trigger_enable[i])))
         if(v_trigger_enable[i] &&& v_trigger_data1[i] matches tagged MCONTROL .mc &&& 
                               ((!trap && !chain) || (chain && trap)) &&& mc.execute == 1)begin
           Bit#(XLEN) trigger_compare = `ifdef compressed 
@@ -212,6 +222,32 @@ package stage1;
       return tuple2(trap, cause);
     endactionvalue;
   `endif
+
+    function STAGE1_operands access_rf (Bit#(5) rs1addr, Bit#(5) rs2addr, Op1type rs1type, 
+                                        Op2type rs2type, Bit#(`vaddr) pc, Bit#(32) imm);
+      Bit#(XLEN) rs1irf = integer_rf.sub(rs1addr);
+      Bit#(XLEN) rs2irf = integer_rf.sub(rs2addr);
+      Bit#(XLEN) rs1 = 0;
+      Bit#(XLEN) rs2 = 0;
+
+      if( rs1type == PC )
+        rs1 = pc;
+      else
+        rs1 = rs1irf;
+      
+      if( rs2type == Constant4 )
+        rs2 = 'd4;
+    `ifdef compressed
+      else if ( rs2type == Constant2 )
+        rs2 = 'd2;
+    `endif
+      else if( rs2type == Immediate )
+        rs2 = signExtend(imm);
+      else
+        rs2 = rs2irf;
+
+      return STAGE1_operands{op1 : rs1, op2 : rs2};
+    endfunction
     // ---------------------- End local function definitions ------------------//
 
     // ---------------------------------------- rules ------------------------------------------ //
@@ -219,12 +255,13 @@ package stage1;
     // RuleName : wait_for_interrupt
     // Explicit Conditions : rg_wfi == True
     // Implicit Conditions : wr_interrupt should be written in the same cycle
-    // Desciption : This rule is fired when the core has executed the WFI instruction and waiting for
-    // an intterupt to the core to resume fetch;
+    // Desciption : This rule is fired when the core has executed the WFI instruction and waiting 
+    // for an intterupt to the core to resume fetch;
     rule wait_for_interrupt(rg_wfi);
       if(wr_interrupt)
         rg_wfi <= False;
-      `logLevel( stage1, 0, $format("STAGE1 : Waiting for Interrupt. wr_interrupt: %b",wr_interrupt))
+      `logLevel( stage1, 0, $format("STAGE1 : Waiting for Interrupt. wr_interrupt: %b",
+                                    wr_interrupt))
     endrule
 
 
@@ -235,8 +272,8 @@ package stage1;
     //    2. wr_csr_decode is written in the same cycle
     //    3. wr_csr_misa_c is written in the same cycle
     //    4. tostage FIFO notFull
-    // Schedule Conflicts : This rule will not fire if there is flush from the write - back stage. A
-    // flush from the write - back stage will cause a change in the rg_pc and rg_discard,
+    // Schedule Conflicts : This rule will not fire if there is flush from the write - back stage. 
+    // A flush from the write - back stage will cause a change in the rg_pc and rg_discard,
     // both of which are being updated in this method as well. This schedule is acceptable since
     // anyways the response from the memory currently to be handled in this rule will match epochs
     // and will be dropped.
@@ -245,15 +282,15 @@ package stage1;
     // instruction is compressed or not. The final instruction is then sent to the next stage.
     // To extract the instruction from the memory response a state machine is implemented.
     // 
-    // 1. First the epochs are compared and if a mis - match is observed then the response is dropped
-    // without any other changes to the state of the module.
+    // 1. First the epochs are compared and if a mis - match is observed then the response is 
+    // dropped without any other changes to the state of the module.
     // 2. if rg_discard is set and compressed is enabled then the lower 16 - bits of the
     // resposne are discarded and the upper 16 - bits are probed to check if it is a compressed
     // instruction. If so, then the instruction is sent to the next stage. However is it is not a
-    // compressed instruction it means the upper 16 - bits of the response refer to the lower 16 - bits
-    // of a 32 - bit instruction and thus we will have to wait for the next response from the cache to
-    // form the instruction is send to the next stage. To ensure the concatenation happens in the
-    // next response we set rg_action to ChecPrev and set enque_instruction to False.
+    // compressed instruction it means the upper 16 - bits of the response refer to the lower 16 - 
+    // bits of a 32 - bit instruction and thus we will have to wait for the next response from the 
+    // cache to form the instruction is send to the next stage. To ensure the concatenation happens 
+    // in the next response we set rg_action to ChecPrev and set enque_instruction to False.
     // 3. if rg_action is set to None, then we simply probe the lower 2 - bits to the response to
     // check if it is compressed. If so then the lower 16 bits form an instruction which is sent to
     // the next stage, the upper 16 - bits are stored to rg_instruction and rg_action is set to
@@ -263,10 +300,10 @@ package stage1;
     // compressed instruction from the previous response, in which case the current memory response
     // is not dequed and rg_instruction is sent to the next stage. This can happen due to state - 3
     // mentioned above. The other possibility is that rg_instruction holds the lower 16 - bits of a
-    // 32 - bit isntruction, in which case we have concatenate the lower 16 - bits of the response with
-    // rg_instruction and send to the next, and also store the upper 16 - bits of the response into
-    // rg_instruction. rg_Action in this case will remain CheckPrev so that the upper bits of this
-    // repsonse are probed in the next cycle.
+    // 32 - bit isntruction, in which case we have concatenate the lower 16 - bits of the response 
+    // with rg_instruction and send to the next, and also store the upper 16 - bits of the response 
+    // into rg_instruction. rg_Action in this case will remain CheckPrev so that the upper bits of 
+    // this repsonse are probed in the next cycle.
     rule process_instruction(!rg_wfi);
         let {cache_response, err, epoch}=ff_memory_response.first;
         Bit#(32) final_instruction = 0;
@@ -327,7 +364,8 @@ package stage1;
       `ifdef compressed
         lv_prev.epoch = rg_epoch;
         rg_prev <= lv_prev;
-        `logLevel( stage1, 1, $format("STAGE1 : rg_action: ",fshow(rg_action), " Prev: ",fshow(rg_prev)))
+        `logLevel( stage1, 1, $format("STAGE1 : rg_action: ",fshow(rg_action), " Prev: ",
+                                                              fshow(rg_prev)))
         PIPE1_DS x = decoder_func_16(final_instruction[15 : 0], rg_pc, epoch, err, wr_csr_decode);
       `endif
 
@@ -342,9 +380,9 @@ package stage1;
           offset = 2;
         end
       `endif
-
       if(perform_decode) begin
-        ff_stage1_operands.u.enq(STAGE1_operands{op1 : 0, op2 : 0});
+        ff_stage1_operands.u.enq(access_rf(y.op_addr.rs1addr, y.op_addr.rs2addr, y.op_type.rs1type,
+                                            y.op_type.rs2type, rg_pc, y.meta.immediate));
         ff_stage1_meta.u.enq(y);
         ff_stage1_control.u.enq(STAGE1_control{ epoch : rg_epoch, pc : rg_pc});
       `ifdef rtldump
@@ -417,5 +455,13 @@ package stage1;
         v_trigger_enable[i] <= t[i];
     endmethod
   `endif
+    
+    interface commit_rd = interface Put
+      method Action put (Tuple2#(Bit#(5), Bit#(XLEN)) wbinfo ) ;
+        let {rd, value} = wbinfo;
+        integer_rf.upd( rd, value );
+      endmethod
+    endinterface;
+    
   endmodule : mkstage1
 endpackage : stage1
