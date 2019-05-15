@@ -149,6 +149,12 @@ package stage1;
     
     // operand register file
     Ifc_registerfile#(Bit#(5), Bit#(XLEN)) integer_rf <- mkregisterfile;
+    
+    // register to indicate that the RegFile is being initialized to all zeros
+    Reg#(Bool) rg_initialize<-mkReg(True);
+
+    // register to index into the Regfile during initialization sequence.
+    Reg#(Bit#(5)) rg_index<-mkReg(0);
 
     // the fifo to communicate with the next stage.
     TX#(STAGE1_operands) ff_stage1_operands <- mkTX;
@@ -252,12 +258,24 @@ package stage1;
 
     // ---------------------------------------- rules ------------------------------------------ //
 
+    // RuleName: initialize_regfile
+    // Explicit Conditions: rg_initialize == True
+    // Implicit Conditions: None
+    // Description: rule to initialize all the registers to 0 on reset
+    rule initialize_regfile(rg_initialize);
+      `logLevel( stage1, 1, $format("STAGE1: Initializing the RF. Index: %d", rg_index))
+      integer_rf.upd(rg_index,0);
+      rg_index<=rg_index+1;
+      if(rg_index=='d31)
+        rg_initialize<=False;
+    endrule 
+
     // RuleName : wait_for_interrupt
-    // Explicit Conditions : rg_wfi == True
+    // Explicit Conditions : rg_wfi == True && rg_initialize == False
     // Implicit Conditions : wr_interrupt should be written in the same cycle
     // Desciption : This rule is fired when the core has executed the WFI instruction and waiting 
     // for an intterupt to the core to resume fetch;
-    rule wait_for_interrupt(rg_wfi);
+    rule wait_for_interrupt(rg_wfi && !rg_initialize);
       if(wr_interrupt)
         rg_wfi <= False;
       `logLevel( stage1, 0, $format("STAGE1 : Waiting for Interrupt. wr_interrupt: %b",
@@ -304,7 +322,7 @@ package stage1;
     // with rg_instruction and send to the next, and also store the upper 16 - bits of the response 
     // into rg_instruction. rg_Action in this case will remain CheckPrev so that the upper bits of 
     // this repsonse are probed in the next cycle.
-    rule process_instruction(!rg_wfi);
+    rule process_instruction(!rg_wfi && !rg_initialize);
         let {cache_response, err, epoch}=ff_memory_response.first;
         Bit#(32) final_instruction = 0;
         Bool compressed = False;
@@ -381,7 +399,7 @@ package stage1;
         end
       `endif
       let _ops = access_rf(y.op_addr.rs1addr, y.op_addr.rs2addr, y.op_type.rs1type,
-                            y.op_type.rs2type, rg_pc, y.meta.immediate));
+                            y.op_type.rs2type, rg_pc, y.meta.immediate);
       if(perform_decode) begin
         ff_stage1_operands.u.enq(_ops);
         ff_stage1_meta.u.enq(y);
@@ -458,7 +476,7 @@ package stage1;
   `endif
     
     interface commit_rd = interface Put
-      method Action put (Tuple2#(Bit#(5), Bit#(XLEN)) wbinfo ) ;
+      method Action put (Tuple2#(Bit#(5), Bit#(XLEN)) wbinfo ) if(!rg_initialize);
         let {rd, value} = wbinfo;
         integer_rf.upd( rd, value );
       endmethod
