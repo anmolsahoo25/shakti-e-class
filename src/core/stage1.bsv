@@ -40,9 +40,9 @@ package stage1;
   // project packages
   import common_types::*;
   import decode::*;
+  import registerfile :: *;
   `include "common_params.bsv"
   `include "Logger.bsv"
-  import registerfile :: *;
 
   // ----------------------------- local type definitions -------------------------------------- //
   typedef enum {CheckPrev, None} ActionType deriving(Bits, Eq, FShow);
@@ -95,12 +95,15 @@ package stage1;
 
   `ifdef triggers
     // receives the TDATA1 from the csrs
+    (*always_ready, always_enabled*)
     method Action trigger_data1(Vector#(`trigger_num, TriggerData) t);
 
     // receives the TDATA2 register from the csrs for comparison
+    (*always_ready, always_enabled*)
     method Action trigger_data2(Vector#(`trigger_num, Bit#(XLEN)) t);
 
     // receives the info on which triggers are enabled
+    (*always_ready, always_enabled*)
     method Action trigger_enable(Vector#(`trigger_num, Bool) t);
   `endif
   endinterface : Ifc_stage1
