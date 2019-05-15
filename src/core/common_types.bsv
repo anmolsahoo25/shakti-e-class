@@ -178,34 +178,6 @@ package common_types;
     Bit#(32) instruction;
   } STAGE1_dump deriving(Bits, FShow, Eq);
 
-  //// define all tuples here
-  //`ifdef rtldump
-  //  `ifdef RV64
-  //  typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
-  //            Tuple8#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
-  //              Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif, Bit#(32))) PIPE1_DS;
-  //  `else
-  //  typedef Tuple7#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bit#(3),
-  //            Tuple8#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
-  //              Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif, Bit#(32))) PIPE1_DS;
-  //  `endif
-  //  typedef Tuple8#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Bit#(`paddr), Bit#(5), Bit#(1), 
-  //                  Trap_type, Bit#(32)) PIPE2_DS;
-  //`else
-  //  `ifdef RV64
-  //  typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
-  //            Tuple7#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
-  //              Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif )) PIPE1_DS;
-  //  `else
-  //  typedef Tuple7#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bit#(3),
-  //            Tuple7#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
-  //              Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif )) PIPE1_DS;
-  //  `endif
-  //  typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Bit#(`paddr), Bit#(5), Bit#(1), 
-  //                  Trap_type) PIPE2_DS;
-  //`endif
-  //typedef Tuple4#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Trap_type) ALU_OUT;
-
   // ------------------ Structs used in the stage2 --------------------------------------------- //
 
   typedef struct{
@@ -301,34 +273,6 @@ package common_types;
   `endif } CSRtoDecode deriving(Bits, Eq, FShow);
 
   typedef Tuple5#(Privilege_mode, Bit#(XLEN), Bit#(32), Bit#(5), Bit#(XLEN)) DumpType;
-
-  typedef enum {
-    Inst_addr_misaligned = 0,
-    Inst_access_fault = 1,
-    Illegal_inst = 2,
-    Breakpoint = 3,
-    Load_addr_misaligned = 4,
-    Load_access_fault = 5,
-    Store_addr_misaligned = 6,
-    Store_access_fault = 7,
-    Ecall_from_user = 8,
-    Ecall_from_machine = 11
-  } Exception_cause deriving (Bits, Eq, FShow);
-
-  typedef enum{
-    User_soft_int = 0,
-    Machine_soft_int = 3,
-    User_timer_int = 4,
-    Machine_timer_int = 7,
-    User_external_int = 8,
-    Machine_external_int = 11
-  } Interrupt_cause deriving (Bits, Eq, FShow);
-
-  typedef union tagged{
-    Exception_cause Exception;
-    Interrupt_cause Interrupt;
-    void None;
-  } Trap_type deriving(Bits, Eq, FShow);
 
   // fabrics related definitions.
   typedef 0 USERSPACE;
