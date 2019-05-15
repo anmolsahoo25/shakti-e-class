@@ -207,7 +207,7 @@ package common_types;
   //typedef Tuple4#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Trap_type) ALU_OUT;
 
   // ------------------ Structs used in the stage2 --------------------------------------------- //
-  typedef enum {MEMORY, SYSTEM_INSTR, REGULAR, TRAP} PreCommit_type deriving(Eq, Bits, FShow);
+
   typedef struct{
     Bool done; 
     PreCommit_type cmtype;
@@ -221,11 +221,67 @@ package common_types;
   `endif
   } ALU_OUT deriving (Bits,  Eq,  FShow);
   
-  typedef Tuple5#(Bit#(`paddr), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
+  // ---------- Tuples for the third Pipeline Stage -----------//
+  typedef enum {MEMORY, SYSTEM_INSTR, REGULAR, TRAP} PreCommit_type deriving(Eq, Bits, FShow);
+
+  typedef struct{
+    Bit#(`vaddr) pc;
+    Bit#(5)      rd;
+    Bit#(1)      epochs;
+  } Stage3Common deriving(Bits, Eq, FShow);
+
+  typedef struct{
+  `ifdef triggers
+    Bit#(`vaddr)  address;
+    Bit#(2)       size;
+  `endif
+    Access_type   memaccess;
+  } Stage3Memory deriving(Bits, Eq, FShow);
+
+  typedef struct{
+    Bit#(`causesize)    cause;
+    Bit#(`vaddr)        badaddr;
+  } Stage3Trap deriving(Bits, Eq, FShow);
+
+  typedef struct{
+    Bit#(XLEN)    rdvalue;
+  } Stage3Regular deriving(Bits, Eq, FShow);
+
+  typedef struct{
+    Bit#(XLEN)    rs1_imm;
+    Bit#(2)       lpc;
+    Bit#(12)      csr_address;
+    Bit#(3)       funct3;
+  } Stage3System deriving(Bits, Eq, FShow);
+
+  typedef union tagged{
+    Stage3Memory  Memory;
+    Stage3Trap    Trap;
+    Stage3Regular Regular;
+    Stage3System  System;
+  } Stage3Type deriving (Bits, Eq, FShow);
+
+                
+  // ----------------------------------------------------------//
+ 
+  typedef struct{
+    Bit#(`vaddr) addr;
+    Bit#(XLEN) data;
+    Access_type memaccess;
+    Bit#(3) size;
+    Bit#(1) epoch;
+  } MemoryRequest deriving (Eq, FShow, Bits);
+
+//  typedef Tuple5#(Bit#(`paddr), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
   typedef Tuple4#(Bit#(`paddr), Access_type, Bit#(2), Bit#(1)) CoreRequest;
 
-  typedef Tuple3#(Bit#(5), Bool, Bit#(XLEN)) OpFwding;
-                  // rg_prv,      csr_mip,   csr_mie, mideleg,  misa,   counteren, rg_mie
+//  typedef Tuple3#(Bit#(5), Bool, Bit#(XLEN)) OpFwding;
+  typedef struct{
+    Bit#(5) rdaddr;
+    Bit#(XLEN) rdvalue;
+    Bool    valid;
+  } OpFwding deriving(Bits, FShow, Eq);
+
   typedef struct{
     Privilege_mode prv;
     Bit#(`ifdef debug 14 `else 12 `endif ) csr_mip;
