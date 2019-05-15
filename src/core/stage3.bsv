@@ -7,8 +7,8 @@ provided that the following conditions are met:
  * Redistributions of source code must retain the above copyright notice, this list of conditions
   and the following disclaimer.  
  * Redistributions in binary form must reproduce the above copyright notice, this list of 
-  conditions and the following disclaimer in the documentation and/or other materials provided 
- with the distribution.  
+  conditions and the following disclaimer in the documentation and / or other materials provided 
+  with the distribution.  
  * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
@@ -22,194 +22,174 @@ IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISI
 OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------------------------
 
-Author: Neel Gala
-Email id: neelgala@gmail.com
+Author : Neel Gala
+Email id : neelgala@gmail.com
 Details:
 
 --------------------------------------------------------------------------------------------------
  */
-package mem_wb_stage;
-  // imports related to the project
-  import common_types::*;
-  `include "common_params.bsv"
-  import TxRx::*;
-  import csr::*;
+package stage3;
 
-  // package imports
+  // library imports
   import GetPut::*; 
   import FIFO:: *;
   import SpecialFIFOs:: *;
   import DReg::*;
+  import TxRx::*;
 
-  interface Ifc_mem_wb_stage;
-    interface RXe#(PIPE2_DS) from_execute;
-    interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) memory_response;
+  // project imports
+  import common_types::*;
+  import csr::*;
+  `include "common_params.bsv"
+  `include "Logger.bsv"
+
+  interface Ifc_stage3;
+    interface RXe#(Stage3Common)  rx_stage3_common;
+    interface RXe#(Stage3Type)    rx_stage3_type;
+
+  `ifdef rtldump
+    interface RXe#(STAGE1_dump)   rx_stage3_dump ;
+  `endif
+
+    interface Put#(Tuple2#(Bit#(XLEN), Bool)) memory_response;
     interface Get#(Tuple2#(Bit#(5), Bit#(XLEN))) commit_rd;
     interface Get#(OpFwding) operand_fwding;
-    method Tuple3#(Bit#(`paddr), Bool, Bool) flush;
+    method Tuple3#(Bit#(`vaddr), Bool, Bool) flush;
+
     method CSRtoDecode csrs_to_decode;
     method Action clint_msip(Bit#(1) intrpt);
     method Action clint_mtip(Bit#(1) intrpt);
     method Action clint_mtime(Bit#(64) c_mtime);
-    method Action externalinterrupt(Bit#(1) intrpt);
+    method Action set_external_interrupt(Bit#(1) ex_i);
     method Bool csr_updated;
-    method Bool interrupt;
     `ifdef rtldump
       interface Get#(DumpType) dump;
     `endif
     method Bit#(1) mv_misa_c;
-    `ifdef cache_control
-  method Bit#(2) mv_cacheenable;
-  `endif
-  endinterface:Ifc_mem_wb_stage
+  endinterface : Ifc_stage3
 
   (*synthesize*)
-  module mkmem_wb_stage(Ifc_mem_wb_stage);
+  module mkstage3(Ifc_stage3);
 
-    RX#(PIPE2_DS) rx<-mkRX;
+    let stage3 = "" ;
+
+    RX#(Stage3Common) ff_stage3_common <- mkRX();
+    RX#(Stage3Type)   ff_stage3_type   <- mkRX();
+  `ifdef rtldump
+    RX#(STAGE1_dump)  ff_stage3_dump   <- mkRX();
+  `endif
+
     Ifc_csr csr <- mkcsr();
     Wire#(Bool) wr_csr_updated <- mkDWire(False);
 
     // wire that captures the response coming from the external memory or cache.
-    Wire#(Maybe#(Tuple3#(Bit#(XLEN), Bool,  Access_type))) wr_memory_response <- mkDReg(tagged Invalid);
+    Wire#(Maybe#(Tuple2#(Bit#(XLEN), Bool))) wr_memory_response 
+                                                                        <- mkDReg(tagged Invalid);
 
     // wire that carriues the information for operand forwarding
-    Wire#(OpFwding) wr_operand_fwding <- mkDWire(tuple3(0, False, 0));
+    Wire#(OpFwding) wr_operand_fwding <- mkDWire(unpack(0));
 
     // wire that carries the commit data that needs to be written to the integer register file.
+    // TODO change this to struct
     Wire#(Maybe#(Tuple2#(Bit#(5), Bit#(XLEN)))) wr_commit <- mkDWire(tagged Invalid);
 
     // wire which signals the entire pipe to be flushed.
-    Wire#(Tuple3#(Bit#(`paddr), Bool, Bool)) wr_flush <- mkDWire(tuple3(?, False, False)); // fence integration
+    Wire#(Tuple3#(Bit#(`vaddr), Bool, Bool)) wr_flush <- mkDWire(tuple3(?, False, False));
 
     // the local epoch register
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
 
-    `ifdef rtldump
-      FIFO#(DumpType) dump_ff <- mkLFIFO;
-      let prv=tpl_1(csr.csrs_to_decode);
-    `endif
+  `ifdef rtldump
+    FIFO#(DumpType) dump_ff <- mkLFIFO;
+    Privilege_mode prv = unpack(csr.curr_priv);
+  `endif
 
-    Integer verbosity = `VERBOSITY;
+    function Action deq_rx = action
+      ff_stage3_common.u.deq;
+      ff_stage3_type.u.deq;
+    `ifdef rtldump
+      ff_stage3_dump.u.deq;
+    `endif
+    endaction;
 
     rule instruction_commit;
-      let {committype, reslt, effaddr_csrdata, pc, rd, epoch, trap `ifdef rtldump , inst `endif } = 
-                                                                                        rx.u.first;
-      if(verbosity!=0)begin
-        $display($time, "\tSTAGE3: PC: %h committype: ", pc, fshow(committype), " result: %h",
-            reslt);
-        $display($time, "\t        csr_data: %h", effaddr_csrdata, " rd: %d", rd, " epoch: %b", 
-            epoch, " trap: ", fshow(trap));
-      end
-      Bit#(`paddr) jump_address=truncate(effaddr_csrdata);
-      Flush_type fl = unpack(effaddr_csrdata[valueOf(`paddr)]);
-      Set_fence fen = NOFENCE;
+      let s3common = ff_stage3_common.u.first;
+      let s3type = ff_stage3_type.u.first;
+    `ifdef rtldump
+      let dump = ff_stage3_dump.u.first();
+      `logLevel( stage3, 0, $format("STAGE3: ", fshow(dump)))
+    `endif
+      `logLevel( stage3, 0, $format("STAGE3: ", fshow(s3common)))
+      `logLevel( stage3, 0, $format("STAGE3: ", fshow(s3type)))
+
       // continue commit only if epochs match. Else deque the ex fifo
-      if(rg_epoch==epoch)begin
-        if(trap matches tagged Interrupt .in)begin
-          let newpc<-  csr.take_trap(trap, pc, ?);
-          wr_flush<=tuple3(newpc, True, False);
+
+      if(rg_epoch == s3common.epoch)begin
+        if(s3type matches tagged Trap .t) begin
+          let newpc <- csr.take_trap(t.cause, s3common.pc, t.badaddr);
+          wr_flush <= tuple3(newpc, True, False);
           rg_epoch <= ~rg_epoch;
-          rx.u.deq;
-          if(verbosity!=0)
-            $display($time, "\tSTAGE3: Received Interrupt: ", fshow(trap));
+          deq_rx;
+          `logLevel( stage3, 0, $format("STAGE3 : Jumping to PC:%h", newpc))
         end
-        else begin
-          // in case of a flush also flip the local epoch register.
-          // if instruction is of memory type then wait for response from memory
-          if(trap matches tagged Exception .ex)begin
-            jump_address<- csr.take_trap(trap, pc, truncate(effaddr_csrdata));
-            fl= Flush;
-            rx.u.deq;
-            if(verbosity!=0)
-              $display($time, "\tSTAGE3: Received Exception: ", fshow(trap));
-          end
-          else if(committype == MEMORY) begin
-            if (wr_memory_response matches tagged Valid .resp)begin
-              let {data, err, access_type}=resp;
-        if(!err) begin
-        `ifdef icache
-          if(access_type==Fencei) begin // fence integration
-                fen=FENCE;
-            if(verbosity!=0)
-            $display($time, "\tStage3: Fence instruction, Initiating flush");
-          end
+
+        if(s3type matches tagged Regular .r)begin
+          let data = r.rdvalue;
+          if(s3common.rd == 0)
+              data = 0;
+
+          wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : True, rdvalue : data};
+          wr_commit <= tagged Valid (tuple2(s3common.rd, data));
+          deq_rx;
+        `ifdef rtldump 
+          dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, r.rdvalue));
         `endif
-            if(rd==0)
-              data=0;
-              `ifdef atomic
-                      else if(access_type==Store)
-              data=reslt;
-              `endif
-              wr_operand_fwding <= tuple3(rd, True, data);
-              wr_commit <= tagged Valid (tuple2(rd, data));
-              `ifdef rtldump 
-                dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, data));
-              `endif
-              end
-              else begin
-                if(verbosity!=0)
-                  $display($time, "\tSTAGE3: Received Exception from Memory: ", fshow(resp));
-                if(access_type == Load)
-                  trap = tagged Exception Load_access_fault;
-                else
-                  trap = tagged Exception Store_access_fault;
-                jump_address<- csr.take_trap(trap, pc, truncate(effaddr_csrdata));
-                fl= Flush;
-              end
-              rx.u.deq; // this will happen when wr_memory_resp is tagged valid
+        end
+
+        if(s3type matches tagged System .sys) begin
+          let {drain, newpc, dest} <- csr.system_instruction(sys.csr_address, sys.rs1_imm, 
+                                                              sys.funct3, sys.lpc);
+          wr_flush <= tuple3(newpc, drain, False);
+          rg_epoch <= ~rg_epoch;
+          wr_commit <= tagged Valid (tuple2(s3common.rd, dest));
+          wr_csr_updated <= True;
+          deq_rx;
+        `ifdef rtldump 
+          dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, dest));
+        `endif
+        end
+
+        if(s3type matches tagged Memory .mem)begin
+          if(wr_memory_response matches tagged Valid .resp)begin
+            let {data, err} = resp;
+            if( !err )begin
+              if(s3common.rd == 0)
+                data = 0;
+              wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : True, rdvalue : data};
+              wr_commit <= tagged Valid (tuple2(s3common.rd, data));
+              deq_rx;
+            `ifdef rtldump 
+              dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, data));
+            `endif
             end
             else begin
-              // is response is not available then indicate that the rd is not yet available.
-              wr_operand_fwding <= tuple3(rd, False, 0);
+              let newpc <- csr.take_trap(mem.memaccess == Load ? `Load_access_fault:
+                                          `Store_access_fault, s3common.pc, mem.address);
+              wr_flush <= tuple3(newpc, True, False);
+              rg_epoch <= ~rg_epoch;
+              deq_rx;
+              `logLevel( stage3, 0, $format("STAGE3 : Jumping to PC:%h", newpc))
             end
-          end
-          else if(committype == SYSTEM_INSTR)begin
-            let {drain, newpc, dest}<-csr.system_instruction(rd, effaddr_csrdata[11:0], 
-                            effaddr_csrdata[16:12], reslt, effaddr_csrdata[19:17], truncate(pc));
-            jump_address=newpc;
-            if(drain) 
-              fl=Flush;
-            `ifdef rtldump 
-              dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, dest));
-            `endif
-            wr_commit <= tagged Valid (tuple2(rd, dest));
-            rx.u.deq;
           end
           else begin
-            // in case of regular instruction simply update RF and forward the data.
-            if(verbosity!=0)
-              $display($time, "\tSTAGE3: Commiting PC: %h", pc);
-            if(rd==0)
-              reslt=0;
-            wr_operand_fwding <= tuple3(rd, True, reslt);
-            wr_commit <= tagged Valid (tuple2(rd, reslt));
-            rx.u.deq;
-            `ifdef rtldump 
-              dump_ff.enq(tuple5(prv, zeroExtend(pc), inst, rd, reslt));
-            `endif
+            `logLevel( stage3, 1, $format("STAGE3 : Waiting for response from Fabric"))
           end
-          
-          // if it is a branch/JAL_R/fencei instruction generate a flush signal to the pipe.
-      // In case of Fencei, we get the eff_addr and flush signal from execute stage.
-      // Flush would be initiated when its a Fencei or a branch/JAL or an Exception.
-      Bool except=False;
-      if(trap matches tagged Exception .ex) except=True;
-      Bool memresp = isValid(wr_memory_response);
-      if(committype!=MEMORY || (committype==MEMORY && memresp==True) || except==True )begin
-            wr_flush<=tuple3(jump_address, (fl==Flush), (fen==FENCE));
-            if(fl==Flush)begin
-                rg_epoch <= ~rg_epoch;
-            end
-            if(fl==Flush || committype==SYSTEM_INSTR)
-              wr_csr_updated<= True;
-      end
         end
+
       end
       else begin
-        if(verbosity!=0)
-          $display($time, "\tSTAGE3: Dropping instruction");
-        rx.u.deq;
+        deq_rx;
+        `logLevel( stage3, 0, $format("STAGE3 : Dropping instruction"))
       end
     endrule
 
@@ -217,13 +197,18 @@ package mem_wb_stage;
       csr.incr_minstret;
     endrule
 
-    interface  memory_response= interface Put
-      method Action put (Tuple3#(Bit#(XLEN), Bool,  Access_type) response);
+    interface rx_stage3_common  = ff_stage3_common.e;
+    interface rx_stage3_type    = ff_stage3_type.e;
+
+  `ifdef rtldump
+    interface rx_stage3_dump = ff_stage3_dump.e;
+  `endif
+    interface  memory_response = interface Put
+      method Action put (Tuple2#(Bit#(XLEN), Bool) response);
         wr_memory_response <= tagged Valid response;
       endmethod
     endinterface;
 
-    interface from_execute=rx.e;
 
     interface commit_rd = interface Get
       method ActionValue#(Tuple2#(Bit#(5), Bit#(XLEN)))get if(wr_commit matches tagged Valid .data);
@@ -237,7 +222,7 @@ package mem_wb_stage;
       endmethod
     endinterface;
 
-    method flush=wr_flush;
+    method flush = wr_flush;
     method csrs_to_decode = csr.csrs_to_decode;
     method Bool csr_updated = wr_csr_updated;
 
@@ -250,8 +235,8 @@ package mem_wb_stage;
     method Action clint_mtime(Bit#(64) c_mtime);
       csr.clint_mtime(c_mtime);
     endmethod
-    method Action externalinterrupt(Bit#(1) intrpt);
-      csr.externalinterrupt(intrpt);
+    method Action set_external_interrupt(Bit#(1) ex_i);
+      csr.set_external_interrupt(ex_i);
     endmethod
     `ifdef rtldump 
       interface dump = interface Get
@@ -261,10 +246,6 @@ package mem_wb_stage;
         endmethod
       endinterface;
     `endif
-    method interrupt=csr.interrupt;
-    method mv_misa_c=csr.mv_misa_c;
-  `ifdef cache_control
-  method mv_cacheenable=csr.mv_cacheenable;
-  `endif
-  endmodule:mkmem_wb_stage
-endpackage:mem_wb_stage
+    method mv_misa_c = csr.csr_misa_c;
+  endmodule : mkstage3
+endpackage : stage3
