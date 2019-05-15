@@ -178,32 +178,32 @@ package common_types;
     Bit#(32) instruction;
   } STAGE1_dump deriving(Bits, FShow, Eq);
 
-  // define all tuples here
-  `ifdef rtldump
-    `ifdef RV64
-    typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
-              Tuple8#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
-                Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif, Bit#(32))) PIPE1_DS;
-    `else
-    typedef Tuple7#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bit#(3),
-              Tuple8#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
-                Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif, Bit#(32))) PIPE1_DS;
-    `endif
-    typedef Tuple8#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Bit#(`paddr), Bit#(5), Bit#(1), 
-                    Trap_type, Bit#(32)) PIPE2_DS;
-  `else
-    `ifdef RV64
-    typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
-              Tuple7#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
-                Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif )) PIPE1_DS;
-    `else
-    typedef Tuple7#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bit#(3),
-              Tuple7#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
-                Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif )) PIPE1_DS;
-    `endif
-    typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Bit#(`paddr), Bit#(5), Bit#(1), 
-                    Trap_type) PIPE2_DS;
-  `endif
+  //// define all tuples here
+  //`ifdef rtldump
+  //  `ifdef RV64
+  //  typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
+  //            Tuple8#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
+  //              Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif, Bit#(32))) PIPE1_DS;
+  //  `else
+  //  typedef Tuple7#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bit#(3),
+  //            Tuple8#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
+  //              Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif, Bit#(32))) PIPE1_DS;
+  //  `endif
+  //  typedef Tuple8#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Bit#(`paddr), Bit#(5), Bit#(1), 
+  //                  Trap_type, Bit#(32)) PIPE2_DS;
+  //`else
+  //  `ifdef RV64
+  //  typedef Tuple8#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bool, Bit#(3),
+  //            Tuple7#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
+  //              Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif )) PIPE1_DS;
+  //  `else
+  //  typedef Tuple7#(Bit#(4), Bit#(5), Bit#(5), Bit#(5), Bit#(32), Bit#(3),
+  //            Tuple7#(Op1type, Op2type, Instruction_type, Access_type, Bit#(`paddr),
+  //              Trap_type, `ifdef atomic Bit#(6) `else Bit#(1) `endif )) PIPE1_DS;
+  //  `endif
+  //  typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Bit#(`paddr), Bit#(5), Bit#(1), 
+  //                  Trap_type) PIPE2_DS;
+  //`endif
   typedef Tuple4#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Trap_type) ALU_OUT;
   
   typedef Tuple5#(Bit#(`paddr), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
