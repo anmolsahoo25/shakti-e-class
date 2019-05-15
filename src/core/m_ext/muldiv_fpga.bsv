@@ -37,9 +37,12 @@ package muldiv_fpga;
   `include "common_params.bsv"
 
 	interface Ifc_muldiv;
-		method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(Bit#(XLEN) operand1, Bit#(XLEN) operand2, 
+		method ActionValue#(ALU_OUT) get_inputs(Bit#(XLEN) operand1, Bit#(XLEN) operand2, 
         Bit#(3) funct3 `ifdef RV64 , Bool word32 `endif );
 		method ActionValue#(ALU_OUT) delayed_output;//returning the result
+   `ifdef arith_trap
+      method Action rd_arith_excep_en(Bit#(1) arith_en);
+   `endif
 	endinterface:Ifc_muldiv
 
   (*synthesize*)
@@ -54,6 +57,11 @@ package muldiv_fpga;
     Reg#(Bool) rg_complement <- mkReg(False);
     `ifdef RV64 Reg#(Bool) rg_word32 <- mkReg(False); `endif
     Reg#(Bit#(1)) rg_sign_op1 <- mkReg(0);
+    
+    
+    `ifdef arith_trap
+    Wire#(Bit#(1)) wr_arith_en <-mkDWire(0);
+    `endif
 
     rule increment_counter(rg_count!=0);
       if((rg_count== fromInteger(`MULSTAGES) && !mul_div) || 
@@ -69,7 +77,7 @@ package muldiv_fpga;
       end
     endrule
 
-		method ActionValue#(Tuple2#(Bool, ALU_OUT)) get_inputs(Bit#(XLEN) operand1, Bit#(XLEN) operand2,
+		method ActionValue#(ALU_OUT) get_inputs(Bit#(XLEN) operand1, Bit#(XLEN) operand2,
         Bit#(3) funct3 `ifdef RV64 , Bool word32 `endif ) if(rg_count==0);
       // logic to choose the upper bits
       // in case of division,  this variable is set is the operation is a remainder operation
@@ -138,13 +146,23 @@ package muldiv_fpga;
         if(word32)
           default_out=signExtend(default_out[31:0]);
       `endif
+    `ifdef arith_trap
+     let is_mul = ~funct3[2];
+     if(is_mul==0 && operand2 == 0 && wr_arith_en==1'b1)
+      return ALU_OUT{done:True, cmtype :TRAP,aluresult :'b1,effective_addr:?,cause:17,redirect:False};//DIV_BY_ZER0 trap
+      else
+      `endif
+      begin
       if((funct3[2]==0 && `MULSTAGES!=0) || (funct3[2]==1 && `DIVSTAGES!=0) && !result_avail)begin
         rg_count<= rg_count+ 1;
         rg_upperbits<= lv_upperbits;
         rg_complement<= lv_take_complement;
         `ifdef RV64 rg_word32<= word32; `endif
       end
-      return tuple2(result_avail, tuple4(REGULAR, default_out, 0, tagged None));
+      return ALU_OUT{done : result_avail, cmtype : REGULAR, aluresult : zeroExtend(default_out), 
+                      effective_addr:?, cause:?, redirect : False
+                    `ifdef bpu , branch_taken: ?, redirect_pc: ? `endif };
+      end
     endmethod
 		method ActionValue#(ALU_OUT) delayed_output if((rg_count== fromInteger(`MULSTAGES) && !mul_div)
                                             || (rg_count==(fromInteger(`DIVSTAGES)+ 1) && mul_div));
@@ -154,8 +172,19 @@ package muldiv_fpga;
         reslt=~reslt+ 1;
       Bit#(XLEN) product=`ifdef RV64 rg_word32?signExtend(reslt[31:0]): `endif 
           (!mul_div && rg_upperbits)? truncateLSB(reslt): truncate(reslt);
-      return tuple4(REGULAR, mul_div? ?/* div result*/: product, 0, tagged None); 
+      return ALU_OUT{done : True, cmtype : REGULAR, aluresult : zeroExtend(product), 
+                    effective_addr:?, cause:?, redirect : False
+                    `ifdef bpu , branch_taken: ?, redirect_pc: ? `endif };
     endmethod
+
+
+
+   `ifdef arith_trap
+      method  Action rd_arith_excep_en(Bit#(1) arith_en);
+      wr_arith_en<=arith_en;
+      endmethod
+   `endif
+
 	endmodule:mkmuldiv
 /*
   module mkTb(Empty);
