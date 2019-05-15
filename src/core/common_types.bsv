@@ -227,15 +227,15 @@ package common_types;
   typedef struct{
     Bit#(`vaddr) pc;
     Bit#(5)      rd;
-    Bit#(1)      epochs;
+    Bit#(1)      epoch;
   } Stage3Common deriving(Bits, Eq, FShow);
 
   typedef struct{
-  `ifdef triggers
+    Access_type   memaccess;
     Bit#(`vaddr)  address;
+  `ifdef triggers
     Bit#(2)       size;
   `endif
-    Access_type   memaccess;
   } Stage3Memory deriving(Bits, Eq, FShow);
 
   typedef struct{

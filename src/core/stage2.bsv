@@ -174,8 +174,9 @@ package stage2;
                                       wr_opfwding.rdaddr, wr_opfwding.rdvalue, wr_opfwding.valid);
       Bit#(3) funct3  = truncate(meta.funct);
       Bit#(4) fn      = truncateLSB(meta.funct);
-      
-      `logLevel( stage2, 0, $format("STAGE2 : PC:%h Instruction: %h", dump.pc, dump.instruction))
+    `ifdef rtldump      
+      `logLevel( stage2, 0, $format("STAGE2 : ", fshow(dump)))
+    `endif
       `logLevel( stage2, 1, $format("STAGE2 : OPs: ", fshow(ops)))
       `logLevel( stage2, 1, $format("STAGE2 : Meta: ", fshow(meta)))
       `logLevel( stage2, 1, $format("STAGE2 : OpAddr: ", fshow(opaddr)))
@@ -204,7 +205,7 @@ package stage2;
         // -------------------------- Derive types for Next stage --------------------------- //
             let s3common = Stage3Common{pc      : control.pc, 
                                         rd      : opaddr.rd,
-                                        epochs  : control.epoch};
+                                        epoch   : control.epoch};
             let s3memory = Stage3Memory{memaccess   : meta.memaccess
                                       `ifdef triggers
                                         ,address     : aluout.effective_addr
