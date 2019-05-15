@@ -4,12 +4,12 @@ Copyright (c) 2018, IIT Madras All rights reserved.
 Redistribution and use in source and binary forms, with or without modification, are permitted
 provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this list of conditions
+ * Redistributions of source code must retain the above copyright notice, this list of conditions
   and the following disclaimer.  
-* Redistributions in binary form must reproduce the above copyright notice, this list of 
+ * Redistributions in binary form must reproduce the above copyright notice, this list of 
   conditions and the following disclaimer in the documentation and/or other materials provided 
   with the distribution.  
-* Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
+ * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR
@@ -25,7 +25,7 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Module name: Multiplier module.  
 author name: Neel Gala
 Email id: neelgala@gmail.com
-*/
+ */
 package muldiv_fpga;
   `ifdef simulate
     import muldiv_fpga_sim::*;
@@ -36,17 +36,17 @@ package muldiv_fpga;
   import common_types::*;
   `include "common_params.bsv"
 
-	interface Ifc_muldiv;
-		method ActionValue#(ALU_OUT) get_inputs(Bit#(XLEN) operand1, Bit#(XLEN) operand2, 
+  interface Ifc_muldiv;
+    method ActionValue#(ALU_OUT) get_inputs(Bit#(XLEN) operand1, Bit#(XLEN) operand2, 
         Bit#(3) funct3 `ifdef RV64 , Bool word32 `endif );
-		method ActionValue#(ALU_OUT) delayed_output;//returning the result
-   `ifdef arith_trap
+    method ActionValue#(ALU_OUT) delayed_output;//returning the result
+  `ifdef arith_trap
       method Action rd_arith_excep_en(Bit#(1) arith_en);
-   `endif
-	endinterface:Ifc_muldiv
+  `endif
+  endinterface:Ifc_muldiv
 
   (*synthesize*)
-	module mkmuldiv(Ifc_muldiv);
+  module mkmuldiv(Ifc_muldiv);
     let verbosity = valueOf(`VERBOSITY);
     Ifc_multiplier#(XLEN) mult <- mkmultiplier;
 //    Ifc_divider#(XLEN) divider <- mkdivider;
@@ -77,7 +77,7 @@ package muldiv_fpga;
       end
     endrule
 
-		method ActionValue#(ALU_OUT) get_inputs(Bit#(XLEN) operand1, Bit#(XLEN) operand2,
+    method ActionValue#(ALU_OUT) get_inputs(Bit#(XLEN) operand1, Bit#(XLEN) operand2,
         Bit#(3) funct3 `ifdef RV64 , Bool word32 `endif ) if(rg_count==0);
       // logic to choose the upper bits
       // in case of division,  this variable is set is the operation is a remainder operation
@@ -95,12 +95,12 @@ package muldiv_fpga;
       // in multiplication operations
       if(funct3[2]==0 && (funct3[0]^funct3[1])==1 && operand1[valueOf(XLEN)-1]==1)
         invert_op1=True;
-      else if(funct3[2]==1 && funct3[0]==0 && operand1[valueOf(XLEN)-1]==1) // in case of division operations.
+      else if(funct3[2]==1 && funct3[0]==0 && operand1[valueOf(XLEN)-1]==1) // div operations.
         invert_op1=True;
       
-      if(funct3[2]==0 && funct3[1:0]==1 && operand2[valueOf(XLEN)-1]==1)// in multiplication operations
+      if(funct3[2]==0 && funct3[1:0]==1 && operand2[valueOf(XLEN)-1]==1)// mult operations
           invert_op2=True;
-      else if(funct3[2]==1 && funct3[0]==0 && operand2[valueOf(XLEN)-1]==1)// in case of division operations.
+      else if(funct3[2]==1 && funct3[0]==0 && operand2[valueOf(XLEN)-1]==1)// div operations.
         invert_op2=True;
 
       Bit#(XLEN) t1=signExtend(pack(invert_op1));
@@ -108,11 +108,11 @@ package muldiv_fpga;
       Bit#(XLEN) op1= (t1^operand1)+ zeroExtend(pack(invert_op1));
       Bit#(XLEN) op2= (t2^operand2)+ zeroExtend(pack(invert_op2));
 
-	    Bool lv_take_complement = False;
-    	if(funct3==1 || funct3==4) // in case of MULH or DIV
-		    lv_take_complement=unpack(operand1[valueOf(XLEN)-1]^operand2[valueOf(XLEN)-1]);
-    	else if(funct3==2)
-		    lv_take_complement=unpack(operand1[valueOf(XLEN)-1]);
+      Bool lv_take_complement = False;
+      if(funct3==1 || funct3==4) // in case of MULH or DIV
+        lv_take_complement=unpack(operand1[valueOf(XLEN)-1]^operand2[valueOf(XLEN)-1]);
+      else if(funct3==2)
+        lv_take_complement=unpack(operand1[valueOf(XLEN)-1]);
       else if(funct3==6)
         lv_take_complement=True;
       rg_sign_op1<= operand1[valueOf(XLEN)-1];	
@@ -147,9 +147,10 @@ package muldiv_fpga;
           default_out=signExtend(default_out[31:0]);
       `endif
     `ifdef arith_trap
-     let is_mul = ~funct3[2];
-     if(is_mul==0 && operand2 == 0 && wr_arith_en==1'b1)
-      return ALU_OUT{done:True, cmtype :TRAP,aluresult :'b1,effective_addr:?,cause:17,redirect:False};//DIV_BY_ZER0 trap
+    let is_mul = ~funct3[2];
+    if(is_mul==0 && operand2 == 0 && wr_arith_en==1'b1)
+      return ALU_OUT{done:True, cmtype :TRAP,aluresult :'b1,effective_addr:?,cause:17,
+                      redirect:False};//DIV_BY_ZER0 trap
       else
       `endif
       begin
@@ -164,7 +165,7 @@ package muldiv_fpga;
                     `ifdef bpu , branch_taken: ?, redirect_pc: ? `endif };
       end
     endmethod
-		method ActionValue#(ALU_OUT) delayed_output if((rg_count== fromInteger(`MULSTAGES) && !mul_div)
+    method ActionValue#(ALU_OUT) delayed_output if((rg_count== fromInteger(`MULSTAGES) && !mul_div)
                                             || (rg_count==(fromInteger(`DIVSTAGES)+ 1) && mul_div));
       Bit#(TMul#(2, XLEN)) reslt=mul_div?zeroExtend(divider.quo_rem):mult.oP;
       if( (mul_div && rg_upperbits && rg_complement && reslt[valueOf(XLEN)-1]!=rg_sign_op1) || 
@@ -179,13 +180,13 @@ package muldiv_fpga;
 
 
 
-   `ifdef arith_trap
+  `ifdef arith_trap
       method  Action rd_arith_excep_en(Bit#(1) arith_en);
       wr_arith_en<=arith_en;
       endmethod
-   `endif
+  `endif
 
-	endmodule:mkmuldiv
+  endmodule:mkmuldiv
 /*
   module mkTb(Empty);
     Ifc_muldiv muldiv <-mkmuldiv;
@@ -207,6 +208,6 @@ package muldiv_fpga;
       $finish(0);
     endrule
   endmodule
-*/
+ */
 
 endpackage:muldiv_fpga
