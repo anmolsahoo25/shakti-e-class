@@ -204,7 +204,22 @@ package common_types;
   //  typedef Tuple7#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Bit#(`paddr), Bit#(5), Bit#(1), 
   //                  Trap_type) PIPE2_DS;
   //`endif
-  typedef Tuple4#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Trap_type) ALU_OUT;
+  //typedef Tuple4#(Commit_type, Bit#(XLEN), Bit#(TAdd#(`paddr, 1)), Trap_type) ALU_OUT;
+
+  // ------------------ Structs used in the stage2 --------------------------------------------- //
+  typedef enum {MEMORY, SYSTEM_INSTR, REGULAR, TRAP} PreCommit_type deriving(Eq, Bits, FShow);
+  typedef struct{
+    Bool done; 
+    PreCommit_type cmtype;
+    Bit#(XLEN) aluresult ;
+    Bit#(`vaddr) effective_addr;
+    Bit#(`causesize) cause;
+    Bool redirect;
+  `ifdef bpu
+    Bool branch_taken;
+    Bit#(`vaddr) redirect_pc;
+  `endif
+  } ALU_OUT deriving (Bits,  Eq,  FShow);
   
   typedef Tuple5#(Bit#(`paddr), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
   typedef Tuple4#(Bit#(`paddr), Access_type, Bit#(2), Bit#(1)) CoreRequest;
