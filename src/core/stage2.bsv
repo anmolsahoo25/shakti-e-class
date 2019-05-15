@@ -8,7 +8,7 @@ provided that the following conditions are met:
   and the following disclaimer.  
  * Redistributions in binary form must reproduce the above copyright notice, this list of 
   conditions and the following disclaimer in the documentation and/or other materials provided 
- with the distribution.  
+  with the distribution.  
  * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
@@ -28,21 +28,21 @@ Details:
 
 --------------------------------------------------------------------------------------------------
  */
-package opfetch_execute_stage;
-  // packages to be imported
+package stage2;
+  // library packages 
   import GetPut::*;
   import RegFile::*;
   import FIFOF::*;
   import DReg::*;
   import UniqueWrappers ::*;
-
-  // files to be included
-  import common_types::*;
   import TxRx ::*;
+
+  // project packages
+  import common_types::*;
   import alu::*;
   `include "common_params.bsv"
 
-  interface Ifc_opfetch_execute_stage;
+  interface Ifc_stage2;
     // interface to send decoded instruction to the next stage
     interface RXe#(STAGE1_operands) rx_stage1_operands;
   
@@ -59,9 +59,6 @@ package opfetch_execute_stage;
   
     //rd,valid and value given back by the mem and wb unit for eliminating congestion
     interface Put#(OpFwding) operand_fwding;
-  
-    //rd and value given back by the write back unit
-    interface Put#(Tuple2#(Bit#(5),Bit#(XLEN))) commit_rd;
     
     // memory request interface in case of Load/Store instruction
     interface Get#(MemoryRequest) memory_request;
@@ -72,12 +69,10 @@ package opfetch_execute_stage;
     `ifdef atomic
       interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) atomic_response;
     `endif
-  endinterface:Ifc_opfetch_execute_stage
+  endinterface:Ifc_stage2
   
   (*synthesize*)
-  module mkopfetch_execute_stage(Ifc_opfetch_execute_stage);
-
-    let verbosity = `VERBOSITY;
+  module mkstage2(Ifc_stage2);
 
     Wire#(Bit#(1)) wr_misa_c <- mkWire();
      
@@ -86,18 +81,19 @@ package opfetch_execute_stage;
     Reg#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
 
-    `ifdef RV64
-      Wrapper3#(ALU_Inputs,Bool,Bit#(1),ALU_OUT) alu_wrapper <- mkUniqueWrapper3(fn_alu);
-    `else
-      Wrapper2#(ALU_Inputs,Bit#(1),ALU_OUT) alu_wrapper <- mkUniqueWrapper2(fn_alu);
-    `endif
+  `ifdef RV64
+    Wrapper3#(ALU_Inputs,Bool,Bit#(1),ALU_OUT) alu_wrapper <- mkUniqueWrapper3(fn_alu);
+  `else
+    Wrapper2#(ALU_Inputs,Bit#(1),ALU_OUT) alu_wrapper <- mkUniqueWrapper2(fn_alu);
+  `endif
 
-    `ifdef atomic
-      FIFOF#(Tuple3#(Bit#(XLEN), Bool, Access_type)) ff_atomic_response <- mkSizedFIFOF(2);
-      Reg#(Bit#(`paddr)) rg_atomic_address<- mkReg(0);
-      Reg#(Bit#(XLEN)) rg_op2 <- mkReg(0);
-      Reg#(Maybe#(Bit#(`paddr))) rg_loadreserved_addr <- mkReg(tagged Invalid);
-    `endif
+  `ifdef atomic
+    FIFOF#(Tuple3#(Bit#(XLEN), Bool, Access_type)) ff_atomic_response <- mkSizedFIFOF(2);
+    Reg#(Bit#(`paddr)) rg_atomic_address<- mkReg(0);
+    Reg#(Bit#(XLEN)) rg_op2 <- mkReg(0);
+    Reg#(Maybe#(Bit#(`paddr))) rg_loadreserved_addr <- mkReg(tagged Invalid);
+  `endif
+
     // If a CSR operation is detected then you need to stall fetching operands from the regfile
     // untill the csr instruction has been committed. the forwarding path from the csr operation to
     // the ALU is huge. This way we break the path and neither flush the entire pipe.
@@ -107,19 +103,19 @@ package opfetch_execute_stage;
     // There does exist mechanism in the last stage to flush pipe on a trap. in case a full flush is
     // required,  that particular method should be excited.
     Reg#(Bool) rg_csr_stall[2] <- mkCReg(2,False);
-    `ifdef muldiv
-      Ifc_alu alu <-mkalu;
-      Reg#(Bool) rg_stall <- mkReg(False);
-    `elsif atomic
-      Reg#(Bool) rg_stall <- mkReg(False);
-    `endif
+  `ifdef muldiv
+    Ifc_alu alu <-mkalu;
+    Reg#(Bool) rg_stall <- mkReg(False);
+  `elsif atomic
+    Reg#(Bool) rg_stall <- mkReg(False);
+  `endif
 
 
-    `ifdef muldiv
-      `ifdef atomic
-        Reg#(Bool) rg_muldiv_atomic <- mkReg(False); // False=muldiv,  True=atomic
-      `endif
+  `ifdef muldiv
+    `ifdef atomic
+      Reg#(Bool) rg_muldiv_atomic <- mkReg(False); // False=muldiv,  True=atomic
     `endif
+  `endif
   
     // the fifo to communicate with the previous stage.
     RX#(STAGE1_operands) ff_stage1_operands <- mkRX;
@@ -142,22 +138,11 @@ package opfetch_execute_stage;
       `else
         Bit#(1) epoch=epoch_atomicop;
       `endif
-      if(verbosity!=0)begin
-        $display($time, "\tSTAGE2: PC: %h", pc `ifdef rtldump ," Inst: %h", inst `endif );
-        $display($time, "\t        fn: %b rs1: %d rs2: %d rd: %d imm: %h", fn, rs1, rs2, rd, imm);
-        $display($time, "\t        rs1type: ", fshow(rs1_type), " rs2type: ", fshow(rs2_type),
-            " insttype: ", fshow(insttype) `ifdef RV64 , " word32: ", word32 `endif );
-        `ifdef atomic $display($time, "\t        atomicop:",epoch_atomicop[5:1]); `endif
-        $display($time, "\t        funt3: %b epoch: %b ", funct3, epoch, " mem_access: ", 
-            fshow(mem_access), " trap ", fshow(trap));
-      end
       // rs1,rs2 will be passed to the register file and the recieve value along with the other 
       // parameters reqiured by the alu function will be passed
-      let {op1, op2, op3, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, insttype, imm, mem_access);
+      let {op1, op2, op3, available}=operand_provider(rs1, rs1_type, rs2, rs2_type, pc, insttype, 
+                                                      imm, mem_access);
       ALU_Inputs inp1=tuple8(fn, op1, op2, imm, op3, insttype, funct3,mem_access);
-      if(verbosity!=0)
-        $display($time, "\tSTAGE2: Operands Available. rs1: %d op1: %h rs2: %d op2: %h op3: \
-            %h,  Type: ", rs1, op1, rs2, op2, op3, fshow(insttype));
 
       `ifndef muldiv
         let {committype, op1_reslt, effaddr_csrdata, trap1} <- alu_wrapper.func(inp1 
@@ -225,9 +210,6 @@ package opfetch_execute_stage;
             rg_csr_stall[0]<= True;
           end
         `ifdef muldiv 
-          if(verbosity>1)
-            $display($time, "\tSTAGE2: CommitType: ", fshow(committype), " done: %b ", done, 
-                    "effaddr :%h op1_reslt: %h", effaddr_csrdata,  op1_reslt);
           if(done) begin 
             rx.u.deq;
           `ifdef rtldump
@@ -239,8 +221,6 @@ package opfetch_execute_stage;
           `endif
           end
           else begin
-            if(verbosity>1)
-              $display($time, "\tSTAGE2: Setting Stall to True");
             rg_stall<= True;
             `ifdef atomic
               if(committype==MEMORY)
@@ -252,9 +232,6 @@ package opfetch_execute_stage;
         `else
           `ifdef atomic
             if(committype==MEMORY && mem_access==Atomic)begin
-              if(verbosity>1)begin
-                $display($time, "\tSTAGE2: PC:%h Started Load phase of Atomic Op", pc );
-              end
               rg_stall<= True;
             end
             else begin
@@ -274,8 +251,6 @@ package opfetch_execute_stage;
         end
       end
       else begin
-        if(verbosity!=0)
-          $display($time, "\tSTAGE2: Dropping instruction");
         rx.u.deq;
       end
     endrule
@@ -363,8 +338,6 @@ package opfetch_execute_stage;
     interface operand_fwding=interface Put
       method Action put (Tuple3#(Bit#(5),Bool,Bit#(XLEN)) from_mem_to_opfetch );
         let {rd, valid, data} =  from_mem_to_opfetch;
-        if(verbosity!= 0)
-          $display($time, "\tSTAGE2: Forwarding Rd: %d Valid: %b Data: %h", rd, valid, data);
         wr_opfwding <= from_mem_to_opfetch;
       endmethod 
     endinterface;
@@ -372,16 +345,12 @@ package opfetch_execute_stage;
     interface commit_rd=interface Put
       method Action put (Tuple2#(Bit#(5),Bit#(XLEN)) from_mem_to_rf ) if(!initialize);
         let {rd,value} = from_mem_to_rf;
-        if(verbosity!=0)
-          $display($time, "\tSTAGE2: Commiting Rd: %d, Data: %h", rd, value);
           integer_rf.upd(rd,value);
       endmethod
     endinterface;
     
     interface memory_request = interface Get
       method ActionValue#(MemoryRequest) get ;
-        if(verbosity>1)
-          $display($time, "\tSTAGE2: Sending Memory Request: ", fshow(ff_memory_request.first));
         ff_memory_request.deq;
         return ff_memory_request.first;
       endmethod
@@ -397,8 +366,6 @@ package opfetch_execute_stage;
     method Action flush_from_wb; //fence integration
         rg_epoch[1]<=~rg_epoch[1];
         ff_memory_request.clear();
-        if(verbosity>1)
-          $display($time, "\tSTAGE2: Received Flush");
     endmethod
     method Action csr_updated (Bool upd);
       if(upd) begin
@@ -408,5 +375,5 @@ package opfetch_execute_stage;
     method Action misa_c_from_csr (Bit#(1) c);
       wr_misa_c<=c;
     endmethod
-  endmodule:mkopfetch_execute_stage
-endpackage:opfetch_execute_stage
+  endmodule:mkstage2
+endpackage:stage2
