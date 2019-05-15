@@ -43,78 +43,78 @@ package decode;
     case(addr[9 : 8])
       // user level CSRS
       'b00 : case(addr[11 : 10]) 
-              'b00 : case (addr[7 : 0])
-                `ifdef user
-                  // User Trap setup and user trap handling registers
-                  'h0, 'h4, 'h5, 'h40, 'h41, 'h42, 'h43, 'h44 : valid = unpack(misa[13] & misa[20]);
-                `endif
-                  // user floating point csrs
-                  'h1, 'h2, 'h3 : valid = True;
-              endcase
-              // User Counters / Timers
-            `ifdef user
-              'b11 : case(addr[7 : 5])
-                  'b000 : valid = True;
-                `ifdef RV32
-                  'b100 : valid = True;
-                `endif
-              endcase
-            `endif
-            'b10 : begin
-                  valid = (addr[7 : 0] == 0);
-                  end
-            endcase
+        'b00 : case (addr[7 : 0])
+          `ifdef user
+            // User Trap setup and user trap handling registers
+            'h0, 'h4, 'h5, 'h40, 'h41, 'h42, 'h43, 'h44 : valid = unpack(misa[13] & misa[20]);
+          `endif
+            // user floating point csrs
+            'h1, 'h2, 'h3 : valid = True;
+        endcase
+        // User Counters / Timers
+      `ifdef user
+        'b11 : case(addr[7 : 5])
+            'b000 : valid = True;
+          `ifdef RV32
+            'b100 : valid = True;
+          `endif
+        endcase
+      `endif
+        'b10 : begin
+            valid = (addr[7 : 0] == 0);
+            end
+        endcase
     // machine level CSRS
     'b11 : case(addr[11 : 10]) 
-            // machine info registers
-            'b11 : if(addr[7 : 4] == 1)
-                    case(addr[3 : 0])
-                      'h1, 'h2, 'h3, 'h4 : valid = True;
-                    endcase
-            'b00 : case(addr[7 : 4])
-                    // Machine Trap Setup
-                  'h0 : case(addr[3 : 0]) 
-                        'h0, 'h1, 'h4, 'h5, 'h6 : valid = True;
-                      `ifdef non_m_traps
-                        'h2, 'h3 : if( ((misa[13] & misa[20]) == 1) || misa[18] == 1) valid = True;
-                      `endif
-                      endcase
-                  // Machine counter Setup
-                  'h2 : if(addr[3 : 0]>2) valid = True;
-                  'h3 : valid = True;
-                    // Machine Trap Handling
-                  'h4 : case(addr[3 : 0])
-                        'h0, 'h1, 'h2, 'h3, 'h4 : valid = True;
-                      endcase
-                    // Maching Protection and Translation
-                `ifdef pmp
-                  'hA : case(addr[3 : 0])
-                        'h0, 'h2 `ifdef RV32 ,'h1,'h3 `endif : valid = True;
-                      endcase
-                    // PMP ADDR registers
-                  'hB : if((`PMPSIZE != 0 ) && addr[3 : 0] <= fromInteger(valueOf(TSub#(`PMPSIZE, 1) ))) valid = True;
-                `endif
-                  endcase
-              // Machine Counter / Timers
-            'b10 : `ifdef RV32 if(addr[6 : 5] == 0 `else if(addr[7 : 5] == 0 `endif && addr[3 : 0] != 1) valid = True;
-          // TODO B01 and 801 should be invalid
-              // DTVEC and DEnable
-            'b01 : begin 
-                `ifdef debug 
-                  if( addr[7 : 0] == 'hC0 || addr[7 : 0] == 'hC1 ) valid = True; 
-                `endif
-                `ifdef triggers
-                  if( addr[7 : 4] == 'hA && addr[3 : 0] < 4) valid = True;
-                `endif
-            end
-          endcase
+      // machine info registers
+      'b11 : if(addr[7 : 4] == 1)
+            case(addr[3 : 0])
+                'h1, 'h2, 'h3, 'h4 : valid = True;
+            endcase
+      'b00 : case(addr[7 : 4])
+              // Machine Trap Setup
+            'h0 : case(addr[3 : 0]) 
+              'h0, 'h1, 'h4, 'h5, 'h6 : valid = True;
+            `ifdef non_m_traps
+              'h2, 'h3 : if( ((misa[13] & misa[20]) == 1) || misa[18] == 1) valid = True;
+            `endif
+              endcase
+            // Machine counter Setup
+            'h2 : if(addr[3 : 0]>2) valid = True;
+            'h3 : valid = True;
+              // Machine Trap Handling
+            'h4 : case(addr[3 : 0])
+              'h0, 'h1, 'h2, 'h3, 'h4 : valid = True;
+              endcase
+              // Maching Protection and Translation
+          `ifdef pmp
+            'hA : case(addr[3 : 0])
+              'h0, 'h2 `ifdef RV32 ,'h1,'h3 `endif : valid = True;
+              endcase
+              // PMP ADDR registers
+            'hB : if((`PMPSIZE != 0 ) && addr[3 : 0] <= fromInteger(valueOf(TSub#(`PMPSIZE, 1) ))) 
+                    valid = True;
+          `endif
+            endcase
+        // Machine Counter / Timers
+      'b10 : `ifdef RV32 if(addr[6 : 5] == 0 `else if(addr[7 : 5] == 0 `endif && addr[3 : 0] != 1) 
+              valid = True;
+          // DTVEC and DEnable
+      'b01 : begin 
+        `ifdef debug 
+          if( addr[7 : 0] == 'hC0 || addr[7 : 0] == 'hC1 ) valid = True; 
+        `endif
+        `ifdef triggers
+          if( addr[7 : 4] == 'hA && addr[3 : 0] < 4) valid = True;
+        `endif
+        end
+      endcase
     endcase
     return valid;
   endfunction
 
   function Bit#(3) gen_funct3(Bit#(5) opcode, Bit #(16) inst);
     Bit #(3) funct3 = 3'b000;
-    
     
     case (opcode)
     
