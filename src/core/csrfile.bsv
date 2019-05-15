@@ -44,37 +44,23 @@ package csrfile;
   typedef struct{
     Bit#(`mcontext) mvalue;
     Bit#(1) mselect;
-  `ifdef supervisor
-    Bit#(`scontext) svalue;
-    Bit#(2) sselect;
-  `endif
   } TriggerExtra deriving(Eq, FShow, Bits);
 
   function TriggerExtra write_trigger_extra(Bit#(XLEN) w);
   `ifdef RV64
-    return TriggerExtra {mvalue: truncate(w[63:51]), mselect: w[50]
-                      `ifdef supervisor
-                         ,svalue: truncate(w[35:2]),sselect: w[1:0]
-                      `endif };
+    return TriggerExtra {mvalue: truncate(w[63:51]), mselect: w[50]};
   `else
-    return TriggerExtra {mvalue: truncate(w[31:26]), mselect: w[25]
-                      `ifdef supervisor
-                         ,svalue: truncate(w[17:2]) ,sselect: w[1:0]
-                      `endif };
+    return TriggerExtra {mvalue: truncate(w[31:26]), mselect: w[25]};
   `endif
   endfunction
     
   function Bit#(XLEN) read_trigger_extra(TriggerExtra t);
   `ifdef RV64
     Bit#(13) mvalue = zeroExtend(t.mvalue);
-    Bit#(34) svalue = `ifdef supervisor zeroExtend(t.svalue) `else 0 `endif ;
-    Bit#(2)  sselect = `ifdef supervisor t.sselect `else 0 `endif ;
-    return {mvalue, t.mselect, 14'd0, svalue, sselect};
+    return {mvalue, t.mselect, 14'd0, 'd0};
   `else
     Bit#(6) mvalue = zeroExtend(t.mvalue);
-    Bit#(16) svalue = `ifdef supervisor zeroExtend(t.svalue) `else 0 `endif ;
-    Bit#(2)  sselect = `ifdef supervisor t.sselect `else 0 `endif ;
-    return {mvalue, t.mselect, 7'd0, svalue, sselect};
+    return {mvalue, t.mselect, 7'd0, 'd0};
   `endif
   endfunction
 
@@ -92,8 +78,7 @@ package csrfile;
                                  matched: match_info, chain: w[11], action_: w[15:12],
                                  size: { `ifdef RV64 w[22:21], `endif w[17:16]}, select: w[19], 
                                  dmode: debug_mode?type_info[0]:? 
-                                 `ifdef user ,user:w[3] `endif
-                                 `ifdef supervisor ,supervisor: w[4] `endif };
+                                 `ifdef user ,user:w[3] `endif };
       end
 //      'd3:begin
 //        return tagged ICOUNT ICount{dmode: debug_mode?type_info[0]:?, machine: w[9], action_: w[5:0],
@@ -103,13 +88,11 @@ package csrfile;
 //      end
       'd4:begin
         return tagged ITRIGGER ITrigger{dmode: debug_mode?type_info[0]:?, machine: w[9], action_: w[5:0]
-                                    `ifdef user ,user:w[6] `endif
-                                   `ifdef supervisor ,supervisor: w[7] `endif };
+                                    `ifdef user ,user:w[6] `endif };
       end
       'd5:begin
         return tagged ETRIGGER ETrigger{dmode: debug_mode?type_info[0]:?, machine: w[9], action_: w[5:0]
-                                    `ifdef user ,user:w[6] `endif
-                                   `ifdef supervisor ,supervisor: w[7] `endif };
+                                    `ifdef user ,user:w[6] `endif };
       end
       default: return tagged NONE;
     endcase
@@ -118,8 +101,7 @@ package csrfile;
   function Bit#(XLEN) read_trigger_data(TriggerData t);
     if(t matches tagged MCONTROL .mc)begin
       return {4'd2, mc.dmode, 6'd0, 'd0, `ifdef RV64 mc.size[3:2], `endif  1'b0, mc.select, 
-              1'b0, mc.size[1:0], mc.action_,  mc.chain, mc.matched, mc.machine, 1'b0, 
-              `ifdef supervisor mc.supervisor `else 1'b0 `endif , 
+              1'b0, mc.size[1:0], mc.action_,  mc.chain, mc.matched, mc.machine, 1'b0, 1'b0 , 
               `ifdef user mc.user `else 1'b0 `endif , mc.execute, mc.store, mc.load};
     end
 //    else if(t matches tagged ICOUNT .ic) begin
@@ -128,13 +110,11 @@ package csrfile;
 //              `ifdef user ic.user `else 1'b0 `endif , ic.action_};
 //    end
     else if(t matches tagged ITRIGGER .it)begin
-      return {4'd4, it.dmode, 1'd0, 'd0, it.machine, 1'b0,
-              `ifdef supervisor it.supervisor `else 1'b0 `endif , 
+      return {4'd4, it.dmode, 1'd0, 'd0, it.machine, 1'b0, 1'b0,
               `ifdef user it.user `else 1'b0 `endif , it.action_};
     end
     else if(t matches tagged ETRIGGER .et)begin
-      return {4'd5, et.dmode, 1'd0, 'd0, et.machine, 1'b0,
-              `ifdef supervisor et.supervisor `else 1'b0 `endif , 
+      return {4'd5, et.dmode, 1'd0, 'd0, et.machine, 1'b0, 1'b0,
               `ifdef user et.user `else 1'b0 `endif , et.action_};
     end
     else
@@ -150,12 +130,6 @@ package csrfile;
     method Action incr_minstret;
   // ------------------------ csrs to other pipeline stages ---------------------------------//
     method CSRtoDecode csrs_to_decode;
-	`ifdef supervisor
-		method Bit#(XLEN) csr_satp;
-	`endif
-  `ifdef spfpu
-    method Action update_fflags(Bit#(5) flags);
-  `endif
     method Bit#(3) mv_cacheenable;
   //returns arithmetic exception enabled/disabled
   `ifdef arith_trap
@@ -248,16 +222,8 @@ package csrfile;
     `else
       Bit#(1) misa_c = 0;
     `endif
-    `ifdef dpfpu
-      Reg#(Bit#(1)) misa_d <- mkReg(1);
-    `else
-      Bit#(1) misa_d = 0;
-    `endif
-    `ifdef spfpu
-      Reg#(Bit#(1)) misa_f <- mkReg(1);
-    `else
-      Bit#(1) misa_f = 0;
-    `endif
+    Bit#(1) misa_d = 0;
+    Bit#(1) misa_f = 0;
     Reg#(Bit#(1)) misa_i <- mkReg(1);
     `ifdef muldiv
       Reg#(Bit#(1)) misa_m <- mkReg(1);
@@ -269,14 +235,10 @@ package csrfile;
     `else
       Bit#(1) misa_n = 0;
     `endif
-    `ifdef supervisor
-      Reg#(Bit#(1)) misa_s <- mkReg(1);
+    `ifdef rtldump
+      Bit#(1) misa_s = 1;
     `else
-      `ifdef rtldump
-        Bit#(1) misa_s = 1;
-      `else
-        Bit#(1) misa_s = 0;
-      `endif
+      Bit#(1) misa_s = 0;
     `endif
     `ifdef user
       Reg#(Bit#(1)) misa_u <- mkReg(1);
@@ -290,19 +252,11 @@ package csrfile;
 	  Reg#(Bit#(TSub#(`vaddr, 2))) rg_mtvec <- mkReg(0);
 
     // mstatus fields
-    `ifdef supervisor
-      Reg#(Bit#(1)) tsr	  <-mkReg(0);// TODO add functionality 
-      Reg#(Bit#(1)) tw	 	<-mkReg(0);// TODO add functionality 
-      Reg#(Bit#(1)) tvm	  <-mkReg(0);// TODO add functionality 
-      Reg#(Bit#(1)) mxr   <-mkReg(0);// 
-      Reg#(Bit#(1)) sum   <-mkReg(0);// 
-    `else
-  	  Bit#(1) tsr	  = 0; // 0 if supervisor not supported
-      Bit#(1) tw	 	= 0; // 0 if supervisor not supported
-      Bit#(1) tvm	  = 0; // 0 if supervisor not supported
-      Bit#(1) mxr   = 0; // 0 if supervisor not supported
-      Bit#(1) sum   = 0; // 0 if supervisor not supported
-    `endif
+  	Bit#(1) tsr	  = 0; // 0 if supervisor not supported
+    Bit#(1) tw	 	= 0; // 0 if supervisor not supported
+    Bit#(1) tvm	  = 0; // 0 if supervisor not supported
+    Bit#(1) mxr   = 0; // 0 if supervisor not supported
+    Bit#(1) sum   = 0; // 0 if supervisor not supported
     Reg#(Bit#(1)) rg_mprv <- mkReg(0);
     Bit#(2) xs	 	= 0;
     // The FS field should only exist when floating point is enabled. But this is not the case
@@ -312,56 +266,32 @@ package csrfile;
     Reg#(Bit#(1)) sd = readOnlyReg(pack((xs == 2'b11) || (fs == 2'b11)));
     Reg#(Bit#(2)) rg_mpp	<- mkReg(2'b0);
     Bit#(2) hpp	= 0;
-    `ifdef supervisor
-      Reg#(Bit#(1)) spp	<- mkReg(0);
-    `else
-      Bit#(1) spp	= 0;
-    `endif
+    Bit#(1) spp	= 0;
 
     Reg#(Bit#(1)) rg_mpie <- mkReg(0);
     Bit#(1) hpie = 0;
-    `ifdef supervisor
-      Reg#(Bit#(1)) spie <- mkReg(0);
-    `else
-      Bit#(1) spie = 0;
-    `endif
-      	Reg#(Bit#(1)) rg_upie <- mkReg(0);
+    Bit#(1) spie = 0;
+    Reg#(Bit#(1)) rg_upie <- mkReg(0);
 
     Reg#(Bit#(1)) rg_mie	<- mkReg(`ifdef debug 1 `else 0 `endif ); // TODO  
     Bit#(1) hie = 0;
-    `ifdef supervisor
-      Reg#(Bit#(1)) sie <- mkReg(0);
-    `else
-      Bit#(1) sie = 0;
-    `endif
+    Bit#(1) sie = 0;
     Reg#(Bit#(1)) rg_uie <- mkReg(0);
 
 	  // mie fields
     Reg#(Bit#(1)) rg_meie <- mkReg(0);
     Bit#(1) heie = 0;
-    `ifdef supervisor
-      Reg#(Bit#(1)) seie <- mkReg(0);
-    `else
-      Bit#(1) seie = 0;
-    `endif
+    Bit#(1) seie = 0;
     Reg#(Bit#(1)) rg_ueie <- mkReg(0);
     Reg#(Bit#(1)) rg_mtie <- mkReg(0);
     Bit#(1) htie = 0;
-    `ifdef supervisor
-      Reg#(Bit#(1)) stie <- mkReg(0);
-    `else
-      Bit#(1) stie = 0;
-    `endif
+    Bit#(1) stie = 0;
     Reg#(Bit#(1)) rg_utie <- mkReg(0);
     Reg#(Bit#(1)) rg_msie <- mkReg(0);
     Bit#(1) hsie = 0;
-    `ifdef supervisor
-      Reg#(Bit#(1)) ssie <- mkReg(0);
-    `else
-      Bit#(1) ssie = 0;
-    `endif
+    Bit#(1) ssie = 0;
 
-      Reg#(Bit#(1)) rg_usie <-  mkReg(0);
+    Reg#(Bit#(1)) rg_usie <-  mkReg(0);
 
    
    `ifdef non_m_traps
@@ -377,13 +307,7 @@ package csrfile;
 
     Reg#(Bit#(1)) rg_meip <- mkReg(0);
     Bit#(1) heip = 0;
-    `ifdef supervisor
-      Reg#(Bit#(1)) soft_seip <- mkReg(0);
-      Reg#(Bit#(1)) ext_seip <- mkReg(0);
-      Reg#(Bit#(1)) seip = extInterruptReg(soft_seip, ext_seip); 
-    `else
-      Bit#(1) seip = 0; 
-    `endif
+    Bit#(1) seip = 0; 
     `ifdef usertraps
       Reg#(Bit#(1)) soft_ueip <- mkReg(0);
       Reg#(Bit#(1)) ext_ueip <- mkReg(0);
@@ -397,18 +321,10 @@ package csrfile;
     `endif
     Reg#(Bit#(1)) rg_mtip <- mkReg(0);
     Bit#(1) htip = 0;
-    `ifdef supervisor
-      Reg#(Bit#(1)) stip <- mkReg(0);
-    `else
-      Bit#(1) stip = 0;
-    `endif
+    Bit#(1) stip = 0;
 	  Reg#(Bit#(1)) rg_msip <- mkReg(0);
     Bit#(1) hsip = 0;
-    `ifdef supervisor
-      Reg#(Bit#(1)) ssip <- mkReg(0);
-    `else
-      Bit#(1) ssip = 0;
-    `endif
+    Bit#(1) ssip = 0;
 
     `ifdef RV64
 	  	Reg#(Bit#(XLEN)) mcycle <- mkReg(0);
@@ -430,47 +346,6 @@ package csrfile;
     
 	  Reg#(Bit#(3)) rg_mcounteren <- mkReg(0);
 	  Reg#(Bit#(64)) rg_clint_mtime <- mkReg(0);
-	  //////////////////////////////////////////////////////////////////////////////////////////
-	  //////////////////////////////// SUPERVISOR LEVEL CSRs ///////////////////////////////////
-    `ifdef supervisor
-      Bit#(2) sxl = fromInteger(valueOf(TDiv#(XLEN, 32))); 
-
-      //STVEC trap vector fields
-  	  Reg#(Bit#(2)) rg_smode <- mkReg(0); //0 if pc to base or 1 if pc to base + 4xcause
-	    Reg#(Bit#(TSub#(`vaddr, 2))) rg_stvec <- mkReg(0);
-  
-      // SSCRATCH
-      Reg#(Bit#(XLEN)) sscratch <- mkReg(0);
-
-      // SCAUSE register
-      Reg#(Bit#(1)) sinterrupt <- mkReg(0);
-	    Reg#(Bit#(TSub#(`causesize,1))) scause   <- mkReg(0);
-
-      // STVAL
-	    Reg#(Bit#(`vaddr)) stval  		<- mkReg(0);
-      // SEPC register
-	    Reg#(Bit#(TSub#(`vaddr, 1))) sepc  		<- mkReg(0);
-      Reg#(Bit#(`asidwidth)) satp_asid <- mkReg(0);
-    `ifdef RV64
-      Reg#(Bit#(44)) satp_ppn <- mkReg(0);
-      Reg#(Bit#(4)) satp_mode <- mkReg(0);
-    `else
-      Reg#(Bit#(22)) satp_ppn <- mkReg(0);
-      Reg#(Bit#(1)) satp_mode <- mkReg(0);
-    `endif
-
-      // SEDELEG and SIDELEG registers
-      `ifdef usertraps
-        Reg#(Bit#(14)) rg_sideleg <- mkReg(0);
-        Reg#(Bit#(9)) rg_sedeleg_l9 <- mkReg(0); // cause 0 - 8
-        Reg#(Bit#(2)) rg_sedeleg_m2 <- mkReg(0);  // cause 12 - 13
-        Reg#(Bit#(1)) rg_sedeleg_u1 <- mkReg(0);  // cause 15
-      `else
-        Bit#(12) rg_sideleg = 0;
-      `endif
-    `else
-      Bit#(2) sxl = fromInteger(valueOf(TDiv#(XLEN, 32))); 
-    `endif
 	  //////////////////////////////////////////////////////////////////////////////////////////
 	  //////////////////////////////// USER LEVEL CSRs /////////////////////////////////////////
 	  Reg#(Bit#(XLEN)) rg_uscratch <- mkReg(0);
@@ -608,19 +483,13 @@ package csrfile;
 
       Reg#(Bit#(`mcontext)) rg_machine_context <- mkReg(0);
       Reg#(Bit#(XLEN)) csr_machine_context = concatReg2(readOnlyReg(0), rg_machine_context);
-    `ifdef supervisor
-      Reg#(Bit#(`scontext)) rg_supervisor_context <- mkReg(0);
-      Reg#(Bit#(XLEN)) csr_supervisor_context = concatReg2(readOnlyReg(0), rg_supervisor_context);
-    `endif
 
       Vector#(`trigger_num, Bool) v_trigger_enable ;
       Vector#(`trigger_num, Bool) v_context_match ;
       for(Integer i=0; i<`trigger_num; i=i+1)begin
-        if(`mcontext > 0 `ifdef supervisor || `scontext > 0 `endif ) begin
+        if(`mcontext > 0) begin
           if( (v_trig_tdata3[i].mselect == 1 && rg_prv == Machine && 
-                v_trig_tdata3[i].mvalue == rg_machine_context) `ifdef supervisor ||
-              (v_trig_tdata3[i].sselect == 1 && rg_prv == Supervisor &&
-                v_trig_tdata3[i].svalue == rg_supervisor_context) `endif )
+                v_trig_tdata3[i].mvalue == rg_machine_context) )
             v_context_match[i] = True;
           else
             v_context_match[i] = False;
@@ -636,33 +505,23 @@ package csrfile;
         Bit#(1) u=0;
         if(v_trig_tdata1[i] matches tagged MCONTROL .mc) begin
           m = mc.machine; 
-        `ifdef supervisor
-          s = mc.supervisor;
-        `endif
         `ifdef user
           u = mc.user;
         `endif
         end
         if(v_trig_tdata1[i] matches tagged ETRIGGER .et) begin
           m = et.machine; 
-        `ifdef supervisor
-          s = et.supervisor;
-        `endif
         `ifdef user
           u = et.user;
         `endif
         end
         if(v_trig_tdata1[i] matches tagged ITRIGGER .it) begin
           m = it.machine; 
-        `ifdef supervisor
-          s = it.supervisor;
-        `endif
         `ifdef user
           u = it.user;
         `endif
         end
         if( (m ==1 && rg_prv == Machine) 
-          `ifdef supervisor || (s == 1 && rg_prv == Supervisor) `endif
           `ifdef user       || (u == 1 && rg_prv == User) `endif )
           en = True;
         v_privilege_match[i] = en;
@@ -677,12 +536,6 @@ package csrfile;
                    misa_n & rg_utip, misa_s & rg_msip, hsip, misa_s & ssip, misa_n & rg_usip};
     Bit#(12) csr_mie= {rg_meie, heie, seie, rg_ueie, rg_mtie, htie, stie, rg_utie, rg_msie,
                           hsie, ssie, rg_usie};
-  `ifdef supervisor
-    Bit#(12) csr_sip = {'d0, misa_s & seip, misa_n & rg_ueip, 2'd0, stip & misa_s, misa_n & rg_utip, 
-                                                                2'd0, misa_s & ssip, misa_n & rg_usip};
-    Bit#(12) csr_sie = {'d0, seie, misa_n & rg_ueie, 2'd0, stie, misa_n & rg_utie, 2'd0, ssie,
-                                                                                  misa_n & rg_usie};
-  `endif
   `ifdef usertraps
     Bit#(12) csr_uip = {'d0, misa_n & rg_ueip, 3'd0, misa_n & rg_utip, 3'd0, misa_n & rg_usip};
     Bit#(12) csr_uie = {'d0, misa_n & rg_ueie, 3'd0, misa_n & rg_utie, 3'd0, misa_n & rg_usie};
@@ -717,7 +570,7 @@ package csrfile;
         if (addr == `MTVEC ) data = signExtend({rg_mtvec, rg_mode}) ;
         if (addr == `MSTATUS )begin
           `ifdef RV64
-              data= {sd, 27'd0, sxl, uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
+              data= {sd, 27'd0, 2'd0, uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
                       hpp, spp, rg_mpie, hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie};
           `else
               data= {'d0, sd, 8'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp, hpp, spp, rg_mpie,
@@ -771,31 +624,6 @@ package csrfile;
         if (addr == `PMPADDR14 && `PMPSIZE >14) data = zeroExtend(v_pmp_addr[15]);
         if (addr == `PMPADDR15 && `PMPSIZE >15) data = zeroExtend(v_pmp_addr[16]);
     `endif
-        // =============== Supervisor level CSRs ==========//
-        `ifdef supervisor
-          if (addr == `SSTATUS )
-          `ifdef RV64
-              data= {sd, 29'd0, uxl, 12'd0, mxr, sum, 1'd0, xs, fs, 2'd0,
-                      2'd0, spp, 1'd0, 1'd0, spie, rg_upie, 1'd0, 1'd0, sie, rg_uie};
-          `else
-              data= {'d0, sd, 11'd0, mxr, sum, 1'd0, xs, fs, 2'd0, 2'd0, spp, rg_mpie,
-                      1'd0, spie, rg_upie, 1'd0, 1'd0, sie, rg_uie};
-          `endif
-          if (addr == `STVEC ) begin data = signExtend({rg_stvec, rg_smode}); end
-          if (addr == `SIP ) data = {'d0, misa_s & seip, misa_n & rg_ueip, 2'd0, stip & misa_s,
-                                      misa_n & rg_utip, 2'd0, misa_s & ssip, misa_n & rg_usip};
-          if (addr == `SIE ) data = {'d0, seie, misa_n & rg_ueie, 2'd0, stie, misa_n & rg_utie, 2'd0, ssie,
-                                                                                      misa_n & rg_usie};
-          if (addr == `SSCRATCH ) data = sscratch;
-          if (addr == `SEPC ) data = signExtend({sepc, 1'b0});
-          if (addr == `SCAUSE ) data= {sinterrupt, 'd0, scause};
-          if (addr == `STVAL ) data = signExtend(stval);//?
-          if (addr == `SATP ) data = {satp_mode,'d0, satp_asid, satp_ppn};
-        `ifdef usertraps
-          if (addr == `SIDELEG ) data= {'d0, rg_sideleg};
-          if (addr == `SEDELEG ) data= {'d0, rg_sedeleg_u1, 1'd0, rg_sedeleg_m2, 3'd0, rg_sedeleg_l9};
-        `endif
-        `endif
         // =============== User level CSRs ================//
         `ifdef usertraps
           if (addr == `USTATUS )
@@ -842,9 +670,6 @@ package csrfile;
         if(addr == `TDATA3) data = read_trigger_extra(v_trig_tdata3[trigger_index]);
         if(addr == `TINFO) data = v_tinfo[trigger_index];
         if(addr == `TMCONTEXT) data = csr_machine_context;
-      `ifdef supervisor
-        if(addr == `TSCONTEXT) data = csr_supervisor_context;
-      `endif
       `endif
         `logLevel( csr, 0, $format("CSRFILE : Read Operation : Addr:%h Data:%h",addr,data))
         return data;
@@ -856,12 +681,9 @@ package csrfile;
         `MISA : begin 
           `ifdef atomic misa_a <= word[0]; `endif
           `ifdef compressed if(word[2] == 1 || (word[2] == 0 && lpc == 0)) misa_c <= word[2]; `endif  
-          `ifdef dpfpu misa_d <= word[3]; `endif 
-          `ifdef spfpu misa_f <= word[5]; `endif
             misa_i <= word[8];
           `ifdef muldiv misa_m <= word[12]; `endif
           `ifdef usertraps misa_n <= word[13]; `endif
-          `ifdef supervisor misa_s <= word[18]; `endif
           `ifdef user misa_u <= word[20]; `endif
         end
         `MTVEC : begin 
@@ -878,16 +700,6 @@ package csrfile;
             rg_mpp <= word[12 : 11];
           rg_mprv <= word[17];
           fs <= word[14 : 13];
-          `ifdef supervisor
-            sie <= word[1];
-            spie <= word[5];
-            spp <= word[8];
-            sum <= word[18];
-            mxr <= word[19];
-            tvm <= word[20];
-            tw <= word[21];
-            tsr <= word[22];
-          `endif
         end
         `ifdef non_m_traps
           `MIDELEG : begin
@@ -906,11 +718,6 @@ package csrfile;
             rg_ueie <= word[8];
             rg_usie <= word[0];
             rg_utie <= word[4];
-          `ifdef supervisor
-            seie <= word[9];
-            ssie <= word[1];
-            stie <= word[5];
-          `endif
         end
         `MIP : begin
           `ifdef usertraps
@@ -919,13 +726,6 @@ package csrfile;
               rg_utip <= word[4];
               soft_ueip <= word[8];
             end
-          `endif
-          `ifdef supervisor
-          if(misa_s == 1)begin
-            ssip <= word[1];
-            stip <= word[5];
-            soft_seip <= word[9];
-          end
           `endif
         end
         `MCYCLE : begin
@@ -992,86 +792,6 @@ package csrfile;
         `PMPADDR15 : if(`PMPSIZE > 15 && v_pmp_cfg[15][7] == 0) v_pmp_addr[15] <= truncate(word);
     `endif
         `USCRATCH : rg_uscratch <= word;
-        ////////////////////// Supervisor Level Registers /////////////////
-        `ifdef supervisor
-          `STVEC : begin 
-            rg_stvec <= word[vaddr - 1:2]; 
-            if(word[1 : 0]<2)
-              rg_smode <= word[1 : 0];
-          end
-          `SSCRATCH : sscratch <= word;
-          // make sure only valid values of satp - mode field cause a change in the satp reg
-          `SATP : begin
-            `ifdef RV64
-              if(word[63 : 60] == 0 || word[63 : 60] == 8)begin // transparent or sv39
-                satp_mode <= word[63 : 60];
-                satp_ppn <= truncate(word);
-                satp_asid <= truncate(word[59 : 44]);
-              end
-            `else
-              satp_mode <= word[31];
-              satp_ppn <= truncate(word);
-              satp_asid <= truncate(word[30 : 22]);
-            `endif
-
-          end
-          `SCAUSE : begin
-            scause <= truncate(word);
-            sinterrupt <= word[maxIndex - 1];
-          end
-          `STVAL : stval <= truncate(word);
-          `SEPC : begin word = word>>1;sepc <= truncate(word); end
-          `ifdef usertraps
-            `SIDELEG : begin
-                rg_sideleg <= truncate(word);
-              end
-            `SEDELEG : begin
-              rg_sedeleg_u1 <= word[15];
-              rg_sedeleg_m2 <= word[13 : 12];
-              rg_sedeleg_l9 <= word[8 : 0];
-              end
-          `endif
-          `SIP : begin
-            if(misa_n == 1)begin
-            `ifdef usertraps
-              rg_usip <= word[0];
-              soft_ueip <= word[8];
-            `endif
-            end
-            `ifdef supervisor
-            if(misa_s == 1)
-              ssip <= word[1];
-            `endif
-          end
-        `SIE : begin
-          `ifdef usertraps
-            rg_ueie <= word[8];
-            rg_usie <= word[0];
-            rg_utie <= word[4];
-          `endif
-          `ifdef supervisor
-            seie <= word[9];
-            ssie <= word[1];
-            stie <= word[5];
-          `endif
-        end
-        `SSTATUS : begin
-          `ifdef usertraps
-            rg_uie <= word[0];
-            rg_upie <= word[4];
-          `endif
-          fs <= word[14 : 13];
-          sie <= word[1];
-          spie <= word[5];
-          spp <= word[8];
-          sum <= word[18];
-          mxr <= word[19];
-          tvm <= word[20];
-          tw <= word[21];
-          tsr <= word[22];
-        end
-        `endif
-        ///////////////////////////////////////////////////////////////////
         `FFLAGS : begin fflags <= truncate(word); if(fflags != truncate(word)) fs <= 'b11; end
         `FRM : begin frm <= truncate(word); if(frm != truncate(word)) fs <= 'b11;end
         `FCSR : begin frm <= word[7 : 5]; fflags <= truncate(word); 
@@ -1120,9 +840,6 @@ package csrfile;
           `TDATA2: v_trig_tdata2[trigger_index] <= word;
           `TDATA3: v_trig_tdata3[trigger_index] <= write_trigger_extra(word);
           `TMCONTEXT: csr_machine_context <= word;
-        `ifdef supervisor
-          `TSCONTEXT: csr_supervisor_context <= word;
-        `endif
         `endif
         default : noAction;
       endcase
@@ -1134,20 +851,13 @@ package csrfile;
       `ifdef non_m_traps csr_mideleg : rg_mideleg, `endif
         csr_misa : misa,
       `ifdef RV64
-        csr_mstatus:{sd, 27'd0, sxl, uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
+        csr_mstatus:{sd, 27'd0, 2'd0, uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
                       hpp, spp, rg_mpie, hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie},
       `else
         csr_mstatus: {'d0, sd, 8'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp, hpp, spp, rg_mpie,
                     hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie},
       `endif
-      `ifdef supervisor
-        csr_sip : csr_sip,
-        csr_sie : csr_sie,
-      `endif
       `ifdef usertraps
-        `ifdef supervisor
-          csr_sideleg : rg_sideleg,
-        `endif
         csr_uie : csr_uie,
         csr_uip : csr_uip,
       `endif
@@ -1167,18 +877,6 @@ package csrfile;
     
     method ActionValue#(Bit#(`vaddr)) upd_on_ret `ifdef non_m_traps (Privilege_mode prv) `endif ;
       `ifdef non_m_traps 
-        `ifdef supervisor
-          if(prv == Supervisor)begin
-            spie <= 1;
-            spp <= 0;
-            rg_prv <= unpack({1'b0, spp});
-	  		    sie <= spie;
-            let lv_sepc = sepc;
-            if(misa_c == 0)
-              lv_sepc[0] = 0;
-            return {lv_sepc, 1'b0};
-          end else 
-        `endif
         `ifdef usertraps
           if(prv == User)begin
             rg_upie <= 1;
@@ -1210,29 +908,14 @@ package csrfile;
       `ifdef non_m_traps
           Privilege_mode prv = Machine;
           Bit#(16) medeleg = {rg_medeleg_u1, 1'd0, rg_medeleg_m2, 2'd0, rg_medeleg_l10};
-        `ifdef supervisor
           `ifdef usertraps
             Bit#(16) sedeleg = {rg_sedeleg_u1, 1'd0, rg_sedeleg_m2, 3'd0, rg_sedeleg_l9};
           `endif
-        `endif
           Bool delegateM = (((rg_mideleg >> code) & 
                                 1 & duplicate(trap_type)) == 1) ||  
                            (((medeleg >> code) & 
                                 1 & duplicate(~trap_type)) == 1);
-          `ifdef supervisor
-            `ifdef usertraps
-              Bool delegateS = (((rg_sideleg >> code) & 
-                                    1 & duplicate(trap_type)) == 1) ||  
-                               (((sedeleg >> code) & 
-                                    1 & duplicate(~trap_type)) == 1);
-            `endif
-            if(delegateM && (pack(rg_prv) <= pack(Supervisor)) && (misa_s == 1))
-              prv = Supervisor;
-            `ifdef usertraps
-              else if(delegateM && delegateS && rg_prv == User && misa_n == 1)
-                prv = User;
-            `endif
-          `elsif usertraps
+          `ifdef usertraps
             if(delegateM && rg_prv == User && misa_n == 1)
               prv = User;
           `endif
@@ -1242,27 +925,8 @@ package csrfile;
           `endif
             `logLevel( csr, 2, $format("CSRFILE : rg_prv: ",fshow(rg_prv)," prv: ", fshow(prv)))
             `logLevel( csr, 2, $format("CSRFILE : rg_mtvec:%h rg_mode:%b", rg_mtvec, rg_mode))
-          `ifdef supervisor
-            `logLevel( csr, 2, $format("CSRFILE : rg_stvec:%h rg_smode:%b", rg_stvec, rg_smode))
-          `endif
 
        // TODO: reduce the adders here to a single adder 
-        `ifdef supervisor
-          if(prv == Supervisor) begin
-            stval <= signExtend(tval);
-			      sepc <= truncateLSB(pc);
-			      scause <= code;
-            sinterrupt <= trap_type;
-			      sie <= 0;
-			      spie <= sie;
-            spp <= pack(rg_prv)[0];
-			      rg_prv <= Supervisor;
-            if(rg_smode == 1 && trap_type == 1)
-              return ({(rg_stvec + zeroExtend(code)), 2'b0}); // pc jumps to base + (4 * cause)
-            else
-              return {rg_stvec, 2'b0}; // pc jumps to base
-          end else
-        `endif
         `ifdef usertraps
           if(prv == User) begin
             rg_utval <= signExtend(tval);
@@ -1366,27 +1030,11 @@ package csrfile;
         minstret <= truncate(instr);
       `endif
     endmethod
-	  `ifdef supervisor
-	    method csr_satp = {satp_mode,'d0, satp_asid, satp_ppn};
-	  `endif
-    `ifdef spfpu
-      method Action update_fflags(Bit#(5) flags);
-        if((flags|fflags) != fflags)begin
-          fflags <= flags|fflags;
-          fs <= 'b11;
-        end
-      endmethod
-    `endif
 	  method Action set_external_interrupt(Bit#(1) ex_i);
   // TODO. seip and ueip can be updated by the PLIC. This is creating schedule conflicts
 	  	if(rg_prv == Machine) begin 
 	  		rg_meip <= pack(ex_i);
 	  	end
-    `ifdef supervisor
-  		else if(rg_prv == Supervisor) begin
-	  		ext_seip <= pack(ex_i);
-	  	end
-    `endif
     `ifdef usertraps
   		else if(rg_prv == User) begin
 	  		ext_ueip <= pack(ex_i);
@@ -1397,7 +1045,7 @@ package csrfile;
     method curr_priv = pack(rg_prv);
     method Bit#(XLEN) csr_mstatus;
       `ifdef RV64
-        return {sd, 27'd0, sxl, uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
+        return {sd, 27'd0, 2'd0, uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
                   hpp, spp, rg_mpie, hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie};
 
       `else
