@@ -380,9 +380,10 @@ package stage1;
           offset = 2;
         end
       `endif
+      let _ops = access_rf(y.op_addr.rs1addr, y.op_addr.rs2addr, y.op_type.rs1type,
+                            y.op_type.rs2type, rg_pc, y.meta.immediate));
       if(perform_decode) begin
-        ff_stage1_operands.u.enq(access_rf(y.op_addr.rs1addr, y.op_addr.rs2addr, y.op_type.rs1type,
-                                            y.op_type.rs2type, rg_pc, y.meta.immediate));
+        ff_stage1_operands.u.enq(_ops);
         ff_stage1_meta.u.enq(y);
         ff_stage1_control.u.enq(STAGE1_control{ epoch : rg_epoch, pc : rg_pc});
       `ifdef rtldump
