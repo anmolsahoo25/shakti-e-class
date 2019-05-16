@@ -39,8 +39,12 @@ package TbSoc;
   import common_types::*;
   `include "common_params.bsv"
   `include "Logger.bsv"
+  `include "Soc.defines"
   import device_common::*;
-  import DReg::*;
+  import DReg :: *;
+  import bram :: *;
+  import Connectable :: *;
+  import bootrom :: *;
 
 `ifdef openocd
   import "BDPI" function ActionValue #(int) init_rbb_jtag(Bit#(1) dummy);
@@ -62,6 +66,13 @@ package TbSoc;
     Reg#(Bool) rg_read_rx<- mkDReg(False);
 
     Reg#(Bit#(5)) rg_cnt <-mkReg(0);
+ 		
+    Ifc_bram_axi4#(`paddr, XLEN, USERSPACE, `Addr_space) main_memory <- mkbram_axi4(`MemoryBase, 
+                                                "code.mem.MSB", "code.mem.LSB", "MainMEM");
+    Ifc_bootrom_axi4#(`paddr, XLEN, USERSPACE) bootrom <-mkbootrom_axi4(`BootRomBase);
+
+    mkConnection(soc.main_mem_master, main_memory.slave);
+    mkConnection(soc.boot_mem_master, bootrom.slave);
 
     `ifdef simulate
       rule display_eol;
@@ -70,9 +81,9 @@ package TbSoc;
       endrule
     `endif
 
-    `ifdef rtldump
+  `ifdef rtldump
     let dump <- mkReg(InvalidFile) ;
-      rule open_file_rtldump(rg_cnt<5);
+    rule open_file_rtldump(rg_cnt<5);
       String dumpFile = "rtl.dump" ;
       File lfh <- $fopen( dumpFile, "w" ) ;
       if ( lfh == InvalidFile )begin
@@ -80,8 +91,8 @@ package TbSoc;
         $finish(0);
       end
       dump <= lfh ;
-      endrule
-    `endif
+    endrule
+  `endif
     
     let dump1 <- mkReg(InvalidFile) ;
     rule open_file_app(rg_cnt<5);
@@ -113,77 +124,73 @@ package TbSoc;
       $fwrite(dump1,"%c",data);
     endrule
 
-    `ifdef rtldump
-      rule write_dump_file(rg_cnt>=5 );
-        let {prv, pc, instruction, rd, data, rdtype}<- soc.io_dump.get;
-      `ifndef openocd
-        if(instruction=='h00006f||instruction =='h00a001)
-          $finish(0);
-        else 
-      `endif 
-        begin
-          $fwrite(dump, prv, " 0x%16h", pc, " (0x%8h", instruction, ")"); 
-          if(rdtype == FRF && valueOf(FLEN) == 64)
-            $fwrite(dump, " f%d", rd, " 0x%16h", data[63:0], "\n"); 
-          else if(rdtype == FRF && valueOf(FLEN) == 32)
-            $fwrite(dump, " f%d", rd, " 0x%8h", data[31:0], "\n"); 
-          else if(rdtype == IRF && valueOf(XLEN) == 64)
-            $fwrite(dump, " x%d", rd, " 0x%16h", data[63:0], "\n"); 
-          else if(rdtype == IRF && valueOf(XLEN) == 32)
-            $fwrite(dump, " x%d", rd, " 0x%8h", data[31:0], "\n"); 
-        end
-      endrule
-    `endif
+  `ifdef rtldump
+    rule write_dump_file(rg_cnt>=5 );
+      let {prv, pc, instruction, rd, data}<- soc.io_dump.get;
+    `ifndef openocd
+      if(instruction=='h00006f||instruction =='h00a001)
+        $finish(0);
+      else 
+    `endif 
+      begin
+        $fwrite(dump, prv, " 0x%16h", pc, " (0x%8h", instruction, ")"); 
+        if(valueOf(XLEN) == 64)
+          $fwrite(dump, " x%d", rd, " 0x%16h", data[63:0], "\n"); 
+        else if(valueOf(XLEN) == 32)
+          $fwrite(dump, " x%d", rd, " 0x%8h", data[31:0], "\n"); 
+      end
+    endrule
+  `endif
 
-    `ifdef debug
-      Wire#(Bit#(1)) wr_tdi <-mkWire();
-      Wire#(Bit#(1)) wr_tms <-mkWire();
-      rule connect_jtag_io;
-        soc.wire_tdi(wr_tdi);
-        soc.wire_tms(wr_tms);
-      endrule
-    `endif
-    `ifdef openocd
-      Wire#(Bit#(1)) wr_tdo <-mkWire();
-      Wire#(Bit#(1)) wr_tck <-mkWire();
-      Wire#(Bit#(1)) wr_trst <-mkWire();
-      rule rl_wr_tdo;
-        wr_tdo <= soc.wire_tdo();
-      endrule
-        Reg#(Bit#(1)) rg_initial <- mkRegA(0);
-        Reg#(Bit#(1)) rg_end_sim <- mkRegA(0);
-        Reg#(int) rg_client_fd <- mkRegA(32'hffffffff);
-        Reg#(Bit#(5)) delayed_actor <- mkReg(0);
-        Reg#(Bit#(5)) delayed_actor2 <- mkReg(0);
-        Reg#(Bit#(5)) delayed_actor3 <- mkReg(0);
-        Reg#(Bit#(5)) delayed_actor4 <- mkReg(0);
-        Reg#(Bit#(5)) delayed_actor5 <- mkReg(0);
-        rule rl_initial(rg_initial == 0);
-          let x <- init_rbb_jtag(0);
-          if(x != 32'hffffffff)begin
-            rg_initial <= 1'b1;
-            rg_client_fd <= x;
-          end
-        endrule
-        rule rl_get_frame((rg_initial == 1'b1));
-          let x <- get_frame(rg_client_fd);
-          delayed_actor <= truncate(x);
-          delayed_actor2 <= delayed_actor;
-          delayed_actor3 <= delayed_actor2;
-          delayed_actor4 <= delayed_actor3;
-          delayed_actor5 <= delayed_actor4;
-          tck_clk.setClockValue(delayed_actor2[2]);
-          if(delayed_actor2[4] == 1)
-            trst.assertReset();
-          if(delayed_actor5[3] == 1 )
-            send_tdo(wr_tdo,rg_client_fd);
-          wr_tdi <= delayed_actor[0];
-          wr_tms <= delayed_actor[1];
-          if( x[5] == 1)begin
-            $display("OpenOcd Exit");
-            $finish();
-          end
-        endrule
-      `endif
+  `ifdef debug
+    Wire#(Bit#(1)) wr_tdi <-mkWire();
+    Wire#(Bit#(1)) wr_tms <-mkWire();
+    rule connect_jtag_io;
+      soc.wire_tdi(wr_tdi);
+      soc.wire_tms(wr_tms);
+    endrule
+  `endif
+  `ifdef openocd
+    Wire#(Bit#(1)) wr_tdo <-mkWire();
+    Wire#(Bit#(1)) wr_tck <-mkWire();
+    Wire#(Bit#(1)) wr_trst <-mkWire();
+    rule rl_wr_tdo;
+      wr_tdo <= soc.wire_tdo();
+    endrule
+    Reg#(Bit#(1)) rg_initial <- mkRegA(0);
+    Reg#(Bit#(1)) rg_end_sim <- mkRegA(0);
+    Reg#(int) rg_client_fd <- mkRegA(32'hffffffff);
+    Reg#(Bit#(5)) delayed_actor <- mkReg(0);
+    Reg#(Bit#(5)) delayed_actor2 <- mkReg(0);
+    Reg#(Bit#(5)) delayed_actor3 <- mkReg(0);
+    Reg#(Bit#(5)) delayed_actor4 <- mkReg(0);
+    Reg#(Bit#(5)) delayed_actor5 <- mkReg(0);
+    rule rl_initial(rg_initial == 0);
+      let x <- init_rbb_jtag(0);
+      if(x != 32'hffffffff)begin
+        rg_initial <= 1'b1;
+        rg_client_fd <= x;
+      end
+    endrule
+    rule rl_get_frame((rg_initial == 1'b1));
+      let x <- get_frame(rg_client_fd);
+      delayed_actor <= truncate(x);
+      delayed_actor2 <= delayed_actor;
+      delayed_actor3 <= delayed_actor2;
+      delayed_actor4 <= delayed_actor3;
+      delayed_actor5 <= delayed_actor4;
+      tck_clk.setClockValue(delayed_actor2[2]);
+      if(delayed_actor2[4] == 1)
+        trst.assertReset();
+      if(delayed_actor5[3] == 1 )
+        send_tdo(wr_tdo,rg_client_fd);
+      wr_tdi <= delayed_actor[0];
+      wr_tms <= delayed_actor[1];
+      if( x[5] == 1)begin
+        $display("OpenOcd Exit");
+        $finish();
+      end
+    endrule
+  `endif
   endmodule
 endpackage: TbSoc
