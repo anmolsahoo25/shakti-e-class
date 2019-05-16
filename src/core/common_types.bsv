@@ -8,7 +8,7 @@ provided that the following conditions are met:
   and the following disclaimer.  
  * Redistributions in binary form must reproduce the above copyright notice, this list of 
   conditions and the following disclaimer in the documentation and / or other materials provided 
- with the distribution.  
+  with the distribution.  
  * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
@@ -55,8 +55,8 @@ package common_types;
   typedef enum {Machine = 3, User = 0} Privilege_mode deriving(Eq, Bits, FShow);
   typedef enum {NOFENCE = 0, FENCE = 1} Set_fence deriving(Eq, Bits, FShow);
 
-  typedef Tuple8#(Bit#(4), Bit#(XLEN), Bit#(XLEN), Bit#(`paddr), Bit#(XLEN), Instruction_type, Funct3,
-        Access_type)  ALU_Inputs;
+  typedef Tuple8#(Bit#(4), Bit#(XLEN), Bit#(XLEN), Bit#(`paddr), Bit#(XLEN), Instruction_type, 
+                  Funct3, Access_type)  ALU_Inputs;
   // ----------------------------- Trigger based structures -------------------------------------//
 `ifdef triggers
   typedef struct{
@@ -264,11 +264,6 @@ package common_types;
     Bit#(5) rdaddr;
     Bit#(XLEN) rdvalue;
   } CommitPacket deriving(Bits, FShow, Eq);
-
-
-
-//  typedef Tuple5#(Bit#(`paddr), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
-  typedef Tuple4#(Bit#(`paddr), Access_type, Bit#(2), Bit#(1)) CoreRequest;
 
 //  typedef Tuple3#(Bit#(5), Bool, Bit#(XLEN)) OpFwding;
   typedef struct{
