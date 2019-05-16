@@ -235,7 +235,18 @@ package common_types;
 
                 
   // ----------------------------------------------------------//
- 
+
+  typedef struct{
+    Bit#(`vaddr) addr;
+    Bit#(1) epoch ;
+  } InstRequest deriving(Bits, FShow, Eq);
+
+  typedef struct{
+    Bit#(32) inst;
+    Bit#(1) epoch;
+    Bool    err;
+  } InstResponse deriving(Bits, FShow, Eq);
+
   typedef struct{
     Bit#(`vaddr) addr;
     Bit#(XLEN) data;

@@ -58,54 +58,43 @@ package stage1;
   interface Ifc_stage1;
 
     // interface to send request to the fabric
-    interface Get#(Tuple2#(Bit#(`vaddr), Bit#(1))) inst_request;
-
+    interface Get#(InstRequest)         inst_request;
     // interface to receive response from fabric
-    interface Put#(Tuple3#(Bit#(32), Bool, Bit#(1))) inst_response;
+    interface Put#(InstResponse)        inst_response;
 
-    // interface to send decoded instruction to the next stage
-    interface TXe#(STAGE1_operands) tx_stage1_operands;
-  
-    interface TXe#(STAGE1_meta) tx_stage1_meta;
-
-    interface TXe#(STAGE1_control) tx_stage1_control;
-
+    // interfaces to send info to the next stage
+    interface TXe#(STAGE1_operands)     tx_stage1_operands;
+    interface TXe#(STAGE1_meta)         tx_stage1_meta;
+    interface TXe#(STAGE1_control)      tx_stage1_control;
   `ifdef rtldump
-    interface TXe#(STAGE1_dump) tx_stage1_dump ;
+    interface TXe#(STAGE1_dump)         tx_stage1_dump ;
   `endif
-
-    // flush from stage3
-    (*always_ready*)
-    method Action ma_flush( Bit#(`vaddr) newpc);
-    
-    // csrs from the csrfile.
-    (*always_ready, always_enabled*)
-    method Action ma_csr_misa_c (Bit#(1) c);
-
-    // interrupt from csr mip register
-    (*always_ready, always_enabled*)
-    method Action ma_interrupt(Bool i);
-
-    // csrs for decoder
-    (*always_ready, always_enabled*)
-    method Action ma_csr_decode (CSRtoDecode c);
   
     //rd and value given back by the write back unit
-    interface Put#(CommitPacket) commit_rd;
+    interface Put#(CommitPacket)        commit_rd;
+
+    // current csr status registers
+    (*always_ready*)
+    method Action ma_flush( Bit#(`vaddr) newpc);
+    (*always_ready, always_enabled*)
+    method Action ma_csr_misa_c (Bit#(1) c);
+    (*always_ready, always_enabled*)
+    method Action ma_interrupt(Bool i);
+    (*always_ready, always_enabled*)
+    method Action ma_csr_decode (CSRtoDecode c);
 
   `ifdef triggers
     // receives the TDATA1 from the csrs
     (*always_ready, always_enabled*)
-    method Action trigger_data1(Vector#(`trigger_num, TriggerData) t);
-
+    method Action ma_trigger_data1(Vector#(`trigger_num, TriggerData) t);
     // receives the TDATA2 register from the csrs for comparison
     (*always_ready, always_enabled*)
-    method Action trigger_data2(Vector#(`trigger_num, Bit#(XLEN)) t);
-
+    method Action ma_trigger_data2(Vector#(`trigger_num, Bit#(XLEN)) t);
     // receives the info on which triggers are enabled
     (*always_ready, always_enabled*)
-    method Action trigger_enable(Vector#(`trigger_num, Bool) t);
+    method Action ma_trigger_enable(Vector#(`trigger_num, Bool) t);
   `endif
+
   endinterface : Ifc_stage1
 
   (*synthesize*)
@@ -148,7 +137,7 @@ package stage1;
     Reg#(Bool) rg_wfi <- mkReg(False);
 
     // fifo to hold the instruction response from the fabric
-    FIFOF#(Tuple3#(Bit#(32), Bool, Bit#(1))) ff_memory_response <- mkSizedFIFOF(2);
+    FIFOF#(InstResponse) ff_memory_response <- mkSizedFIFOF(2);
     
     // operand register file
     Ifc_registerfile#(Bit#(5), Bit#(XLEN)) integer_rf <- mkregisterfile;
@@ -326,7 +315,7 @@ package stage1;
     // into rg_instruction. rg_Action in this case will remain CheckPrev so that the upper bits of 
     // this repsonse are probed in the next cycle.
     rule process_instruction(!rg_wfi && !rg_initialize);
-        let {cache_response, err, epoch}=ff_memory_response.first;
+        let resp = ff_memory_response.first;
         Bit#(32) final_instruction = 0;
         Bool compressed = False;
         Bool perform_decode = True;
@@ -335,7 +324,7 @@ package stage1;
         PrevMeta lv_prev = rg_prev;
       `endif
 
-        if(rg_epoch != epoch)begin
+        if(rg_epoch != resp.epoch)begin
           ff_memory_response.deq;
           rg_action <= None;
           perform_decode = False;
@@ -344,8 +333,8 @@ package stage1;
       `ifdef compressed
         else if(rg_action == CheckPrev && rg_prev.epoch == rg_epoch)begin
           if(rg_prev.instruction[1 : 0] == 2'b11)begin
-            final_instruction={cache_response[15 : 0], rg_prev.instruction};
-            lv_prev.instruction = truncateLSB(cache_response);
+            final_instruction={resp.inst[15 : 0], rg_prev.instruction};
+            lv_prev.instruction = truncateLSB(resp.inst);
             ff_memory_response.deq;
           end
           else begin
@@ -357,27 +346,27 @@ package stage1;
         else if(rg_discard_lower && wr_csr_misa_c == 1)begin
           rg_discard_lower <= False;
           ff_memory_response.deq;
-          if(cache_response[17 : 16] == 2'b11)begin
-            lv_prev.instruction = cache_response[31 : 16];
+          if(resp.inst[17 : 16] == 2'b11)begin
+            lv_prev.instruction = resp.inst[31 : 16];
             rg_action <= CheckPrev;
             perform_decode = False;
           end
           else begin
             compressed = True;
-            final_instruction = zeroExtend(cache_response[31 : 16]);
+            final_instruction = zeroExtend(resp.inst[31 : 16]);
           end
         end
       `endif
         else begin
           ff_memory_response.deq;
-          if(cache_response[1 : 0] == 'b11)begin
-            final_instruction = cache_response;
+          if(resp.inst[1 : 0] == 'b11)begin
+            final_instruction = resp.inst;
           end
         `ifdef compressed
           else if(wr_csr_misa_c == 1) begin
             compressed = True;
-            final_instruction = zeroExtend(cache_response[15 : 0]);
-            lv_prev.instruction = truncateLSB(cache_response);
+            final_instruction = zeroExtend(resp.inst[15 : 0]);
+            lv_prev.instruction = truncateLSB(resp.inst);
             rg_action <= CheckPrev;
           end
         `endif
@@ -387,10 +376,10 @@ package stage1;
         rg_prev <= lv_prev;
         `logLevel( stage1, 1, $format("STAGE1 : rg_action: ",fshow(rg_action), " Prev: ",
                                                               fshow(rg_prev)))
-        PIPE1_DS x = decoder_func_16(final_instruction[15 : 0], rg_pc, epoch, err, wr_csr_decode);
+        PIPE1_DS x = decoder_func_16(final_instruction[15 : 0], rg_pc, resp.epoch, resp.err, wr_csr_decode);
       `endif
 
-        let y <- decoder_func(final_instruction, err, wr_csr_decode);
+        let y <- decoder_func(final_instruction, resp.err, wr_csr_decode);
         if(y.meta.inst_type == WFI && perform_decode) begin
           rg_wfi <= True;
           perform_decode = False;
@@ -412,21 +401,21 @@ package stage1;
       `endif
         rg_pc <= rg_pc + offset;
         `logLevel( stage1, 0, $format("STAGE1 : PC: %h Inst: %h, Err: %b Epoch: %b", 
-                                        rg_pc, final_instruction, err, epoch))
+                                        rg_pc, final_instruction, resp.err, resp.epoch))
         `logLevel( stage1, 1, $format("STAGE1 : compressed: %b perform_decode: %b rg_epoch: %b",
                                         compressed, perform_decode, rg_epoch))
       end
     endrule
     
     interface inst_request = interface Get
-      method ActionValue#(Tuple2#(Bit#(`vaddr), Bit#(1))) get;
-        rg_fabric_request[1] <= rg_fabric_request[1] + 4; 
-        return tuple2(rg_fabric_request[1], rg_epoch);
+      method ActionValue#(InstRequest) get;
+        rg_fabric_request[0] <= rg_fabric_request[0] + 4; 
+        return InstRequest{addr:rg_fabric_request[0], epoch:rg_epoch};
       endmethod
     endinterface;
 
     interface inst_response = interface Put
-      method Action put (Tuple3#(Bit#(32), Bool, Bit#(1)) resp);
+      method Action put (InstResponse resp);
         ff_memory_response.enq(resp);
       endmethod
     endinterface;
@@ -444,7 +433,7 @@ package stage1;
     method Action ma_flush( Bit#(`vaddr) newpc); 
       rg_pc <= newpc;
       rg_epoch<=~rg_epoch;
-      rg_fabric_request[0]<={truncateLSB(newpc), 2'b0};
+      rg_fabric_request[1]<={truncateLSB(newpc), 2'b0};
     `ifdef compressed
       if(newpc[1 : 0] != 0)
         rg_discard_lower <= True;
@@ -464,22 +453,22 @@ package stage1;
       wr_csr_decode <= c;
     endmethod
   `ifdef triggers
-    method Action trigger_data1(Vector#(`trigger_num, TriggerData) t);
+    method Action ma_trigger_data1(Vector#(`trigger_num, TriggerData) t);
       for(Integer i = 0; i<`trigger_num; i = i+1)
         v_trigger_data1[i] <= t[i];
     endmethod
-    method Action trigger_data2(Vector#(`trigger_num, Bit#(XLEN)) t);
+    method Action ma_trigger_data2(Vector#(`trigger_num, Bit#(XLEN)) t);
       for(Integer i = 0; i<`trigger_num; i = i+1)
         v_trigger_data2[i] <= t[i];
     endmethod
-    method Action trigger_enable(Vector#(`trigger_num, Bool) t);
+    method Action ma_trigger_enable(Vector#(`trigger_num, Bool) t);
       for(Integer i = 0; i<`trigger_num; i = i+1)
         v_trigger_enable[i] <= t[i];
     endmethod
   `endif
     
     interface commit_rd = interface Put
-      method Action put (CommitPacket) wbinfo ) if(!rg_initialize);
+      method Action put (CommitPacket wbinfo ) if(!rg_initialize);
         integer_rf.upd( wbinfo.rdaddr, wbinfo.rdvalue );
       endmethod
     endinterface;
