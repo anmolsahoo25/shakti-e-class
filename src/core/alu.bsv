@@ -181,7 +181,8 @@ package alu;
     // ---------------------------------------------------------------------------------------- //
 
     // calculate the effective address for Load / Store / Atomics / Branches / Jumps
-    Bit#(`vaddr) effective_address = op3 + truncate(imm_value);
+    // TODO is this valid? do we need a 64-bit adder here?
+    Bit#(`paddr) effective_address = truncate(op3) + truncate(imm_value);
 
     // JALR expects the lower address bit to be always zero
     if(inst_type == JALR)
@@ -213,7 +214,8 @@ package alu;
 
     // ------------------------ check for load/store triggers ---------------------------------//
   `ifdef triggers
-    let {trig_trap, trig_cause} = check_for_triggers(tdata1, tdata2, tenable, effective_address, 
+    let {trig_trap, trig_cause} = check_for_triggers(tdata1, tdata2, tenable,
+                                                    zeroExtend(effective_address), 
                                                     op2, memaccess, funct3[1:0]);
     if(inst_type == MEMORY && trig_trap)begin
       exception = True;
@@ -232,7 +234,7 @@ package alu;
     return ALU_OUT{done           : True,  
                   cmtype         : committype,  
                   aluresult      : zeroExtend(final_output),  
-                  effective_addr : effective_address, 
+                  effective_addr : zeroExtend(effective_address), 
                   cause          : cause, 
                   redirect       : flush };
   endfunction
