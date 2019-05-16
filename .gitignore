@@ -32,3 +32,5 @@ obj_dir/
 nohup.out
 
 src/testbench/sim_main\.h
+
+tags
