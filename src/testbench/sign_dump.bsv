@@ -43,19 +43,19 @@ package sign_dump;
   import Semi_FIFOF:: *;
 
   interface Ifc_sign_dump;
-    interface AXI4_Master_IFC#(`paddr, ELEN, USERSPACE) master;
-    interface AXI4_Slave_IFC#(`paddr, ELEN, USERSPACE) slave;
+    interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) master;
+    interface AXI4_Slave_IFC#(`paddr, XLEN, USERSPACE) slave;
   endinterface
 
   (*synthesize*)
   module mksign_dump(Ifc_sign_dump);
-    let word_count = 128/valueOf(ELEN);
+    let word_count = 128/valueOf(XLEN);
 
     Reg#(Bool) rg_start<- mkReg(False);
-    Reg#(Bit#(TLog#(TDiv#(128,ELEN)))) rg_word_count <- mkReg(fromInteger(word_count-1));
+    Reg#(Bit#(TLog#(TDiv#(128,XLEN)))) rg_word_count <- mkReg(fromInteger(word_count-1));
     Reg#(Bit#(`paddr)) rg_total_count <- mkReg(0);
-    AXI4_Master_Xactor_IFC #(`paddr, ELEN, USERSPACE) m_xactor <- mkAXI4_Master_Xactor;
-    AXI4_Slave_Xactor_IFC #(`paddr, ELEN, USERSPACE) s_xactor <- mkAXI4_Slave_Xactor;
+    AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) m_xactor <- mkAXI4_Master_Xactor;
+    AXI4_Slave_Xactor_IFC #(`paddr, XLEN, USERSPACE) s_xactor <- mkAXI4_Slave_Xactor;
 
     Reg#(Bit#(`paddr)) rg_start_address<- mkReg(0);    // 0x2000
     Reg#(Bit#(`paddr)) rg_end_address<- mkReg(0);      // 0x2008
