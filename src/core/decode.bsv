@@ -367,10 +367,10 @@ package decode;
     // Branch   OP1   OP2   PC    Imm
     // JAL      PC    'd4   PC    Imm   (rs1 = 0, rs2 = 0 since neither required)
     // JALR     PC    'd4   op1   Imm   (rs2 = 0 since not required)
-    // LOAD     PC    op2   op1   Imm   (rs2 = 0 since not required) // PC needs to be sent as well
-    // STORE    PC    op2   op1   Imm   (both required. op2 is the data)
-    // AUIPC    PC    Imm   PC    Imm   (rs1 = 0, rs2 = 0 since neither required)
-    // Atomic   PC    op1   op1    0
+    // LOAD     op1   op2   op1   Imm   (rs2 = 0 since not required) // PC needs to be sent as well
+    // STORE    op1   op2   op1   Imm   (both required. op2 is the data)
+    // AUIPC    PC   Imm   PC    Imm   (rs1 = 0, rs2 = 0 since neither required)
+    // Atomic   op1   op2   op1    0
     /////////////////////////////////////////////////////////////////////////////////
 
     // assign rs1 to x0 when not required
@@ -386,8 +386,7 @@ package decode;
       rd = 0;
 
     // rs1type is IRF by default. Based on the table assign it the PC value.
-    if(opcode == `JAL_op || opcode == `JALR_op|| opcode == `AUIPC_op || opcode == `STORE_op 
-        || opcode == `FENCE_op )
+    if(opcode == `JAL_op || opcode == `JALR_op|| opcode == `AUIPC_op || opcode == `FENCE_op )
       rs1type = PC;
 
     // rs2type is IRF by default. Assign Immediate value based on the instructions
