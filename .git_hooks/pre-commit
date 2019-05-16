@@ -11,18 +11,24 @@ if [ $status -ne 1 ]; then
 fi
 
 ### Hook Script Body
-echo "Dependency Good Starting Git Hook";
-echo "Running Bluespec Linter";
+echo "Running Pre-Commit Lint Hook";
 
+files=`git diff --cached --name-status | awk '$1 != "D" { print $2 }'`
 
 if ( ${ECLINT_FIX:-"false" } == "true" ) ;
 then
-	echo "FIXING DETECTED INDENTATION FAULTS";
-	eclint fix -i "space" -s 2 -t 2 -m 100 --block_comment_start "/*" --block_comment_end "*/" -n true -w false  -c "utf-8" '$GIT_DIR/../**/*.bsv'
-	echo "REMAINING STYLE ERRORS DETECTED";
+  for f in $files
+  do
+	  echo "Fixing possible indentation issues in $f";
+  	eclint fix -i "space" -s 2 -t 2 -m 100 --block_comment_start "/*" --block_comment_end "*/" -n true -w false  -c "utf-8" $f
+  done
 fi
 
-eclint check -i "space" -s 2 -t 2 -m 100 --block_comment_start "/*" --block_comment_end "*/" -n true -w false  -c "utf-8" '$GIT_DIR/../**/*.bsv'
+for f in $files
+do
+	echo "Checking file $f for line-width and indentation";
+  eclint check -i "space" -s 2 -t 2 -m 100 --block_comment_start "/*" --block_comment_end "*/" -n true -w false  -c "utf-8" $f
+done
 
 status=$?;
 exit $status;
