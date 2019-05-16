@@ -1,36 +1,30 @@
 
-bsv_build/
+base-sim/caches_mmu
 
-verilog/
+base-sim/common_bsv
 
-bin/
+base-sim/common_verilog
 
-verification/dts/config\.spike
+base-sim/devices
 
-verification/dts/boot\.hex
+base-sim/fabrics
 
-verification/dts/shakti\.dtb
+base-sim/bsv_build
 
-verification/workdir/
+base-sim/verilog/
 
-*.dump
+base-sim/obj_dir/
 
-*.jou
+base-sim/bin/
 
-*.log
+base-sim/old_vars
 
-fpga/
+base-sim/sim_main\.h
 
-verification/dts/Makefile\.inc
-
-verification/dts/shakti\.dts
-
-old_vars
-
-obj_dir/
-
-nohup.out
-
-src/testbench/sim_main\.h
+base-sim/verification/
 
 tags
+
+base-sim/benchmarks/
+
+verilog-artifacts/
