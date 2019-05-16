@@ -31,11 +31,12 @@ Details:
 package stage3;
 
   // library imports
-  import GetPut::*; 
-  import FIFO:: *;
-  import SpecialFIFOs:: *;
-  import DReg::*;
-  import TxRx::*;
+  import GetPut :: *; 
+  import FIFO :: *;
+  import SpecialFIFOs :: *;
+  import DReg :: *;
+  import TxRx :: *;
+  import Vector :: *;
 
   // project imports
   import common_types::*;
@@ -54,18 +55,25 @@ package stage3;
     interface Put#(MemoryResponse) memory_response;
     interface Get#(CommitPacket) commit_rd;
     interface Get#(OpFwding) operand_fwding;
-    method Tuple3#(Bit#(`vaddr), Bool, Bool) flush;
+    method Tuple2#(Bit#(`vaddr), Bool) flush;
 
-    method CSRtoDecode csrs_to_decode;
+    method CSRtoDecode mv_csr_decode;
+    method Bit#(1) mv_csr_misa_c;
+
+    // side band connections to the csr
     method Action clint_msip(Bit#(1) intrpt);
     method Action clint_mtip(Bit#(1) intrpt);
     method Action clint_mtime(Bit#(64) c_mtime);
-    method Action set_external_interrupt(Bit#(1) ex_i);
+    method Action ext_interrupt(Bit#(1) i);
     method Bool csr_updated;
-    `ifdef rtldump
-      interface Get#(DumpType) dump;
-    `endif
-    method Bit#(1) mv_misa_c;
+  `ifdef rtldump
+    interface Get#(DumpType) dump;
+  `endif
+  `ifdef triggers
+    method Vector#(`trigger_num, TriggerData) mv_trigger_data1;
+    method Vector#(`trigger_num, Bit#(XLEN))  mv_trigger_data2;
+    method Vector#(`trigger_num, Bool)        mv_trigger_enable;
+  `endif
   endinterface : Ifc_stage3
 
   (*synthesize*)
@@ -92,7 +100,7 @@ package stage3;
     Wire#(Maybe#(CommitPacket)) wr_commit <- mkDWire(tagged Invalid);
 
     // wire which signals the entire pipe to be flushed.
-    Wire#(Tuple3#(Bit#(`vaddr), Bool, Bool)) wr_flush <- mkDWire(tuple3(?, False, False));
+    Wire#(Tuple2#(Bit#(`vaddr), Bool)) wr_flush <- mkDWire(tuple2(?, False));
 
     // the local epoch register
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
@@ -125,7 +133,7 @@ package stage3;
       if(rg_epoch == s3common.epoch)begin
         if(s3type matches tagged Trap .t) begin
           let newpc <- csr.take_trap(t.cause, s3common.pc, t.badaddr);
-          wr_flush <= tuple3(newpc, True, False);
+          wr_flush <= tuple2(newpc, True);
           rg_epoch <= ~rg_epoch;
           deq_rx;
           `logLevel( stage3, 0, $format("STAGE3 : Jumping to PC:%h", newpc))
@@ -137,7 +145,7 @@ package stage3;
               data = 0;
 
           wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : True, rdvalue : data};
-          wr_commit <= tagged Valid (CommitPacket{rdaddr: s3common.rd, rdvalue: data});
+          wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : data});
           deq_rx;
         `ifdef rtldump 
           dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, r.rdvalue));
@@ -147,9 +155,9 @@ package stage3;
         if(s3type matches tagged System .sys) begin
           let {drain, newpc, dest} <- csr.system_instruction(sys.csr_address, sys.rs1_imm, 
                                                               sys.funct3, sys.lpc);
-          wr_flush <= tuple3(newpc, drain, False);
+          wr_flush <= tuple2(newpc, drain);
           rg_epoch <= ~rg_epoch;
-          wr_commit <= tagged Valid (CommitPacket{rdaddr: s3common.rd, rdvalue: dest});
+          wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : dest});
           wr_csr_updated <= True;
           deq_rx;
         `ifdef rtldump 
@@ -164,7 +172,7 @@ package stage3;
               if(s3common.rd == 0)
                 data = 0;
               wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : True, rdvalue : data};
-              wr_commit <= tagged Valid (CommitPacket{rdaddr: s3common.rd, rdvalue: data});
+              wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : data});
               deq_rx;
             `ifdef rtldump 
               dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, data));
@@ -173,7 +181,7 @@ package stage3;
             else begin
               let newpc <- csr.take_trap(mem.memaccess == Load ? `Load_access_fault:
                                           `Store_access_fault, s3common.pc, mem.address);
-              wr_flush <= tuple3(newpc, True, False);
+              wr_flush <= tuple2(newpc, True);
               rg_epoch <= ~rg_epoch;
               deq_rx;
               `logLevel( stage3, 0, $format("STAGE3 : Jumping to PC:%h", newpc))
@@ -221,7 +229,7 @@ package stage3;
     endinterface;
 
     method flush = wr_flush;
-    method csrs_to_decode = csr.csrs_to_decode;
+    method mv_csr_decode = csr.mv_csr_decode;
     method Bool csr_updated = wr_csr_updated;
 
     method Action clint_msip(Bit#(1) intrpt);
@@ -233,8 +241,8 @@ package stage3;
     method Action clint_mtime(Bit#(64) c_mtime);
       csr.clint_mtime(c_mtime);
     endmethod
-    method Action set_external_interrupt(Bit#(1) ex_i);
-      csr.set_external_interrupt(ex_i);
+    method Action ext_interrupt(Bit#(1) ex_i);
+      csr.ext_interrupt(ex_i);
     endmethod
     `ifdef rtldump 
       interface dump = interface Get
@@ -244,6 +252,11 @@ package stage3;
         endmethod
       endinterface;
     `endif
-    method mv_misa_c = csr.csr_misa_c;
+    method mv_csr_misa_c = csr.mv_csr_misa_c;
+  `ifdef triggers
+    method mv_trigger_data1 =   csr.mv_trigger_data1;
+    method mv_trigger_data2 =   csr.mv_trigger_data2;
+    method mv_trigger_enable =  csr.mv_trigger_enable;
+  `endif
   endmodule : mkstage3
 endpackage : stage3
