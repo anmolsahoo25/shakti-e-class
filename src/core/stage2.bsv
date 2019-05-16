@@ -46,35 +46,37 @@ package stage2;
 
   interface Ifc_stage2;
     // interface to send decoded instruction to the next stage
-    interface RXe#(STAGE1_operands) rx_stage1_operands;
-    interface RXe#(STAGE1_meta) rx_stage1_meta;
-    interface RXe#(STAGE1_control) rx_stage1_control;
+    interface RXe#(STAGE1_operands)   rx_stage1_operands;
+    interface RXe#(STAGE1_meta)       rx_stage1_meta;
+    interface RXe#(STAGE1_control)    rx_stage1_control;
     
     // interface to send the alu result to the next stage.
-    interface TXe#(Stage3Common)  tx_stage3_common;
-    interface TXe#(Stage3Type)    tx_stage3_type;
+    interface TXe#(Stage3Common)      tx_stage3_common;
+    interface TXe#(Stage3Type)        tx_stage3_type;
 
   `ifdef rtldump
-    interface RXe#(STAGE1_dump) rx_stage1_dump ;
-    interface TXe#(STAGE1_dump)   tx_stage3_dump;  
+    interface RXe#(STAGE1_dump)       rx_stage1_dump ;
+    interface TXe#(STAGE1_dump)       tx_stage3_dump;  
   `endif
   
-    //rd, valid and value given back by the mem and wb unit for eliminating congestion
-    interface Put#(OpFwding) operand_fwding;
-    
     // memory request interface in case of Load / Store instruction
     interface Get#(MemoryRequest) memory_request;
+   
+    //rd, valid and value given back by the mem and wb unit for eliminating congestion
+    interface Put#(OpFwding) operand_fwding;
+    // receive flush form stage3 in case of traps
+    method Action ma_flush;
+    // receive the 'c' bit value of the misa-csr from stage3
+    method Action ma_csr_misa_c (Bit#(1) c);
   
   `ifdef triggers
     (*always_ready, always_enabled*)
-    method Action trigger_data1(Vector#(`trigger_num, TriggerData) t);
+    method Action ma_trigger_data1(Vector#(`trigger_num, TriggerData) t);
     (*always_ready, always_enabled*)
-    method Action trigger_data2(Vector#(`trigger_num, Bit#(XLEN)) t);
+    method Action ma_trigger_data2(Vector#(`trigger_num, Bit#(XLEN)) t);
     (*always_ready, always_enabled*)
-    method Action trigger_enable(Vector#(`trigger_num, Bool) t);
+    method Action ma_trigger_enable(Vector#(`trigger_num, Bool) t);
   `endif
-    method Action flush_from_wb;
-    method Action misa_c_from_csr (Bit#(1) c);
   endinterface : Ifc_stage2
   
   (*synthesize*)
@@ -108,20 +110,20 @@ package stage2;
     Reg#(Maybe#(Bit#(`paddr))) rg_loadreserved_addr <- mkReg(tagged Invalid);
   `endif
 
-    // If a CSR operation is detected then you need to stall fetching operands from the regfile
-    // untill the csr instruction has been committed. the forwarding path from the csr operation to
-    // the ALU is huge. This way we break the path and neither flush the entire pipe.
-    // Flushing the entire pipe will lead to fetching the same instruction again.
-    // However,  if we do add csrs which affect how an instruction is fetched (protection,  etc)
-    // then the entire pipe will have to flushed. 
-    // There does exist mechanism in the last stage to flush pipe on a trap. in case a full flush is
-    // required,  that particular method should be excited.
-    Reg#(Bool) rg_csr_stall[2] <- mkCReg(2, False);
-  `ifdef muldiv
-    Reg#(Bool) rg_stall <- mkReg(False);
-  `elsif atomic
-    Reg#(Bool) rg_stall <- mkReg(False);
-  `endif
+// If a CSR operation is detected then you need to stall fetching operands from the regfile
+// untill the csr instruction has been committed. the forwarding path from the csr operation to
+// the ALU is huge. This way we break the path and neither flush the entire pipe.
+// Flushing the entire pipe will lead to fetching the same instruction again.
+// However,  if we do add csrs which affect how an instruction is fetched (protection,  etc)
+// then the entire pipe will have to flushed. 
+// There does exist mechanism in the last stage to flush pipe on a trap. in case a full flush is
+// required,  that particular method should be excited.
+//    Reg#(Bool) rg_csr_stall[2] <- mkCReg(2, False);
+//  `ifdef muldiv
+//    Reg#(Bool) rg_stall <- mkReg(False);
+//  `elsif atomic
+//    Reg#(Bool) rg_stall <- mkReg(False);
+//  `endif
 
   `ifdef muldiv
     `ifdef atomic
@@ -272,25 +274,25 @@ package stage2;
       endmethod
     endinterface;
 
-    method Action flush_from_wb; //fence integration
+    method Action ma_flush; //fence integration
       rg_epoch[1]<=~rg_epoch[1];
       ff_memory_request.clear();
     endmethod
 
-    method Action misa_c_from_csr (Bit#(1) c);
+    method Action ma_csr_misa_c (Bit#(1) c);
       wr_misa_c <= c;
     endmethod
 
   `ifdef triggers
-    method Action trigger_data1(Vector#(`trigger_num, TriggerData) t);
+    method Action ma_trigger_data1(Vector#(`trigger_num, TriggerData) t);
       for(Integer i = 0; i<`trigger_num; i = i+1)
         v_trigger_data1[i] <= t[i];
     endmethod
-    method Action trigger_data2(Vector#(`trigger_num, Bit#(XLEN)) t);
+    method Action ma_trigger_data2(Vector#(`trigger_num, Bit#(XLEN)) t);
       for(Integer i = 0; i<`trigger_num; i = i+1)
         v_trigger_data2[i] <= t[i];
     endmethod
-    method Action trigger_enable(Vector#(`trigger_num, Bool) t);
+    method Action ma_trigger_enable(Vector#(`trigger_num, Bool) t);
       for(Integer i = 0; i<`trigger_num; i = i+1)
         v_trigger_enable[i] <= t[i];
     endmethod
