@@ -258,6 +258,7 @@ package common_types;
   typedef struct{
     Bit#(XLEN) data;
     Bool err;
+    Bit#(1) epoch;
   } MemoryResponse deriving(Eq, FShow, Bits);
 
   typedef struct{

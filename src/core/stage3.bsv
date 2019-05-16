@@ -167,13 +167,13 @@ package stage3;
         end
 
         if(s3type matches tagged Memory .mem)begin
-          if(wr_memory_response matches tagged Valid .resp)begin
-            let data = resp.data;
-            if( !resp.err )begin
-              if(s3common.rd == 0)
-                data = 0;
-              wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : True, rdvalue : data};
-              wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : data});
+            if(wr_memory_response matches tagged Valid .resp &&& resp.epoch == rg_epoch)begin
+              let data = resp.data;
+              if( !resp.err )begin
+                if(s3common.rd == 0)
+                  data = 0;
+                wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : True, rdvalue : data};
+                wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : data});
               deq_rx;
             `ifdef rtldump 
               dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, data));
