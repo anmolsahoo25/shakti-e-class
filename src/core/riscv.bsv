@@ -64,6 +64,8 @@ package riscv;
     `ifdef rtldump
       interface Get#(DumpType) dump;
     `endif
+
+    method Bit#(2) mv_curr_priv;
   endinterface : Ifc_riscv
 
   (*synthesize*)
@@ -133,5 +135,6 @@ package riscv;
     `ifdef rtldump
       interface dump = stage3.dump;
     `endif
+    method mv_curr_priv = stage3.mv_curr_priv;
   endmodule : mkriscv
 endpackage : riscv

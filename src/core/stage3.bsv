@@ -74,6 +74,7 @@ package stage3;
     method Vector#(`trigger_num, Bit#(XLEN))  mv_trigger_data2;
     method Vector#(`trigger_num, Bool)        mv_trigger_enable;
   `endif
+    method Bit#(2) mv_curr_priv;
   endinterface : Ifc_stage3
 
   (*synthesize*)
@@ -107,7 +108,7 @@ package stage3;
 
   `ifdef rtldump
     FIFO#(DumpType) dump_ff <- mkLFIFO;
-    Privilege_mode prv = unpack(csr.curr_priv);
+    Privilege_mode prv = unpack(csr.mv_curr_priv);
   `endif
 
     function Action deq_rx = action
@@ -258,5 +259,6 @@ package stage3;
     method mv_trigger_data2 =   csr.mv_trigger_data2;
     method mv_trigger_enable =  csr.mv_trigger_enable;
   `endif
+    method mv_curr_priv = csr.mv_curr_priv;
   endmodule : mkstage3
 endpackage : stage3

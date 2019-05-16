@@ -136,7 +136,7 @@ package csrfile;
     method Bit#(1) arith_excep;
   `endif
     method Bit#(1) mv_csr_misa_c;
-    method Bit#(2) curr_priv;
+    method Bit#(2) mv_curr_priv;
     method Bit#(XLEN) csr_mstatus;
   //-------------------------- sideband connections -----------------------------------------//
 	  method Action clint_msip(Bit#(1) intrpt);
@@ -1042,7 +1042,7 @@ package csrfile;
     `endif
 	  endmethod
     method mv_csr_misa_c = misa_c;
-    method curr_priv = pack(rg_prv);
+    method mv_curr_priv = pack(rg_prv);
     method Bit#(XLEN) csr_mstatus;
       `ifdef RV64
         return {sd, 27'd0, 2'd0, uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,

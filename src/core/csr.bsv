@@ -69,7 +69,7 @@ package csr;
    //This method returns value of csr_reg which enables or disables arithmetic exceptions
     method Bit#(1) arith_excep;
   `endif
-    method Bit#(2) curr_priv;
+    method Bit#(2) mv_curr_priv;
     method Bit#(XLEN) csr_mstatus;
   `ifdef pmp
     method Vector#(`PMPSIZE, Bit#(8)) pmp_cfg;
@@ -164,7 +164,7 @@ package csr;
   `ifdef arith_trap
     method arith_excep = csrfile.arith_excep;
   `endif
-    method curr_priv = csrfile.curr_priv;
+    method mv_curr_priv = csrfile.mv_curr_priv;
     method csr_mstatus = csrfile.csr_mstatus;
   `ifdef pmp
     method pmp_cfg = csrfile.pmp_cfg;
