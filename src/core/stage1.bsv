@@ -91,7 +91,7 @@ package stage1;
     method Action ma_csr_decode (CSRtoDecode c);
   
     //rd and value given back by the write back unit
-    interface Put#(Tuple2#(Bit#(5),Bit#(XLEN))) commit_rd;
+    interface Put#(CommitPacket) commit_rd;
 
   `ifdef triggers
     // receives the TDATA1 from the csrs
@@ -479,9 +479,8 @@ package stage1;
   `endif
     
     interface commit_rd = interface Put
-      method Action put (Tuple2#(Bit#(5), Bit#(XLEN)) wbinfo ) if(!rg_initialize);
-        let {rd, value} = wbinfo;
-        integer_rf.upd( rd, value );
+      method Action put (CommitPacket) wbinfo ) if(!rg_initialize);
+        integer_rf.upd( wbinfo.rdaddr, wbinfo.rdvalue );
       endmethod
     endinterface;
     

@@ -51,8 +51,8 @@ package stage3;
     interface RXe#(STAGE1_dump)   rx_stage3_dump ;
   `endif
 
-    interface Put#(Tuple2#(Bit#(XLEN), Bool)) memory_response;
-    interface Get#(Tuple2#(Bit#(5), Bit#(XLEN))) commit_rd;
+    interface Put#(MemoryResponse) memory_response;
+    interface Get#(CommitPacket) commit_rd;
     interface Get#(OpFwding) operand_fwding;
     method Tuple3#(Bit#(`vaddr), Bool, Bool) flush;
 
@@ -83,15 +83,13 @@ package stage3;
     Wire#(Bool) wr_csr_updated <- mkDWire(False);
 
     // wire that captures the response coming from the external memory or cache.
-    Wire#(Maybe#(Tuple2#(Bit#(XLEN), Bool))) wr_memory_response 
-                                                                        <- mkDReg(tagged Invalid);
+    Wire#(Maybe#(MemoryResponse)) wr_memory_response <- mkDReg(tagged Invalid);
 
     // wire that carriues the information for operand forwarding
     Wire#(OpFwding) wr_operand_fwding <- mkDWire(unpack(0));
 
     // wire that carries the commit data that needs to be written to the integer register file.
-    // TODO change this to struct
-    Wire#(Maybe#(Tuple2#(Bit#(5), Bit#(XLEN)))) wr_commit <- mkDWire(tagged Invalid);
+    Wire#(Maybe#(CommitPacket)) wr_commit <- mkDWire(tagged Invalid);
 
     // wire which signals the entire pipe to be flushed.
     Wire#(Tuple3#(Bit#(`vaddr), Bool, Bool)) wr_flush <- mkDWire(tuple3(?, False, False));
@@ -139,7 +137,7 @@ package stage3;
               data = 0;
 
           wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : True, rdvalue : data};
-          wr_commit <= tagged Valid (tuple2(s3common.rd, data));
+          wr_commit <= tagged Valid (CommitPacket{rdaddr: s3common.rd, rdvalue: data});
           deq_rx;
         `ifdef rtldump 
           dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, r.rdvalue));
@@ -151,7 +149,7 @@ package stage3;
                                                               sys.funct3, sys.lpc);
           wr_flush <= tuple3(newpc, drain, False);
           rg_epoch <= ~rg_epoch;
-          wr_commit <= tagged Valid (tuple2(s3common.rd, dest));
+          wr_commit <= tagged Valid (CommitPacket{rdaddr: s3common.rd, rdvalue: dest});
           wr_csr_updated <= True;
           deq_rx;
         `ifdef rtldump 
@@ -161,12 +159,12 @@ package stage3;
 
         if(s3type matches tagged Memory .mem)begin
           if(wr_memory_response matches tagged Valid .resp)begin
-            let {data, err} = resp;
-            if( !err )begin
+            let data = resp.data;
+            if( !resp.err )begin
               if(s3common.rd == 0)
                 data = 0;
               wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : True, rdvalue : data};
-              wr_commit <= tagged Valid (tuple2(s3common.rd, data));
+              wr_commit <= tagged Valid (CommitPacket{rdaddr: s3common.rd, rdvalue: data});
               deq_rx;
             `ifdef rtldump 
               dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, data));
@@ -204,14 +202,14 @@ package stage3;
     interface rx_stage3_dump = ff_stage3_dump.e;
   `endif
     interface  memory_response = interface Put
-      method Action put (Tuple2#(Bit#(XLEN), Bool) response);
+      method Action put (MemoryResponse response);
         wr_memory_response <= tagged Valid response;
       endmethod
     endinterface;
 
 
     interface commit_rd = interface Get
-      method ActionValue#(Tuple2#(Bit#(5), Bit#(XLEN)))get if(wr_commit matches tagged Valid .data);
+      method ActionValue#(CommitPacket)get if(wr_commit matches tagged Valid .data);
         return data;
       endmethod
     endinterface;

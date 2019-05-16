@@ -244,6 +244,18 @@ package common_types;
     Bit#(1) epoch;
   } MemoryRequest deriving (Eq, FShow, Bits);
 
+  typedef struct{
+    Bit#(XLEN) data;
+    Bool err;
+  } MemoryResponse deriving(Eq, FShow, Bits);
+
+  typedef struct{
+    Bit#(5) rdaddr;
+    Bit#(XLEN) rdvalue;
+  } CommitPacket deriving(Bits, FShow, Eq);
+
+
+
 //  typedef Tuple5#(Bit#(`paddr), Bit#(XLEN), Access_type, Bit#(2), Bit#(1)) MemoryRequest;
   typedef Tuple4#(Bit#(`paddr), Access_type, Bit#(2), Bit#(1)) CoreRequest;
 
