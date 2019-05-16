@@ -65,7 +65,7 @@ package stage2;
     //rd, valid and value given back by the mem and wb unit for eliminating congestion
     interface Put#(OpFwding) operand_fwding;
     // receive flush form stage3 in case of traps
-    method Action ma_flush;
+    method Action ma_update_wEpoch;
     // receive the 'c' bit value of the misa-csr from stage3
     method Action ma_csr_misa_c (Bit#(1) c);
   
@@ -77,6 +77,8 @@ package stage2;
     (*always_ready, always_enabled*)
     method Action ma_trigger_enable(Vector#(`trigger_num, Bool) t);
   `endif
+
+    method Tuple2#(Bit#(`vaddr), Bool) mv_redirection;
   endinterface : Ifc_stage2
   
   (*synthesize*)
@@ -86,10 +88,10 @@ package stage2;
                                                 Op1type rs1type, Bit#(5) rs2addr, Bit#(XLEN) op2, 
                                                 Op2type rs2type, Bit#(5) rdaddr, Bit#(XLEN) rd,
                                                                   Bool valid);
-      Bit#(XLEN) rs1 = (rs1addr == rdaddr && rs1type == IntegerRF) ? rd : op1;
-      Bit#(XLEN) rs2 = (rs2addr == rdaddr && rs2type == IntegerRF) ? rd : op2;
-      Bool avail = !(((rs1addr == rdaddr && rs1type == IntegerRF) || 
-                      (rs2addr == rdaddr && rs2type == IntegerRF)) && !valid && rdaddr != 0);
+      Bit#(XLEN) rs1 = (rs1addr == rdaddr) ? rd : op1;
+      Bit#(XLEN) rs2 = (rs2addr == rdaddr) ? rd : op2;
+      Bool avail = !(((rs1addr == rdaddr ) || 
+                      (rs2addr == rdaddr )) && !valid && rdaddr != 0);
       return tuple3(avail, rs1, rs2);
     endfunction
 
@@ -98,7 +100,9 @@ package stage2;
     Wire#(Bit#(1)) wr_misa_c <- mkWire();
      
     // generating the register file
-    Reg#(Bit#(1)) rg_epoch[2] <- mkCReg(2, 0);
+    Reg#(Bit#(1)) rg_wEpoch <- mkReg(0);
+    Reg#(Bit#(1)) rg_eEpoch <- mkReg(0);
+
     Reg#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
     FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
 
@@ -140,6 +144,11 @@ package stage2;
     TX#(Stage3Common) ff_stage3_common <- mkTX;
     TX#(Stage3Type) ff_stage3_type <- mkTX;
 
+    Wire#(Tuple2#(Bit#(`vaddr), Bool)) wr_redirection <- mkDWire(tuple2(?,False));
+    
+    Bit#(2) curr_epoch = {rg_eEpoch, rg_wEpoch};
+
+
   `ifdef rtldump
     RX#(STAGE1_dump) ff_stage1_dump <- mkRX;
     TX#(STAGE1_dump) ff_stage3_dump <- mkTX;
@@ -150,6 +159,7 @@ package stage2;
     Vector#(`trigger_num, Wire#(Bit#(XLEN))) v_trigger_data2 <- replicateM(mkWire());
     Vector#(`trigger_num, Wire#(Bool)) v_trigger_enable <- replicateM(mkWire());
   `endif
+
     
     function Action deq_rx = action
       ff_stage1_operands.u.deq;
@@ -177,7 +187,10 @@ package stage2;
                                               opaddr.rs2addr, ops.op2, optype.rs2type, 
                                               wr_opfwding.rdaddr, wr_opfwding.rdvalue, 
                                               wr_opfwding.valid);
-      Bit#(XLEN) op3 = meta.inst_type == MEMORY? op1 : control.pc;
+      Bit#(XLEN) _op1 = (optype.rs1type == PC)? control.pc : op1;
+      Bit#(XLEN) _op2 = (optype.rs2type == Constant4)? 'd4: (optype.rs2type == Constant2)? 'd2:
+                        (optype.rs2type == Immediate)? signExtend(meta.immediate) : op2;
+      Bit#(XLEN) op3  = meta.inst_type == MEMORY || meta.inst_type == JALR? op1 : control.pc;
       Bit#(3) funct3  = truncate(meta.funct);
       Bit#(4) fn      = truncateLSB(meta.funct);
     `ifdef rtldump      
@@ -190,7 +203,7 @@ package stage2;
       `logLevel( stage2, 1, $format("STAGE2 : Control: ", fshow(control)))
       `logLevel( stage2, 1, $format("STAGE2 : Fwding : Valid:%b Op1:%h Op2:%h", valid, op1, op2)) 
 
-      let aluout <- alu.inputs(fn, op1, op2, op3, zeroExtend(meta.immediate), 
+      let aluout <- alu.inputs(fn, _op1, _op2, op3, zeroExtend(meta.immediate), 
                               meta.inst_type, funct3, meta.memaccess, 
                               `ifdef RV64 meta.word32, `endif wr_misa_c, truncate(control.pc)
                               `ifdef triggers
@@ -200,18 +213,21 @@ package stage2;
 
       `logLevel( stage2, 1, $format("STAGE2 : AluOut: ", fshow(aluout)))
 
-      Bit#(1) epoch = control.epoch;
-      if(epoch == rg_epoch[0])begin
+      Bit#(2) epoch = control.epoch;
+      if(epoch == curr_epoch)begin
         if(aluout.done && valid)begin
           deq_rx; 
+          wr_redirection <= tuple2(aluout.effective_addr, aluout.redirect);
+          if(aluout.redirect)
+            rg_eEpoch <= ~rg_eEpoch;
           if(aluout.cmtype == MEMORY)
             ff_memory_request.enq(MemoryRequest{addr : aluout.effective_addr, data : ops.op2, 
                                                 memaccess : meta.memaccess, size : funct3, 
-                                                epoch : epoch});
+                                                epoch : rg_wEpoch});
         // -------------------------- Derive types for Next stage --------------------------- //
             let s3common = Stage3Common{pc      : control.pc, 
                                         rd      : opaddr.rd,
-                                        epoch   : control.epoch};
+                                        epoch   : rg_wEpoch};
             let s3memory = Stage3Memory{memaccess   : meta.memaccess
                                       `ifdef triggers
                                         ,address     : aluout.effective_addr
@@ -278,14 +294,16 @@ package stage2;
       endmethod
     endinterface;
 
-    method Action ma_flush; //fence integration
-      rg_epoch[1]<=~rg_epoch[1];
+    method Action ma_update_wEpoch; //fence integration
+      rg_wEpoch <= ~rg_wEpoch;
       ff_memory_request.clear();
     endmethod
 
     method Action ma_csr_misa_c (Bit#(1) c);
       wr_misa_c <= c;
     endmethod
+
+    method mv_redirection = wr_redirection;
 
   `ifdef triggers
     method Action ma_trigger_data1(Vector#(`trigger_num, TriggerData) t);
