@@ -83,12 +83,13 @@ package stage2;
   module mkstage2(Ifc_stage2);
 
     function Tuple3#(Bool, Bit#(XLEN), Bit#(XLEN)) get_latest_ops(Bit#(5) rs1addr, Bit#(XLEN) op1, 
-                                                                  Bit#(5) rs2addr, Bit#(XLEN) op2, 
-                                                                  Bit#(5) rdaddr, Bit#(XLEN) rd,
+                                                Op1type rs1type, Bit#(5) rs2addr, Bit#(XLEN) op2, 
+                                                Op2type rs2type, Bit#(5) rdaddr, Bit#(XLEN) rd,
                                                                   Bool valid);
-      Bit#(XLEN) rs1 = (rs1addr == rdaddr) ? rd : op1;
-      Bit#(XLEN) rs2 = (rs2addr == rdaddr) ? rd : op2;
-      Bool avail = !(((rs1addr == rdaddr) || (rs2addr == rdaddr)) && !valid && rdaddr != 0);
+      Bit#(XLEN) rs1 = (rs1addr == rdaddr && rs1type == IntegerRF) ? rd : op1;
+      Bit#(XLEN) rs2 = (rs2addr == rdaddr && rs2type == IntegerRF) ? rd : op2;
+      Bool avail = !(((rs1addr == rdaddr && rs1type == IntegerRF) || 
+                      (rs2addr == rdaddr && rs2type == IntegerRF)) && !valid && rdaddr != 0);
       return tuple3(avail, rs1, rs2);
     endfunction
 
@@ -172,8 +173,11 @@ package stage2;
     `ifdef rtldump
       let dump = ff_stage1_dump.u.first;
     `endif
-      let {valid, op1, op2} = get_latest_ops(opaddr.rs1addr, ops.op1, opaddr.rs2addr, ops.op2,
-                                      wr_opfwding.rdaddr, wr_opfwding.rdvalue, wr_opfwding.valid);
+      let {valid, op1, op2} = get_latest_ops(opaddr.rs1addr, ops.op1, optype.rs1type, 
+                                              opaddr.rs2addr, ops.op2, optype.rs2type, 
+                                              wr_opfwding.rdaddr, wr_opfwding.rdvalue, 
+                                              wr_opfwding.valid);
+      Bit#(XLEN) op3 = meta.inst_type == MEMORY? op1 : control.pc;
       Bit#(3) funct3  = truncate(meta.funct);
       Bit#(4) fn      = truncateLSB(meta.funct);
     `ifdef rtldump      
@@ -186,7 +190,7 @@ package stage2;
       `logLevel( stage2, 1, $format("STAGE2 : Control: ", fshow(control)))
       `logLevel( stage2, 1, $format("STAGE2 : Fwding : Valid:%b Op1:%h Op2:%h", valid, op1, op2)) 
 
-      let aluout <- alu.inputs(fn, op1, op2, control.pc, zeroExtend(meta.immediate), 
+      let aluout <- alu.inputs(fn, op1, op2, op3, zeroExtend(meta.immediate), 
                               meta.inst_type, funct3, meta.memaccess, 
                               `ifdef RV64 meta.word32, `endif wr_misa_c, truncate(control.pc)
                               `ifdef triggers
