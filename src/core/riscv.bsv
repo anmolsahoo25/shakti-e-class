@@ -102,16 +102,28 @@ package riscv;
     mkConnection(stage2.ma_trigger_enable , stage3.mv_trigger_enable);
   `endif
 
-    let {newpc, fl}=stage3.flush; 
+    let {newpc, trap}=stage3.flush; 
+    let {redirect_pc, redirect} = stage2.mv_redirection;
 
     // TODO ma_interrupt to stage1 to be connected to interrupt from stage3
     rule connect_interrupt;
       stage1.ma_interrupt(False);
     endrule
 
-    rule flush_from_writeback(fl); 
-      stage1.ma_flush(newpc);
-      stage2.ma_flush();
+    rule gen_new_pc(trap || redirect);
+      if(trap)
+        stage1.ma_flush(newpc);
+      else
+        stage1.ma_flush(redirect_pc);
+    endrule
+
+    rule redirection_from_stage2(redirect);
+      stage1.ma_update_eEpoch;
+    endrule
+
+    rule flush_from_writeback(trap); 
+      stage2.ma_update_wEpoch;
+      stage1.ma_update_wEpoch;
     endrule
 
     interface inst_request = stage1.inst_request;

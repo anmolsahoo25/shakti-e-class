@@ -169,7 +169,7 @@ package common_types;
   typedef DecodeOut STAGE1_meta;
 
   typedef struct{
-    Bit#(1) epoch;
+    Bit#(2) epoch;
     Bit#(`vaddr) pc;
   } STAGE1_control deriving(Bits, FShow, Eq);
 
@@ -238,12 +238,12 @@ package common_types;
 
   typedef struct{
     Bit#(`vaddr) addr;
-    Bit#(1) epoch ;
+    Bit#(2) epoch ;
   } InstRequest deriving(Bits, FShow, Eq);
 
   typedef struct{
     Bit#(32) inst;
-    Bit#(1) epoch;
+    Bit#(2) epoch;
     Bool    err;
   } InstResponse deriving(Bits, FShow, Eq);
 

@@ -50,7 +50,7 @@ package stage1;
   typedef struct{
     Bit#(`vaddr) pc;
     Bit#(16) instruction;
-    Bit#(1) epoch;
+    Bit#(2) epoch;
   } PrevMeta deriving(Eq, Bits, FShow);
   // ------------------------------------------------------------------------------------------- //
 
@@ -82,6 +82,9 @@ package stage1;
     method Action ma_interrupt(Bool i);
     (*always_ready, always_enabled*)
     method Action ma_csr_decode (CSRtoDecode c);
+
+    method Action ma_update_eEpoch;
+    method Action ma_update_wEpoch;
 
   `ifdef triggers
     // receives the TDATA1 from the csrs
@@ -119,7 +122,8 @@ package stage1;
     Reg#(Bit#(`vaddr)) rg_pc <- mkReg((resetpc));
 
     // holds the curren epoch values of the pipe.
-    Reg#(Bit#(1)) rg_epoch <- mkReg(0);
+    Reg#(Bit#(1)) rg_eEpoch <- mkReg(0);
+    Reg#(Bit#(1)) rg_wEpoch <- mkReg(0);
 
     // This register implements a simple state - machine which indicates how the instruction should 
     // be extracted from the cache response.
@@ -162,6 +166,8 @@ package stage1;
     Vector#(`trigger_num, Wire#(Bit#(XLEN))) v_trigger_data2 <- replicateM(mkWire());
     Vector#(`trigger_num, Wire#(Bool)) v_trigger_enable <- replicateM(mkWire());
   `endif
+
+    Bit#(2) curr_epoch = {rg_eEpoch, rg_wEpoch};
     // ----------------------------------End instantiations ------------------------------------ //
 
   `ifdef triggers
@@ -225,26 +231,8 @@ package stage1;
                                         Op2type rs2type, Bit#(`vaddr) pc, Bit#(32) imm);
       Bit#(XLEN) rs1irf = integer_rf.sub(rs1addr);
       Bit#(XLEN) rs2irf = integer_rf.sub(rs2addr);
-      Bit#(XLEN) rs1 = 0;
-      Bit#(XLEN) rs2 = 0;
 
-      if( rs1type == PC )
-        rs1 = pc;
-      else
-        rs1 = rs1irf;
-      
-      if( rs2type == Constant4 )
-        rs2 = 'd4;
-    `ifdef compressed
-      else if ( rs2type == Constant2 )
-        rs2 = 'd2;
-    `endif
-      else if( rs2type == Immediate )
-        rs2 = signExtend(imm);
-      else
-        rs2 = rs2irf;
-
-      return STAGE1_operands{op1 : rs1, op2 : rs2};
+      return STAGE1_operands{op1 : rs1irf, op2 : rs2irf};
     endfunction
     // ---------------------- End local function definitions ------------------//
 
@@ -324,14 +312,14 @@ package stage1;
         PrevMeta lv_prev = rg_prev;
       `endif
 
-        if(rg_epoch != resp.epoch)begin
+        if(curr_epoch != resp.epoch)begin
           ff_memory_response.deq;
           rg_action <= None;
           perform_decode = False;
           `logLevel( stage1, 1, $format("STAGE1 : Dropping Instruction from Cache"))
         end
       `ifdef compressed
-        else if(rg_action == CheckPrev && rg_prev.epoch == rg_epoch)begin
+        else if(rg_action == CheckPrev && rg_prev.epoch == curr_epoch)begin
           if(rg_prev.instruction[1 : 0] == 2'b11)begin
             final_instruction={resp.inst[15 : 0], rg_prev.instruction};
             lv_prev.instruction = truncateLSB(resp.inst);
@@ -372,11 +360,10 @@ package stage1;
         `endif
         end
       `ifdef compressed
-        lv_prev.epoch = rg_epoch;
+        lv_prev.epoch = curr_epoch;
         rg_prev <= lv_prev;
         `logLevel( stage1, 1, $format("STAGE1 : rg_action: ",fshow(rg_action), " Prev: ",
                                                               fshow(rg_prev)))
-        PIPE1_DS x = decoder_func_16(final_instruction[15 : 0], rg_pc, resp.epoch, resp.err, wr_csr_decode);
       `endif
 
         let y <- decoder_func(final_instruction, resp.err, wr_csr_decode);
@@ -395,22 +382,22 @@ package stage1;
       if(perform_decode) begin
         ff_stage1_operands.u.enq(_ops);
         ff_stage1_meta.u.enq(y);
-        ff_stage1_control.u.enq(STAGE1_control{ epoch : rg_epoch, pc : rg_pc});
+        ff_stage1_control.u.enq(STAGE1_control{ epoch : curr_epoch, pc : rg_pc});
       `ifdef rtldump
         ff_stage1_dump.u.enq(STAGE1_dump {pc : rg_pc, instruction : final_instruction});
       `endif
         rg_pc <= rg_pc + offset;
         `logLevel( stage1, 0, $format("STAGE1 : PC: %h Inst: %h, Err: %b Epoch: %b", 
                                         rg_pc, final_instruction, resp.err, resp.epoch))
-        `logLevel( stage1, 1, $format("STAGE1 : compressed: %b perform_decode: %b rg_epoch: %b",
-                                        compressed, perform_decode, rg_epoch))
+        `logLevel( stage1, 1, $format("STAGE1 : compressed: %b perform_decode: %b curr_epoch: %b",
+                                        compressed, perform_decode, curr_epoch))
       end
     endrule
     
     interface inst_request = interface Get
       method ActionValue#(InstRequest) get;
         rg_fabric_request[0] <= rg_fabric_request[0] + 4; 
-        return InstRequest{addr:rg_fabric_request[0], epoch:rg_epoch};
+        return InstRequest{addr:rg_fabric_request[0], epoch:curr_epoch};
       endmethod
     endinterface;
 
@@ -430,9 +417,16 @@ package stage1;
     interface tx_stage1_dump = ff_stage1_dump.e;
   `endif
 
+    method Action ma_update_eEpoch;
+      rg_eEpoch <= ~rg_eEpoch;
+    endmethod
+
+    method Action ma_update_wEpoch;
+      rg_wEpoch <= ~rg_wEpoch;
+    endmethod
+
     method Action ma_flush( Bit#(`vaddr) newpc); 
       rg_pc <= newpc;
-      rg_epoch<=~rg_epoch;
       rg_fabric_request[1]<={truncateLSB(newpc), 2'b0};
     `ifdef compressed
       if(newpc[1 : 0] != 0)
