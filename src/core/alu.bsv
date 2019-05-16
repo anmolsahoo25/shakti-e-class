@@ -188,8 +188,8 @@ package alu;
       effective_address[0] = 0;
 
     // ------------------------- Exception detection ------------------------------------------- //
-    Bit#(`causesize) cause=`Load_addr_misaligned;
-    Bool exception = False;
+    Bit#(`causesize) cause= (inst_type == TRAP)? truncate({fn,funct3}): `Load_addr_misaligned;
+    Bool exception = (inst_type == TRAP);
     if( (inst_type == JALR || inst_type == JAL || (inst_type == BRANCH && compare_out == 1))
         &&  effective_address[1] != 0 && misa_c == 0 ) begin
       exception = True;
