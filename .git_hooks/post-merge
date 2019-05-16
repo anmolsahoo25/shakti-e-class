@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+echo "Post merge hook fired"
+echo "======================"
+
+echo ""
+
+echo "Running ctags"
+./.git_hooks/parse.py .
+
+echo ""
+echo "Post merge done"
+echo "================"
+
+echo ""
