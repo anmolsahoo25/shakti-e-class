@@ -106,6 +106,8 @@ package stage3;
     // the local epoch register
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
 
+    Reg#(Bool) rg_rerun <- mkReg(False);
+
   `ifdef rtldump
     FIFO#(DumpType) dump_ff <- mkLFIFO;
     Privilege_mode prv = unpack(csr.mv_curr_priv);
@@ -132,41 +134,52 @@ package stage3;
       // continue commit only if epochs match. Else deque the ex fifo
 
       if(rg_epoch == s3common.epoch)begin
-        if(s3type matches tagged Trap .t) begin
-          let newpc <- csr.take_trap(t.cause, s3common.pc, t.badaddr);
-          wr_flush <= tuple2(newpc, True);
+        if (rg_rerun) begin
+          wr_flush <= tuple2(s3common.pc , True);
           rg_epoch <= ~rg_epoch;
           deq_rx;
-          `logLevel( stage3, 0, $format("STAGE3 : Jumping to PC:%h", newpc))
+          rg_rerun <= False;
+          `logLevel( stage3, 0, $format("STAGE3: Rerun Instruction"))
         end
+        else begin
+          if(s3type matches tagged Trap .t) begin
+            let newpc <- csr.take_trap(t.cause, s3common.pc, t.badaddr);
+            wr_flush <= tuple2(newpc, True);
+            rg_epoch <= ~rg_epoch;
+            deq_rx;
+            `logLevel( stage3, 0, $format("STAGE3 : Jumping to PC:%h", newpc))
+          end
 
-        if(s3type matches tagged Regular .r)begin
-          let data = r.rdvalue;
-          if(s3common.rd == 0)
-              data = 0;
+          if(s3type matches tagged Regular .r)begin
+            let data = r.rdvalue;
+            if(s3common.rd == 0)
+                data = 0;
 
-          wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : True, rdvalue : data};
-          wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : data});
-          deq_rx;
-        `ifdef rtldump 
-          dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, r.rdvalue));
-        `endif
-        end
+            wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : True, rdvalue : data};
+            wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : data});
+            deq_rx;
+          `ifdef rtldump 
+            dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, data));
+          `endif
+          end
 
-        if(s3type matches tagged System .sys) begin
-          let {drain, newpc, dest} <- csr.system_instruction(sys.csr_address, sys.rs1_imm, 
-                                                              sys.funct3, sys.lpc);
-          wr_flush <= tuple2(newpc, drain);
-          rg_epoch <= ~rg_epoch;
-          wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : dest});
-          wr_csr_updated <= True;
-          deq_rx;
-        `ifdef rtldump 
-          dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, dest));
-        `endif
-        end
+          if(s3type matches tagged System .sys) begin
+            let {drain, newpc, dest} <- csr.system_instruction(sys.csr_address, sys.rs1_imm, 
+                                                                sys.funct3, sys.lpc);
+            if(!drain)
+              rg_rerun <= True;
+            else begin
+              wr_flush <= tuple2(newpc, True);
+              rg_epoch <= ~rg_epoch;
+            end
+            wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : dest});
+            deq_rx;
+          `ifdef rtldump 
+            dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, dest));
+          `endif
+          end
 
-        if(s3type matches tagged Memory .mem)begin
+          if(s3type matches tagged Memory .mem)begin
             if(wr_memory_response matches tagged Valid .resp &&& resp.epoch == rg_epoch)begin
               let data = resp.data;
               if( !resp.err )begin
@@ -174,25 +187,25 @@ package stage3;
                   data = 0;
                 wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : True, rdvalue : data};
                 wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : data});
-              deq_rx;
-            `ifdef rtldump 
-              dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, data));
-            `endif
+                deq_rx;
+              `ifdef rtldump 
+                dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, data));
+              `endif
+              end
+              else begin
+                let newpc <- csr.take_trap(mem.memaccess == Load ? `Load_access_fault:
+                                            `Store_access_fault, s3common.pc, mem.address);
+                wr_flush <= tuple2(newpc, True);
+                rg_epoch <= ~rg_epoch;
+                deq_rx;
+                `logLevel( stage3, 0, $format("STAGE3 : Jumping to PC:%h", newpc))
+              end
             end
             else begin
-              let newpc <- csr.take_trap(mem.memaccess == Load ? `Load_access_fault:
-                                          `Store_access_fault, s3common.pc, mem.address);
-              wr_flush <= tuple2(newpc, True);
-              rg_epoch <= ~rg_epoch;
-              deq_rx;
-              `logLevel( stage3, 0, $format("STAGE3 : Jumping to PC:%h", newpc))
+              `logLevel( stage3, 1, $format("STAGE3 : Waiting for response from Fabric"))
             end
           end
-          else begin
-            `logLevel( stage3, 1, $format("STAGE3 : Waiting for response from Fabric"))
-          end
         end
-
       end
       else begin
         deq_rx;
