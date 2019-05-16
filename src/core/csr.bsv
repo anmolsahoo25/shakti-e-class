@@ -50,7 +50,7 @@ package csr;
   interface Ifc_csr;
 	  method ActionValue#(Tuple3#(Bool, Bit#(`vaddr), Bit#(XLEN))) system_instruction(
             Bit#(12) csr_address, Bit#(XLEN) op1, Bit#(3) funct3, Bit#(2) lpc);
-    method CSRtoDecode csrs_to_decode;
+    method CSRtoDecode mv_csr_decode;
     method ActionValue#(Bit#(`vaddr)) take_trap(Bit#(`causesize) type_cause, Bit#(`vaddr) pc, Bit#(`vaddr) badaddr);
 	  method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
@@ -62,8 +62,8 @@ package csr;
     `ifdef spfpu
       method Action update_fflags(Bit#(5) flags);
     `endif
-	  method Action set_external_interrupt(Bit#(1) ex_i);
-    method Bit#(1) csr_misa_c;
+	  method Action ext_interrupt(Bit#(1) ex_i);
+    method Bit#(1) mv_csr_misa_c;
     method Bit#(3) mv_cacheenable;
   `ifdef arith_trap
    //This method returns value of csr_reg which enables or disables arithmetic exceptions
@@ -86,17 +86,17 @@ package csr;
     method Bit#(1) core_debugenable;
   `endif
   `ifdef triggers
-    method Vector#(`trigger_num, TriggerData) trigger_data1;
-    method Vector#(`trigger_num, Bit#(XLEN)) trigger_data2;
-    method Vector#(`trigger_num, Bool) trigger_enable;
+    method Vector#(`trigger_num, TriggerData) mv_trigger_data1;
+    method Vector#(`trigger_num, Bit#(XLEN))  mv_trigger_data2;
+    method Vector#(`trigger_num, Bool)        mv_trigger_enable;
   `endif
   endinterface : Ifc_csr
 
 
   (*synthesize*)
   (*mutually_exclusive="system_instruction, take_trap"*)
-  (*conflict_free="system_instruction, set_external_interrupt"*)
-  (*conflict_free="take_trap, set_external_interrupt"*)
+  (*conflict_free="system_instruction, ext_interrupt"*)
+  (*conflict_free="take_trap, ext_interrupt"*)
   module mkcsr(Ifc_csr);
   
     Ifc_csrfile csrfile <- mkcsrfile();
@@ -138,7 +138,7 @@ package csr;
 		  return jump_address;
   	endmethod
 
-    method csrs_to_decode = csrfile.csrs_to_decode;
+    method mv_csr_decode = csrfile.mv_csr_decode;
 	  method Action clint_msip(Bit#(1) intrpt);
 	  	csrfile.clint_msip(intrpt);
 	  endmethod
@@ -157,8 +157,8 @@ package csr;
         csrfile.update_fflags(flags);
       endmethod
     `endif
-	  method Action set_external_interrupt(Bit#(1) ex_i) = csrfile.set_external_interrupt(ex_i);
-    method csr_misa_c = csrfile.csr_misa_c;
+	  method Action ext_interrupt(Bit#(1) ex_i) = csrfile.ext_interrupt(ex_i);
+    method mv_csr_misa_c = csrfile.mv_csr_misa_c;
     method mv_cacheenable = csrfile.mv_cacheenable;
  
   `ifdef arith_trap
@@ -189,9 +189,9 @@ package csr;
     method core_debugenable = csrfile.core_debugenable;
   `endif
   `ifdef triggers
-    method trigger_data1 = csrfile.trigger_data1;
-    method trigger_data2 = csrfile.trigger_data2;
-    method trigger_enable = csrfile.trigger_enable;
+    method mv_trigger_data1 =   csrfile.mv_trigger_data1;
+    method mv_trigger_data2 =   csrfile.mv_trigger_data2;
+    method mv_trigger_enable =  csrfile.mv_trigger_enable;
   `endif
   endmodule
 endpackage

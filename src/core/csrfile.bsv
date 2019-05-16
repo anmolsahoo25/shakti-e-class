@@ -129,20 +129,20 @@ package csrfile;
     method ActionValue#(Bit#(`vaddr)) upd_on_trap(Bit#(`causesize) cause, Bit#(`vaddr) pc, Bit#(`vaddr) tval);
     method Action incr_minstret;
   // ------------------------ csrs to other pipeline stages ---------------------------------//
-    method CSRtoDecode csrs_to_decode;
+    method CSRtoDecode mv_csr_decode;
     method Bit#(3) mv_cacheenable;
   //returns arithmetic exception enabled/disabled
   `ifdef arith_trap
     method Bit#(1) arith_excep;
   `endif
-    method Bit#(1) csr_misa_c;
+    method Bit#(1) mv_csr_misa_c;
     method Bit#(2) curr_priv;
     method Bit#(XLEN) csr_mstatus;
   //-------------------------- sideband connections -----------------------------------------//
 	  method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(64) c_mtime);
-	  method Action set_external_interrupt(Bit#(1) ex_i);
+	  method Action ext_interrupt(Bit#(1) ex_i);
   // ---------------------------------------------------------------------------------------//
   `ifdef pmp
     method Vector#(`PMPSIZE, Bit#(8)) pmp_cfg;
@@ -157,9 +157,9 @@ package csrfile;
     method Bit#(1) core_debugenable;
   `endif
   `ifdef triggers
-    method Vector#(`trigger_num, TriggerData) trigger_data1;
-    method Vector#(`trigger_num, Bit#(XLEN)) trigger_data2;
-    method Vector#(`trigger_num, Bool) trigger_enable;
+    method Vector#(`trigger_num, TriggerData) mv_trigger_data1;
+    method Vector#(`trigger_num, Bit#(XLEN))  mv_trigger_data2;
+    method Vector#(`trigger_num, Bool)        mv_trigger_enable;
   `endif
   endinterface
 
@@ -844,7 +844,7 @@ package csrfile;
         default : noAction;
       endcase
     endmethod
-    method csrs_to_decode = CSRtoDecode{
+    method mv_csr_decode = CSRtoDecode{
         prv : rg_prv,
         csr_mip : csr_mip,
         csr_mie : csr_mie,
@@ -1030,7 +1030,7 @@ package csrfile;
         minstret <= truncate(instr);
       `endif
     endmethod
-	  method Action set_external_interrupt(Bit#(1) ex_i);
+	  method Action ext_interrupt(Bit#(1) ex_i);
   // TODO. seip and ueip can be updated by the PLIC. This is creating schedule conflicts
 	  	if(rg_prv == Machine) begin 
 	  		rg_meip <= pack(ex_i);
@@ -1041,7 +1041,7 @@ package csrfile;
 	  	end
     `endif
 	  endmethod
-    method csr_misa_c = misa_c;
+    method mv_csr_misa_c = misa_c;
     method curr_priv = pack(rg_prv);
     method Bit#(XLEN) csr_mstatus;
       `ifdef RV64
@@ -1074,9 +1074,9 @@ package csrfile;
     method core_debugenable = rg_csr_denable;
   `endif
   `ifdef triggers
-    method trigger_data1 = readVReg(v_trig_tdata1);
-    method trigger_data2 = readVReg(v_trig_tdata2);
-    method trigger_enable = v_trigger_enable;
+    method mv_trigger_data1 = readVReg(v_trig_tdata1);
+    method mv_trigger_data2 = readVReg(v_trig_tdata2);
+    method mv_trigger_enable = v_trigger_enable;
   `endif
   endmodule
 endpackage
