@@ -172,6 +172,8 @@ package stage3;
               wr_flush <= tuple2(newpc, True);
               rg_epoch <= ~rg_epoch;
             end
+            if(s3common.rd == 0)
+              dest = 0;
             wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : dest});
             deq_rx;
           `ifdef rtldump 
