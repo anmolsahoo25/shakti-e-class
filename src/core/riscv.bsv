@@ -7,8 +7,8 @@ provided that the following conditions are met:
  * Redistributions of source code must retain the above copyright notice, this list of conditions
   and the following disclaimer.  
  * Redistributions in binary form must reproduce the above copyright notice, this list of 
-  conditions and the following disclaimer in the documentation and/or other materials provided 
- with the distribution.  
+  conditions and the following disclaimer in the documentation and / or other materials provided 
+  with the distribution.  
  * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
@@ -22,92 +22,99 @@ IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISI
 OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 --------------------------------------------------------------------------------------------------
 
-Author: Neel Gala
-Email id: neelgala@gmail.com
+Author : Neel Gala
+Email id : neelgala@gmail.com
 Details:
 
 --------------------------------------------------------------------------------------------------
  */
 package riscv;
-  // project imports
-  import common_types::*;
-  import fetch_decode_stage::*;
-  import opfetch_execute_stage::*;
-  import mem_wb_stage::*;
 
-  // package imports
+  // library imports
   import GetPut::*;
   import Connectable::*;
   import FIFO::*;
   import FIFOF::*;
+  import SpecialFIFOs :: *;
+  import TxRx :: *;
+
+  // project imports
+  import common_types :: *;
+  import stage1 :: *;
+  import stage2 :: *;
+  import stage3 :: *;
+  `include "common_params.bsv"
+  `include "Logger.bsv"
 
   interface Ifc_riscv;
-  `ifdef icache  
-    interface Get#(Tuple4#(Bit#(`paddr),Bool, Bit#(1), Bool)) inst_request;//instruction whose addr is needed
-  `else 
-  interface Get#(Tuple2#(Bit#(`paddr), Bit#(1))) inst_request;
-  `endif
-    interface Put#(Tuple3#(Bit#(32),Bool,Bit#(1))) inst_response;//addr of the given inst
+    // interface between fetch and fabric
+    interface Get#(InstRequest) inst_request;
+    interface Put#(InstResponse) inst_response;
+
+    // interface between memory - stage and fabric
     interface Get#(MemoryRequest) memory_request;
-    interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) memory_response;
+    interface Put#(MemoryResponse) memory_response;
+
+    // side - band connections to the csr
     method Action clint_msip(Bit#(1) intrpt);
     method Action clint_mtip(Bit#(1) intrpt);
     method Action clint_mtime(Bit#(64) c_mtime);
-    method Action externalinterrupt(Bit#(1) intrpt);
+    method Action ext_interrupt(Bit#(1) intrpt);
+
     `ifdef rtldump
       interface Get#(DumpType) dump;
     `endif
-    `ifdef atomic
-      interface Put#(Tuple3#(Bit#(XLEN), Bool, Access_type)) atomic_response;
-    `endif
-  `ifdef cache_control
-  method Bit#(2) mv_cacheenable;
-  `endif
-  endinterface:Ifc_riscv
+  endinterface : Ifc_riscv
 
   (*synthesize*)
-  module mkriscv(Ifc_riscv);
+  module mkriscv#(parameter Bit#(`vaddr) resetpc) (Ifc_riscv);
     // instantiate each stage here
-    Ifc_fetch_decode_stage stage1 <- mkfetch_decode_stage;        // stage-1: fetch n decode
-    Ifc_opfetch_execute_stage stage2 <- mkopfetch_execute_stage;  // stage-2: op-fetch n execute
-    Ifc_mem_wb_stage stage3 <- mkmem_wb_stage;
+    Ifc_stage1              stage1          <- mkstage1(resetpc);
+    Ifc_stage2              stage2          <- mkstage2();
+    Ifc_stage3              stage3          <- mkstage3();
 
-    // instantiate the pipeline-buffers
-    FIFOF#(PIPE1_DS) pipe1 <- mkSizedFIFOF(`pipe1);
-    FIFOF#(PIPE2_DS) pipe2 <- mkSizedFIFOF(2); //pipe2 depth has to be 2 as the opfwding logic is designed for that configuration. 
+    mkChan(mkLFIFOF()   , stage1.tx_stage1_operands , stage2.rx_stage1_operands);
+    mkChan(mkLFIFOF()   , stage1.tx_stage1_control  , stage2.rx_stage1_control);
+    mkChan(mkLFIFOF()   , stage1.tx_stage1_meta     , stage2.rx_stage1_meta);
 
-    mkConnection(stage1.to_opfetch_unit, pipe1);  // connect stage-1 output to pipe-1
-    mkConnection(pipe1, stage2.from_fetch_decode_unit);  // connect pipe-1 to inputs of stage-2
-    mkConnection(stage2.to_mem_wb_unit, pipe2);  // connect stage-2 output to pipe-2
-    mkConnection(pipe2,stage3.from_execute);
+    mkChan(mkLFIFOF()   , stage2.tx_stage3_common   , stage3.rx_stage3_common);
+    mkChan(mkLFIFOF()   , stage2.tx_stage3_type     , stage3.rx_stage3_type);
 
-    let {newpc, fl, fence}=stage3.flush; //fence integration
-    Bool clear_csr_stall=stage3.csr_updated||fl;
+  `ifdef rtldump
+    mkChan(mkLFIFOF()   , stage1.tx_stage1_dump     , stage2.rx_stage1_dump);
+    mkChan(mkLFIFOF()   , stage2.tx_stage3_dump     , stage3.rx_stage3_dump);
+  `endif
+    
+    mkConnection(stage3.commit_rd         , stage1.commit_rd);
+    mkConnection(stage3.operand_fwding    , stage2.operand_fwding);
 
-    mkConnection(stage3.commit_rd,stage2.commit_rd);
-    mkConnection(stage3.operand_fwding, stage2.operand_fwding);
-    rule indicate_csr_over;
-      stage2.csr_updated(clear_csr_stall);
+    mkConnection(stage1.ma_csr_decode     , stage3.mv_csr_decode);
+    mkConnection(stage1.ma_csr_misa_c     , stage3.mv_csr_misa_c);
+    mkConnection(stage2.ma_csr_misa_c     , stage3.mv_csr_misa_c);
+  `ifdef triggers
+    mkConnection(stage1.ma_trigger_data1  , stage3.mv_trigger_data1);
+    mkConnection(stage1.ma_trigger_data2  , stage3.mv_trigger_data2);
+    mkConnection(stage1.ma_trigger_enable , stage3.mv_trigger_enable);
+    mkConnection(stage2.ma_trigger_data1  , stage3.mv_trigger_data1);
+    mkConnection(stage2.ma_trigger_data2  , stage3.mv_trigger_data2);
+    mkConnection(stage2.ma_trigger_enable , stage3.mv_trigger_enable);
+  `endif
+
+    let {newpc, fl}=stage3.flush; 
+
+    // TODO ma_interrupt to stage1 to be connected to interrupt from stage3
+    rule connect_interrupt;
+      stage1.ma_interrupt(False);
     endrule
-    rule indicate_interrupt_for_wfi;
-      stage1.interrupt(stage3.interrupt);
-    endrule
 
-    rule flush_from_writeback(fl); // fence integration
-      stage1.flush_from_wb(newpc, fence);
-      stage2.flush_from_wb;
-    endrule
-
-    rule connect_csrs;
-      stage1.csrs(stage3.csrs_to_decode);
-    endrule
-
-    rule connect_misa;
-      stage2.misa_c_from_csr(stage3.mv_misa_c);
+    rule flush_from_writeback(fl); 
+      stage1.ma_flush(newpc);
+      stage2.ma_flush();
     endrule
 
     interface inst_request = stage1.inst_request;
     interface inst_response = stage1.inst_response;
+
     interface memory_request = stage2.memory_request;
     interface memory_response = stage3.memory_response;
 
@@ -120,17 +127,11 @@ package riscv;
     method Action clint_mtime(Bit#(64) c_mtime);
       stage3.clint_mtime(c_mtime);
     endmethod
-    method Action externalinterrupt(Bit#(1) intrpt);
-      stage3.externalinterrupt(intrpt);
+    method Action ext_interrupt(Bit#(1) intrpt);
+      stage3.ext_interrupt(intrpt);
     endmethod
     `ifdef rtldump
-      interface dump=stage3.dump;
+      interface dump = stage3.dump;
     `endif
-    `ifdef atomic
-      interface atomic_response=stage2.atomic_response;
-    `endif
-  `ifdef cache_control
-  method mv_cacheenable = stage3.mv_cacheenable;
-  `endif
-  endmodule:mkriscv
-endpackage: riscv
+  endmodule : mkriscv
+endpackage : riscv
