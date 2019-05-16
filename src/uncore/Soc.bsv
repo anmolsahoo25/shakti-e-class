@@ -89,8 +89,8 @@ package Soc;
   `ifdef rtldump
     interface Get#(DumpType) io_dump;
   `endif
-    interface AXI4_Master_IFC#(`paddr, ELEN, USERSPACE) main_mem_master;
-    interface AXI4_Master_IFC#(`paddr, ELEN, USERSPACE) boot_mem_master;
+    interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) main_mem_master;
+    interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) boot_mem_master;
     interface RS232 uart_io;
   `ifdef debug
       // ------------- JTAG IOs ----------------------//
@@ -111,17 +111,17 @@ package Soc;
     let curr_clk<-exposeCurrentClock;
     let curr_reset<-exposeCurrentReset;
 
-    AXI4_Fabric_IFC #(Num_Masters, `Num_Slaves, `paddr, ELEN, USERSPACE) 
+    AXI4_Fabric_IFC #(Num_Masters, `Num_Slaves, `paddr, XLEN, USERSPACE) 
                                                     fabric <- mkAXI4_Fabric(fn_slave_map);
 
     Ifc_eclass_axi4 eclass <- mkeclass_axi4(`resetpc);
     Ifc_sign_dump signature<- mksign_dump();
   `ifdef debug
-    Ifc_debug_halt_loop#(`paddr, ELEN, USERSPACE) debug_memory <- mkdebug_halt_loop;
+    Ifc_debug_halt_loop#(`paddr, XLEN, USERSPACE) debug_memory <- mkdebug_halt_loop;
   `endif
-    Ifc_uart_axi4#(`paddr,ELEN,0, 16) uart <- mkuart_axi4(curr_clk,curr_reset, 5);
-    Ifc_clint_axi4#(`paddr, ELEN, 0, 1, 16) clint <- mkclint_axi4();
-    Ifc_err_slave_axi4#(`paddr,ELEN,0) err_slave <- mkerr_slave_axi4;
+    Ifc_uart_axi4#(`paddr,XLEN,0, 16) uart <- mkuart_axi4(curr_clk,curr_reset, 5);
+    Ifc_clint_axi4#(`paddr, XLEN, 0, 1, 16) clint <- mkclint_axi4();
+    Ifc_err_slave_axi4#(`paddr,XLEN,0) err_slave <- mkerr_slave_axi4;
 
     // -------------------------------- JTAG + Debugger Setup ---------------------------------- //
 `ifdef debug
