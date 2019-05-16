@@ -77,10 +77,12 @@ package eclass;
     // this fifo stores the epochs of instruction addresses latched onto fabric.
     // fifo size indicates no. of consecutive requests that can be made. The optimum size depends 
     // on internals of fabric.
-    FIFOF#(Bit#(1)) ff_epoch <- mkSizedFIFOF(2);
+    FIFOF#(InstRequest) ff_inst_request <- mkSizedFIFOF(2);
 
     // fifo of size 1 effectively enables only one data request to be be latched & served at a time.
     FIFOF#(MemoryRequest) ff_mem_request <- mkFIFOF1; 
+
+    Reg#(Maybe#(Bit#(TLog#(TDiv#(XLEN,8))))) rg_memory_lower_addr_bits <- mkReg(tagged Invalid);
 
     rule handle_fetch_request;
       let req <- riscv.inst_request.get; 
@@ -88,16 +90,20 @@ package eclass;
                                                 arlen : 0, arsize : 2, arburst : 'b01, arid : 0, 
                                                 arprot: {1'b0, 1'b0, curr_priv[1]}};
       fetch_xactor.i_rd_addr.enq(read_request);
-      ff_epoch.enq(req.epoch);
+      ff_inst_request.enq(req);
       `logLevel( eclass, 0, $format("CORE : Fetch Request ", fshow(read_request)))
     endrule
 
     rule handle_fetch_response;
       let response <- pop_o (fetch_xactor.o_rd_data);	
+			
+      Bit#(TLog#(TDiv#(XLEN,8))) lower_addr_bits = truncate(ff_inst_request.first.addr); 
+      Bit#(TAdd#(TLog#(TDiv#(XLEN,8)),3)) lv_shift = {lower_addr_bits,3'd0};
+      let lv_data= response.rdata >> lv_shift;
       Bool bus_error = !(response.rresp == AXI4_OKAY);
-      riscv.inst_response.put(InstResponse{inst : truncate(response.rdata), err : bus_error, 
-                                            epoch : ff_epoch.first});
-      ff_epoch.deq;
+      riscv.inst_response.put(InstResponse{inst : truncate(lv_data), err : bus_error, 
+                                            epoch : ff_inst_request.first.epoch});
+      ff_inst_request.deq;
       `logLevel( eclass, 0, $format("CORE : Fetch Response ", fshow(response)))
     endrule
     
@@ -152,7 +158,7 @@ package eclass;
       else if(req.size[1:0] == 2)
           rdata = req.size[2] == 0?signExtend(rdata[31 : 0]) : zeroExtend(rdata[31 : 0]);
       // TODO send address in case of error
-      riscv.memory_response.put(MemoryResponse{data: rdata, err: bus_error});
+      riscv.memory_response.put(MemoryResponse{data: rdata, err: bus_error, epoch: req.epoch});
       `logLevel( eclass, 0, $format("CORE : Memory Read Response ", fshow(response)))
       ff_mem_request.deq;
     endrule
@@ -163,7 +169,7 @@ package eclass;
       let req =  ff_mem_request.first;
       let response <- pop_o(memory_xactor.o_wr_resp);
       let bus_error = !(response.bresp == AXI4_OKAY);
-      riscv.memory_response.put(MemoryResponse{data:0, err: bus_error});
+      riscv.memory_response.put(MemoryResponse{data:0, err: bus_error, epoch: req.epoch});
       ff_mem_request.deq;
       `logLevel( eclass, 0, $format("CORE : Memory Write Response ", fshow(response)))
     endrule
