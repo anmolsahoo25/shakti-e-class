@@ -1,0 +1,29 @@
+#!/bin/sh
+
+### Pre Commit Hook For The Shakti BLUESPEC codebase
+status=0;
+### Check for Dependencies 
+eclint > /dev/null 2>&1;
+status=$?;
+if [ $status -ne 1 ]; then
+    echo "Please install eclint from :: https://github.com/jedmao/eclint "
+    exit $status;
+fi
+
+### Hook Script Body
+echo "Dependency Good Starting Git Hook";
+echo "Running Bluespec Linter";
+
+
+if ( ${ECLINT_FIX:-"false" } == "true" ) ;
+then
+	echo "FIXING DETECTED INDENTATION FAULTS";
+	eclint fix -i "space" -s 2 -t 2 -m 100 --block_comment_start "/*" --block_comment_end "*/" -n true -w false  -c "utf-8" '$GIT_DIR/../**/*.bsv'
+	echo "REMAINING STYLE ERRORS DETECTED";
+fi
+
+eclint check -i "space" -s 2 -t 2 -m 100 --block_comment_start "/*" --block_comment_end "*/" -n true -w false  -c "utf-8" '$GIT_DIR/../**/*.bsv'
+
+status=$?;
+exit $status;
+
