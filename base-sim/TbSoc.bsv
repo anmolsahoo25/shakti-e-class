@@ -69,7 +69,7 @@ package TbSoc;
  		
     Ifc_bram_axi4#(`paddr, XLEN, USERSPACE, `Addr_space) main_memory <- mkbram_axi4(`MemoryBase, 
                                                 "code.mem.MSB", "code.mem.LSB", "MainMEM");
-    Ifc_bootrom_axi4#(`paddr, XLEN, USERSPACE) bootrom <-mkbootrom_axi4(`BootRomBase);
+    Ifc_bootrom_axi4#(`paddr, XLEN, USERSPACE, 13) bootrom <-mkbootrom_axi4(`BootRomBase);
 
     mkConnection(soc.main_mem_master, main_memory.slave);
     mkConnection(soc.boot_mem_master, bootrom.slave);
