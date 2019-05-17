@@ -49,7 +49,7 @@ package stage3;
     interface RXe#(Stage3Type)    rx_stage3_type;
 
   `ifdef rtldump
-    interface RXe#(STAGE1_dump)   rx_stage3_dump ;
+    interface RXe#(TraceDump)   rx_stage3_dump ;
   `endif
 
     interface Put#(MemoryResponse) memory_response;
@@ -85,7 +85,7 @@ package stage3;
     RX#(Stage3Common) ff_stage3_common <- mkRX();
     RX#(Stage3Type)   ff_stage3_type   <- mkRX();
   `ifdef rtldump
-    RX#(STAGE1_dump)  ff_stage3_dump   <- mkRX();
+    RX#(TraceDump)  ff_stage3_dump   <- mkRX();
   `endif
 
     Ifc_csr csr <- mkcsr();

@@ -55,8 +55,8 @@ package stage2;
     interface TXe#(Stage3Type)        tx_stage3_type;
 
   `ifdef rtldump
-    interface RXe#(STAGE1_dump)       rx_stage1_dump ;
-    interface TXe#(STAGE1_dump)       tx_stage3_dump;  
+    interface RXe#(TraceDump)       rx_stage1_dump ;
+    interface TXe#(TraceDump)       tx_stage3_dump;  
   `endif
   
     // memory request interface in case of Load / Store instruction
@@ -150,8 +150,8 @@ package stage2;
 
 
   `ifdef rtldump
-    RX#(STAGE1_dump) ff_stage1_dump <- mkRX;
-    TX#(STAGE1_dump) ff_stage3_dump <- mkTX;
+    RX#(TraceDump) ff_stage1_dump <- mkRX;
+    TX#(TraceDump) ff_stage3_dump <- mkTX;
   `endif
   
   `ifdef triggers
@@ -220,7 +220,7 @@ package stage2;
           wr_redirection <= tuple2(aluout.effective_addr, aluout.redirect);
           if(aluout.redirect)
             rg_eEpoch <= ~rg_eEpoch;
-          if(aluout.cmtype == MEMORY)
+          if(aluout.cmtype == MEMORY && meta.memaccess != Fence)
             ff_memory_request.enq(MemoryRequest{addr : aluout.effective_addr, data : ops.op2, 
                                                 memaccess : meta.memaccess, size : funct3, 
                                                 epoch : rg_wEpoch});

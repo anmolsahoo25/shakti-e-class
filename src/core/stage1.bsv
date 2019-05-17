@@ -67,7 +67,7 @@ package stage1;
     interface TXe#(STAGE1_meta)         tx_stage1_meta;
     interface TXe#(STAGE1_control)      tx_stage1_control;
   `ifdef rtldump
-    interface TXe#(STAGE1_dump)         tx_stage1_dump ;
+    interface TXe#(TraceDump)         tx_stage1_dump ;
   `endif
   
     //rd and value given back by the write back unit
@@ -157,7 +157,7 @@ package stage1;
     TX#(STAGE1_meta) ff_stage1_meta <- mkTX;
     TX#(STAGE1_control) ff_stage1_control <- mkTX;
   `ifdef rtldump
-    TX#(STAGE1_dump) ff_stage1_dump <- mkTX;
+    TX#(TraceDump) ff_stage1_dump <- mkTX;
   `endif
 
   
@@ -379,16 +379,21 @@ package stage1;
       `endif
       let _ops = access_rf(y.op_addr.rs1addr, y.op_addr.rs2addr, y.op_type.rs1type,
                             y.op_type.rs2type, rg_pc, y.meta.immediate);
+
+    `ifdef rtldump
+      TraceDump dump = TraceDump {pc : rg_pc, instruction : final_instruction};
+    `endif
       if(perform_decode) begin
         ff_stage1_operands.u.enq(_ops);
         ff_stage1_meta.u.enq(y);
         ff_stage1_control.u.enq(STAGE1_control{ epoch : curr_epoch, pc : rg_pc});
       `ifdef rtldump
-        ff_stage1_dump.u.enq(STAGE1_dump {pc : rg_pc, instruction : final_instruction});
+        ff_stage1_dump.u.enq(dump);
       `endif
         rg_pc <= rg_pc + offset;
-        `logLevel( stage1, 0, $format("STAGE1 : PC: %h Inst: %h, Err: %b Epoch: %b", 
-                                        rg_pc, final_instruction, resp.err, resp.epoch))
+        `ifdef rtldump
+          `logLevel( stage1, 0, $format("STAGE1 : ", fshow(dump)))
+        `endif
         `logLevel( stage1, 1, $format("STAGE1 : compressed: %b perform_decode: %b curr_epoch: %b",
                                         compressed, perform_decode, curr_epoch))
       end

@@ -176,7 +176,7 @@ package common_types;
   typedef struct{
     Bit#(`vaddr) pc;
     Bit#(32) instruction;
-  } STAGE1_dump deriving(Bits, FShow, Eq);
+  } TraceDump deriving(Bits, FShow, Eq);
 
   // ------------------ Structs used in the stage2 --------------------------------------------- //
 
