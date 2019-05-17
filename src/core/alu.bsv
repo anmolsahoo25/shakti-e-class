@@ -195,6 +195,13 @@ package alu;
       exception = True;
       cause=`Inst_addr_misaligned ;
     end
+    if(memaccess != Fence && inst_type == MEMORY && `paddr < `vaddr )begin
+      Bit#(TSub#(`vaddr, `paddr )) addr_upper_bits = truncateLSB(effective_address);
+      if( |addr_upper_bits == 1) begin
+        exception = True;
+        cause = memaccess == Load ? `Load_access_fault: `Store_access_fault;
+      end
+    end
     if((memaccess != Fence) && 
         inst_type == MEMORY && (   (funct3[1 : 0] == 1 && effective_address[0] != 0)
                           || (funct3[1 : 0] == 2 && effective_address[1 : 0] != 0)

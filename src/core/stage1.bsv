@@ -262,7 +262,6 @@ package stage1;
                                     wr_interrupt))
     endrule
 
-
     // RuleName : process_instruction
     // Explicit Conditions : rg_wfi == False
     // Implicit Conditions: 
