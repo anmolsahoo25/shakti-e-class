@@ -232,7 +232,7 @@ package csrfile;
       Bit#(1) misa_m = 0;
     `endif
     `ifdef usertraps
-      Reg#(Bit#(1)) misa_n <- mkReg(1);
+      Reg#(Bit#(1)) misa_n <- mkReg(`ifdef rtldump 0 `else 1 `endif );
     `else
       Bit#(1) misa_n = 0;
     `endif
