@@ -75,6 +75,9 @@ package stage3;
     method Vector#(`trigger_num, Bool)        mv_trigger_enable;
   `endif
     method Bit#(2) mv_curr_priv;
+  `ifdef muldiv
+    method Action ma_delayed_output (DelayedOut r);
+  `endif
   endinterface : Ifc_stage3
 
   (*synthesize*)
@@ -107,6 +110,9 @@ package stage3;
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
 
     Reg#(Bool) rg_rerun <- mkReg(False);
+  `ifdef muldiv
+    Wire#(DelayedOut) wr_delayed_result <- mkWire();
+  `endif
 
   `ifdef rtldump
     FIFO#(DumpType) dump_ff <- mkLFIFO;
@@ -154,13 +160,27 @@ package stage3;
             let data = r.rdvalue;
             if(s3common.rd == 0)
                 data = 0;
-
-            wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : True, rdvalue : data};
-            wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : data});
-            deq_rx;
-          `ifdef rtldump 
-            dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, data));
+            Bool done = True;
+          `ifdef muldiv
+            if(r.delayed )begin
+              if(!wr_delayed_result.valid)
+                done = False;
+              else if(s3common.rd !=0) begin
+                data = wr_delayed_result.aluresult;
+              end
+            end
           `endif
+            wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : done, rdvalue : data};
+            if( done )begin
+              wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : data});
+              deq_rx;
+            `ifdef rtldump 
+              dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, data));
+            `endif
+            end
+            else begin
+              `logLevel( stage3, 0, $format("STAGE3: Waiting for Delayed Output"))
+            end
           end
 
           if(s3type matches tagged System .sys) begin
@@ -283,5 +303,10 @@ package stage3;
     method mv_trigger_enable =  csr.mv_trigger_enable;
   `endif
     method mv_curr_priv = csr.mv_curr_priv;
+  `ifdef muldiv
+    method Action ma_delayed_output(DelayedOut r);
+      wr_delayed_result <= r;
+    endmethod
+  `endif
   endmodule : mkstage3
 endpackage : stage3

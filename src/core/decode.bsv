@@ -416,7 +416,7 @@ package decode;
     endcase;
   Bool validAtomic = (csrs.csr_misa[0] == 1 && (funct3 == 2 `ifdef RV64 || funct3 == 3 `endif ) 
                                             && validAtomicOp);
-  Bool validMul = (csrs.csr_misa[12] == 1 && funct7 == 1) ? True : False; 
+  Bool validMul = (csrs.csr_misa[12] == 1 && funct7 == 1) ; 
   Bool validOp = (funct3 == 0 || funct3 == 5) ? (funct7 == 'b0000000 || funct7 == 'b0100000) : 
                                                 (funct7 == 0);
   Bool validMul32 = (csrs.csr_misa[12] == 1 && funct7 == 1 && (funct3 == 0 || funct3>3));

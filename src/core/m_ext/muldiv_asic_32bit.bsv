@@ -120,7 +120,7 @@ package muldiv_asic_32bit;
 	
     Reg#(Bit#(33)) multiplicand_divisor <-mkReg(0);				// operand2
     Reg#(Bit#(73)) accumulator <-mkReg(0);  // holds the accumulated results over the iterations
-    FIFOF#(Bit#(32)) ff_muldiv_result <-mkBypassFIFOF();					// to hold the final result
+    FIFOF#(Bit#(32)) ff_muldiv_result <-mkLFIFOF();					// to hold the final result
       FIFOF#(Tuple4#(Bit#(XLEN), Bit#(XLEN),Bit#(2),  Bit#(1))) ff_input <-mkLFIFOF();			
     Reg#(Bit#(3)) rg_count[2]<-mkCReg(2,4);
     Reg#(Bool) rg_signed<-mkReg(False);

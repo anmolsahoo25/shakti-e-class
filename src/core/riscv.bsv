@@ -102,6 +102,10 @@ package riscv;
     mkConnection(stage2.ma_trigger_enable , stage3.mv_trigger_enable);
   `endif
 
+  `ifdef muldiv
+    mkConnection(stage2.mv_delayed_output , stage3.ma_delayed_output);
+  `endif
+
     let {newpc, trap}=stage3.flush; 
     let {redirect_pc, redirect} = stage2.mv_redirection;
 

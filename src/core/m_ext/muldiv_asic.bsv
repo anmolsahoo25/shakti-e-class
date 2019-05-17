@@ -156,7 +156,7 @@ package muldiv_asic;
 	
     Reg#(Bit#(65)) multiplicand_divisor <- mkReg(0);				// operand2
     Reg#(Bit#(137)) accumulator <- mkReg(0);  // holds the accumulated results over the iterations
-    FIFOF#(Bit#(64)) ff_muldiv_result <- mkBypassFIFOF();					// to hold the final result
+    FIFOF#(Bit#(64)) ff_muldiv_result <- mkLFIFOF();					// to hold the final result
     `ifdef RV64
       FIFOF#(Tuple5#(Bit#(XLEN), Bit#(XLEN), Bit#(2), Bit#(1), Bit#(1))) ff_input <- mkLFIFOF();
     `else 
@@ -369,14 +369,13 @@ sign: %b",x, multiplicand_divisor, rg_count[1], upper_bits, rg_signed, temp_mult
 
     method ActionValue#(ALU_OUT) get_inputs(Bit#(XLEN) in1, Bit#(XLEN) in2, Bit#(3)
                                             funct3 `ifdef RV64, Bool word_flag `endif );
-`ifdef arith_trap
-    let is_mul = ~funct3[2];
-    if(is_mul==0)
-      if(in2==0 && wr_arith_en==1'b1)
+    `ifdef arith_trap
+      let is_mul = ~funct3[2];
+      if(is_mul==0 && in2==0 && wr_arith_en==1'b1)
           return ALU_OUT{done:True,cmtype :REGULAR,aluresult :'b1,effective_addr:?,cause:17,
                         redirect:False};//DIV_BY_ZER0 trap
       else
-      `endif
+    `endif
       if(`MULSTAGES==0 && funct3[2]==0) begin
         let product = single_mult( in1, in2, funct3 `ifdef RV64 ,word_flag `endif );
         return ALU_OUT{done : True, cmtype : REGULAR, aluresult : zeroExtend(product), 

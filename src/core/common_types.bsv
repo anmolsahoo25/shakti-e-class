@@ -192,7 +192,12 @@ package common_types;
     Bit#(`vaddr) redirect_pc;
   `endif
   } ALU_OUT deriving (Bits,  Eq,  FShow);
-  
+
+  typedef struct{
+    Bit#(XLEN) aluresult;
+    Bool       valid;
+  } DelayedOut deriving(Bits, Eq, FShow);
+
   // ---------- Tuples for the third Pipeline Stage -----------//
   typedef enum {MEMORY, SYSTEM_INSTR, REGULAR, TRAP} PreCommit_type deriving(Eq, Bits, FShow);
 
@@ -217,6 +222,9 @@ package common_types;
 
   typedef struct{
     Bit#(XLEN)    rdvalue;
+  `ifdef muldiv
+    Bool          delayed;
+  `endif
   } Stage3Regular deriving(Bits, Eq, FShow);
 
   typedef struct{

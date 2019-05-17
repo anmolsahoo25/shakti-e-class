@@ -258,7 +258,7 @@ package alu;
       `endif );
   `ifdef multicycle
     // method to send the output from the muldiv outputs are ready
-    method ActionValue#(ALU_OUT) delayed_output;
+    method DelayedOut mv_delayed_output;
   `endif
 
   //Read csr_reg to check if arith_exception is enabled
@@ -288,7 +288,7 @@ package alu;
 
     `ifdef multicycle
       Reg#(WaitState) rg_wait <- mkReg(None);
-      Wire#(ALU_OUT) wr_delayed_output <- mkWire();
+      Wire#(DelayedOut) wr_delayed_output <- mkDWire(DelayedOut{aluresult:?, valid: False});
     `endif
 
 
@@ -302,7 +302,7 @@ package alu;
       // Descriptions : This rule will collect the outputs from the muldiv unit
       rule capture_delayed_muldivputput(rg_wait == WaitMulDiv);
         let res <- muldiv.delayed_output;
-        wr_delayed_output <= res;
+        wr_delayed_output <= DelayedOut{aluresult: res.aluresult, valid: True};
         rg_wait <= None;
       endrule
     `endif
@@ -348,12 +348,10 @@ package alu;
   `ifdef multicycle
     // MethodName : delayed_outputs
     // Explicit Conditions : None 
-    // Implicit Conditions : wr_delayed_output is written
+    // Implicit Conditions : None
     // Descriptions : This method will respond to the execute stage with the output either from the
     // muldiv unit or the floating point unit.
-    method ActionValue#(ALU_OUT) delayed_output;
-      return wr_delayed_output;
-    endmethod
+    method mv_delayed_output = wr_delayed_output;
   `endif
 
 

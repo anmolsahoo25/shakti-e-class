@@ -68,6 +68,9 @@ package stage2;
     method Action ma_update_wEpoch;
     // receive the 'c' bit value of the misa-csr from stage3
     method Action ma_csr_misa_c (Bit#(1) c);
+  `ifdef muldiv
+    method DelayedOut mv_delayed_output;
+  `endif
   
   `ifdef triggers
     (*always_ready, always_enabled*)
@@ -215,7 +218,7 @@ package stage2;
 
       Bit#(2) epoch = control.epoch;
       if(epoch == curr_epoch)begin
-        if(aluout.done && valid)begin
+        if(valid)begin
           deq_rx; 
           wr_redirection <= tuple2(aluout.effective_addr, aluout.redirect);
           if(aluout.redirect)
@@ -236,7 +239,10 @@ package stage2;
             let s3trap = Stage3Trap { cause     : aluout.cause,
                                       badaddr   : aluout.effective_addr };
 
-            let s3regular = Stage3Regular { rdvalue   : aluout.aluresult };
+            let s3regular = Stage3Regular { rdvalue   : aluout.aluresult 
+                                          `ifdef muldiv
+                                            ,delayed   : !aluout.done
+                                          `endif };
 
             let s3system = Stage3System { funct3     : funct3,
                                           lpc        : truncate(control.pc),
@@ -304,6 +310,9 @@ package stage2;
     endmethod
 
     method mv_redirection = wr_redirection;
+  `ifdef muldiv
+    method mv_delayed_output = alu.mv_delayed_output;
+  `endif
 
   `ifdef triggers
     method Action ma_trigger_data1(Vector#(`trigger_num, TriggerData) t);
