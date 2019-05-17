@@ -82,8 +82,6 @@ package eclass;
     // fifo of size 1 effectively enables only one data request to be be latched & served at a time.
     FIFOF#(MemoryRequest) ff_mem_request <- mkFIFOF1; 
 
-    Reg#(Maybe#(Bit#(TLog#(TDiv#(XLEN,8))))) rg_memory_lower_addr_bits <- mkReg(tagged Invalid);
-
     rule handle_fetch_request;
       let req <- riscv.inst_request.get; 
       AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), aruser: ?, 
@@ -149,7 +147,9 @@ package eclass;
       let req =  ff_mem_request.first;
       let response <- pop_o (memory_xactor.o_rd_data);	
       let bus_error = !(response.rresp == AXI4_OKAY);
-      let rdata = response.rdata;
+      Bit#(TLog#(TDiv#(XLEN,8))) lower_addr_bits = truncate(ff_mem_request.first.addr); 
+      Bit#(TAdd#(TLog#(TDiv#(XLEN,8)),3)) lv_shift = {lower_addr_bits,3'd0};
+      let rdata= response.rdata >> lv_shift;
 
       if(req.size[1:0] == 0)
           rdata = req.size[2] == 0?signExtend(rdata[7 : 0]) : zeroExtend(rdata[7 : 0]);
