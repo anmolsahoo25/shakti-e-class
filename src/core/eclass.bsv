@@ -78,21 +78,35 @@ package eclass;
     // fifo size indicates no. of consecutive requests that can be made. The optimum size depends 
     // on internals of fabric.
     FIFOF#(InstRequest) ff_inst_request <- mkSizedFIFOF(2);
+    FIFOF#(Bool) ff_inst_access_fault <- mkSizedFIFOF(2);
 
     // fifo of size 1 effectively enables only one data request to be be latched & served at a time.
-    FIFOF#(MemoryRequest) ff_mem_request <- mkFIFOF1; 
+    // TODO make this more than 1?
+    FIFOF#(MemoryRequest) ff_mem_request <- mkFIFOF1();
+    FIFOF#(Bool) ff_mem_access_fault <- mkFIFOF1();
 
     rule handle_fetch_request;
       let req <- riscv.inst_request.get; 
-      AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), aruser: ?, 
+      Bool err = False;
+      if(`paddr < `vaddr) begin
+        Bit#(TSub#(`vaddr, `paddr )) upper_bits = truncateLSB(req.addr);
+        err = (|upper_bits == 1);
+      end
+      if (!err) begin
+        AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), aruser: ?, 
                                                 arlen : 0, arsize : 2, arburst : 'b01, arid : 0, 
                                                 arprot: {1'b0, 1'b0, curr_priv[1]}};
-      fetch_xactor.i_rd_addr.enq(read_request);
+        fetch_xactor.i_rd_addr.enq(read_request);
+        `logLevel( eclass, 0, $format("CORE : Fetch Request ", fshow(read_request)))
+      end
+      else begin
+        `logLevel( eclass, 0, $format("CORE : Fetch Request is Faulty: ", fshow(req)))
+      end
+      ff_inst_access_fault.enq(err);
       ff_inst_request.enq(req);
-      `logLevel( eclass, 0, $format("CORE : Fetch Request ", fshow(read_request)))
     endrule
 
-    rule handle_fetch_response;
+    rule handle_fetch_response(!ff_inst_access_fault.first);
       let response <- pop_o (fetch_xactor.o_rd_data);	
 			
       Bit#(TLog#(TDiv#(XLEN,8))) lower_addr_bits = truncate(ff_inst_request.first.addr); 
@@ -104,7 +118,16 @@ package eclass;
       riscv.inst_response.put(InstResponse{inst : truncate(lv_data), err : bus_error, 
                                             epoch : ff_inst_request.first.epoch});
       ff_inst_request.deq;
+      ff_inst_access_fault.deq;
       `logLevel( eclass, 0, $format("CORE : Fetch Response ", fshow(response)))
+    endrule
+
+    rule handle_inst_access_fault(ff_inst_access_fault.first);
+      riscv.inst_response.put(InstResponse{inst : truncate(ff_inst_request.first.addr), err : True, 
+                                            epoch : ff_inst_request.first.epoch});
+      ff_inst_request.deq;
+      ff_inst_access_fault.deq;
+      `logLevel( eclass, 0, $format("CORE : Fetch Access Fault "))
     endrule
     
     // if its a fence instruction, the request is simply stored in memory_request register and is 
@@ -112,7 +135,6 @@ package eclass;
     // being propagated to mem_wb stage.
     rule handle_memory_request;
       let req <- riscv.memory_request.get;
-      ff_mem_request.enq(req);
       if(req.size[1:0] == 0)
         req.data = duplicate(req.data[7 : 0]);
       else if(req.size[1:0] == 1)
@@ -125,6 +147,7 @@ package eclass;
       if(req.size != 3)begin			// 8 - bit write;
         write_strobe = write_strobe<<byte_offset;
       end
+
       if(req.memaccess != Store) begin
         AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), 
               aruser : 0, arlen : 0, arsize : zeroExtend(req.size[1:0]), arburst : 'b01, arid : 0,
@@ -142,6 +165,8 @@ package eclass;
         `logLevel( eclass, 0 , $format("CORE : Memory write Request ", fshow(aw)))
         `logLevel( eclass, 0 , $format("CORE : Memory write Request ", fshow(w)))
       end
+      
+      ff_mem_request.enq(req);
     endrule
     
   // Rule to handle memory response of Load and Atomic type instr 
@@ -173,7 +198,7 @@ package eclass;
       let req =  ff_mem_request.first;
       let response <- pop_o(memory_xactor.o_wr_resp);
       let bus_error = !(response.bresp == AXI4_OKAY);
-      riscv.memory_response.put(MemoryResponse{data:0, err: bus_error, epoch: req.epoch});
+      Bit#(XLEN) data = ?;
       if(bus_error)
         data = zeroExtend(ff_mem_request.first.addr);
       riscv.memory_response.put(MemoryResponse{data:data, err: bus_error, epoch: req.epoch});
