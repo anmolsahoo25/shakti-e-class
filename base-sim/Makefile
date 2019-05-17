@@ -107,14 +107,13 @@ ifneq (0,$(VERBOSITY))
 	VCS_MACROS += +define+VERBOSE=True
 endif
 
-override define_macros += -D VERBOSITY=$(VERBOSITY) -D CORE_$(COREFABRIC)=True -D MULSTAGES=$(MULSTAGES) \
-								 -D DIVSTAGES=$(DIVSTAGES) -D Counters=$(COUNTERS)\
-								 -D paddr=$(PADDR) -D vaddr=$(XLEN) -D PMPSIZE=$(PMPSIZE) \
-								 -D resetpc=$(RESETPC) \
-								 -D causesize=$(CAUSESIZE)
+override define_macros += -D VERBOSITY=$(VERBOSITY) -D CORE_$(COREFABRIC)=True \
+													-D MULSTAGES=$(MULSTAGES) -D DIVSTAGES=$(DIVSTAGES) \
+													-D Counters=$(COUNTERS) -D paddr=$(PADDR) -D vaddr=$(XLEN) \
+													-D PMPSIZE=$(PMPSIZE) -D resetpc=$(RESETPC) -D causesize=$(CAUSESIZE)
 		
-# ------------------------------------------------------------------------------------------------ #
-# ------------------ Include directories for bsv compilation ------------------------------------- #
+# ----------------------------------------------------------------------------------------------- #
+# ------------------ Include directories for bsv compilation ------------------------------------ #
 CORE:=../src/core/
 M_EXT:=../src/core/m_ext/
 FABRIC:=./fabrics/axi4:./fabrics/axi4lite
@@ -123,19 +122,21 @@ PERIPHERALS:=./devices/bootrom:./devices/pwm:./devices/uart:./devices/clint:./de
 COMMON_BSV:=./common_bsv/
 COMMON_VERILOG:=./common_verilog/
 BSVINCDIR:=.:%/Prelude:%/Libraries:%/Libraries/BlueNoC:$(CORE):$(M_EXT):$(FABRIC):$(PERIPHERALS):$(COMMON_BSV):$(COMMON_VERILOG)
-# ------------------------------------------------------------------------------------------------ #
+# ----------------------------------------------------------------------------------------------- #
 
-# ----------------- Setting up flags for verilator ----------------------------------------------- #
-VERILATOR_FLAGS += --stats -O3 $(verilate_fast) -LDFLAGS "-static" --x-assign fast --x-initial fast \
---noassert sim_main.cpp --bbox-sys -Wno-STMTDLY -Wno-UNOPTFLAT -Wno-WIDTH \
--Wno-lint -Wno-COMBDLY -Wno-INITIALDLY --autoflush $(coverage) $(trace) --threads $(THREADS) \
--DBSV_RESET_FIFO_HEAD -DBSV_RESET_FIFO_ARRAY
-# ------------------------------------------------------------------------------------------------ #
+# ----------------- Setting up flags for verilator ---------------------------------------------- #
+VERILATOR_FLAGS += --stats -O3 $(verilate_fast) -LDFLAGS "-static" --x-assign fast \
+									 --x-initial fast --noassert sim_main.cpp --bbox-sys -Wno-STMTDLY \
+									 -Wno-UNOPTFLAT -Wno-WIDTH -Wno-lint -Wno-COMBDLY -Wno-INITIALDLY \
+									 --autoflush $(coverage) $(trace) --threads $(THREADS) \
+									 -DBSV_RESET_FIFO_HEAD -DBSV_RESET_FIFO_ARRAY
+# ---------------------------------------------------------------------------------------------- #
 
 # ---------------- Setting the variables for bluespec compile  --------------------------------- #
 BSC_CMD:= bsc -u -verilog -elab 
 BSVCOMPILEOPTS:= +RTS -K40000M -RTS -check-assert  -keep-fires -opt-undetermined-vals \
-								 -remove-false-rules -remove-empty-rules -remove-starved-rules -remove-dollar
+								 -remove-false-rules -remove-empty-rules -remove-starved-rules -remove-dollar \
+								 -suppress-warnings G0020
 BSVLINKOPTS:=-parallel-sim-link 8 -keep-fires
 VERILOGDIR:=./verilog/
 BSVBUILDDIR:=./bsv_build/
@@ -148,9 +149,9 @@ else
 									 -verilog-filter ./rename_translate.sh
 	VERILOGLICENSE:= cp ${TOOLS_DIR}/shakti-tools/IITM_LICENSE.txt ${VERILOGDIR}/LICENSE.txt
 endif
-# ------------------------------------------------------------------------------------------------ #
+# ----------------------------------------------------------------------------------------------- #
 
-# ------------------------------------- Makefile TARGETS ----------------------------------------- #
+# ------------------------------------- Makefile TARGETS ---------------------------------------- #
 default: generate_verilog link_verilator generate_boot_files
 gdb: generate_verilog link_verilator_gdb generate_boot_files
 
@@ -160,9 +161,6 @@ help: ## This help dialog.
 
 check-env:
 	@if test -z "$$BLUESPECDIR"; then echo "BLUESPECDIR variable not set"; exit 1; fi;
-
-check-py:
-	@if ! [ -a /usr/bin/python3 ] ; then echo "Python3 is required in /usr/bin to run AAPG" ; exit 1; fi;
 
 .PHONY: check-restore
 check-restore:
@@ -313,7 +311,8 @@ link_verilator_gdb: ## Generate simulation executable using Verilator and VPI fo
 	      devices/jtagdtm/vpi_sv.v \
 	      tmp1.v                         > $(VERILOGDIR)/$(TOP_MODULE)_edited.v
 	@rm   -f  tmp1.v
-	verilator --threads-dpi all --cc $(TOP_MODULE)_edited.v --exe sim_main.cpp devices/jtagdtm/RBB_Shakti.c -y $(VERILOGDIR) $(VERILATOR_FLAGS)
+	verilator --threads-dpi all --cc $(TOP_MODULE)_edited.v --exe sim_main.cpp \
+						devices/jtagdtm/RBB_Shakti.c -y $(VERILOGDIR) $(VERILATOR_FLAGS)
 	@ln -f -s sim_main.cpp obj_dir/sim_main.cpp
 	@ln -f -s sim_main.h obj_dir/sim_main.h
 	@ln -f -s ./devices/jtagdtm/RBB_Shakti.c obj_dir/RBB_Shakti.c
