@@ -78,6 +78,9 @@ package stage3;
   `ifdef muldiv
     method Action ma_delayed_output (DelayedOut r);
   `endif
+  `ifdef arith_trap
+    method Bit#(1) mv_arithtrap_en;
+  `endif
   endinterface : Ifc_stage3
 
   (*synthesize*)
@@ -307,6 +310,9 @@ package stage3;
     method Action ma_delayed_output(DelayedOut r);
       wr_delayed_result <= r;
     endmethod
+  `endif
+  `ifdef arith_trap
+    method mv_arithtrap_en = csr.mv_arithtrap_en;
   `endif
   endmodule : mkstage3
 endpackage : stage3

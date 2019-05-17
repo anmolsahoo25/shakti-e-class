@@ -263,7 +263,7 @@ package alu;
 
   //Read csr_reg to check if arith_exception is enabled
   `ifdef arith_trap
-      method Action rd_arith_excep_en(Bit#(1) arith_en);
+    method Action ma_arithtrap_en(Bit#(1) arith_en);
   `endif
   endinterface : Ifc_alu
 
@@ -285,6 +285,10 @@ package alu;
     `ifdef muldiv
       Ifc_muldiv muldiv <- mkmuldiv;
     `endif
+    `ifdef arith_trap
+      Wire#(Bit#(1)) wr_arith_en <- mkWire();
+    `endif
+
 
     `ifdef multicycle
       Reg#(WaitState) rg_wait <- mkReg(None);
@@ -326,12 +330,25 @@ package alu;
       // send inputs to the muldiv unit and send a stall signal to the execute stage.
       `ifdef muldiv
         if(inst_type == MULDIV)begin
-          let product <- muldiv.get_inputs(truncate(op1), truncate(op2), funct3 
+        `ifdef arith_trap
+          if(funct3[2] == 1 && op2 == 0 && wr_arith_en == 1) begin
+            return ALU_OUT{ done           : True,  
+                            cmtype         : TRAP,  
+                            aluresult      : ?,  
+                            effective_addr : ?, 
+                            cause          : `Int_divide_by_zero, 
+                            redirect       : False};
+          end
+          else
+        `endif
+          begin
+            let product <- muldiv.get_inputs(truncate(op1), truncate(op2), funct3 
                                             `ifdef RV64 , word32 `endif );
-          if(!product.done)
-            rg_wait <= WaitMulDiv; 
+            if(!product.done)
+              rg_wait <= WaitMulDiv; 
 
-          return product;// TODO in case of single cycle mul return output here itself
+            return product;// TODO in case of single cycle mul return output here itself
+          end
         end
         else
       `endif
@@ -353,16 +370,10 @@ package alu;
     // muldiv unit or the floating point unit.
     method mv_delayed_output = wr_delayed_output;
   `endif
-
-
   `ifdef arith_trap
-    method  Action rd_arith_excep_en(Bit#(1) arith_en);
-    `ifdef muldiv
-      muldiv.rd_arith_excep_en(arith_en);
-    `endif
+    method  Action ma_arithtrap_en(Bit#(1) arith_en);
+      wr_arith_en <= arith_en;
     endmethod
   `endif
-
-
   endmodule
 endpackage : alu

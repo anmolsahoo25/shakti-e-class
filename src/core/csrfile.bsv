@@ -131,10 +131,9 @@ package csrfile;
     method Action incr_minstret;
   // ------------------------ csrs to other pipeline stages ---------------------------------//
     method CSRtoDecode mv_csr_decode;
-    method Bit#(3) mv_cacheenable;
   //returns arithmetic exception enabled/disabled
   `ifdef arith_trap
-    method Bit#(1) arith_excep;
+    method Bit#(1) mv_arithtrap_en;
   `endif
     method Bit#(1) mv_csr_misa_c;
     method Bit#(2) mv_curr_priv;
@@ -397,35 +396,14 @@ package csrfile;
     //////////////////////////////////////////////////////////////////////////////////////////
     ///////////////////////////// None Standard User RW CSRs /////////////////////////////////
     // Address : 'h800
-  `ifdef icache
-    // 0 - bit is cache enable for instruction cache
-    Reg#(Bit#(1)) rg_ienable <- mkReg(fromInteger(valueOf(`icachereset)));
-  `else
-    Reg#(Bit#(1)) rg_ienable = readOnlyReg(0);
-  `endif
-
-  `ifdef dcache
-    // 1 - bit is cache enable for data cache
-    Reg#(Bit#(1)) rg_denable <- mkReg(fromInteger(valueOf(`dcachereset)));
-  `else
-    Reg#(Bit#(1)) rg_denable = readOnlyReg(0);
-  `endif
-  `ifdef bpu
-    // 2 - bit is branch predictor enable
-    Reg#(Bit#(1)) rg_bpuenable <- mkReg(fromInteger(valueOf(`bpureset)));
-  `else
-    Reg#(Bit#(1)) rg_bpuenable = readOnlyReg(0);
-  `endif
-
   `ifdef arith_trap
-    // 3 - bit if to enable traps on arithmetic ops
+    // [3] - bit if to enable traps on arithmetic ops
     Reg#(Bit#(1)) rg_arith_excep <-mkReg(0); 
   `else
     Reg#(Bit#(1)) rg_arith_excep = readOnlyReg(0);
   `endif
 
-    Reg#(Bit#(4)) rg_customcontrol = concatReg4(rg_arith_excep, rg_bpuenable, 
-                                                rg_denable, rg_ienable); 
+    Reg#(Bit#(4)) rg_customcontrol = concatReg2(rg_arith_excep, readOnlyReg(3'd0)); 
     //////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////// Debug Module CSRs /////////////////////////////////////////
   `ifdef debug
@@ -1061,9 +1039,8 @@ package csrfile;
                 hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie};
       `endif
     endmethod
-    method mv_cacheenable = truncate(rg_customcontrol);
   `ifdef arith_trap
-    method Bit#(1) arith_excep = rg_customcontrol[3];
+    method Bit#(1) mv_arithtrap_en = rg_customcontrol[3];
   `endif
   `ifdef pmp
     method pmp_cfg = readVReg(v_pmp_cfg);

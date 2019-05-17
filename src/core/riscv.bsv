@@ -106,6 +106,10 @@ package riscv;
     mkConnection(stage2.mv_delayed_output , stage3.ma_delayed_output);
   `endif
 
+  `ifdef arith_trap
+    mkConnection(stage2.ma_arithtrap_en   , stage3.mv_arithtrap_en);
+  `endif
+
     let {newpc, trap}=stage3.flush; 
     let {redirect_pc, redirect} = stage2.mv_redirection;
 

@@ -82,6 +82,9 @@ package stage2;
   `endif
 
     method Tuple2#(Bit#(`vaddr), Bool) mv_redirection;
+  `ifdef arith_trap
+    method Action ma_arithtrap_en(Bit#(1) arith_en);
+  `endif
   endinterface : Ifc_stage2
   
   (*synthesize*)
@@ -326,6 +329,12 @@ package stage2;
     method Action ma_trigger_enable(Vector#(`trigger_num, Bool) t);
       for(Integer i = 0; i<`trigger_num; i = i+1)
         v_trigger_enable[i] <= t[i];
+    endmethod
+  `endif
+
+  `ifdef arith_trap
+    method Action ma_arithtrap_en(Bit#(1) arith_en);
+      alu.ma_arithtrap_en(arith_en);
     endmethod
   `endif
   endmodule : mkstage2

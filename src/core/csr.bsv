@@ -64,10 +64,8 @@ package csr;
     `endif
 	  method Action ext_interrupt(Bit#(1) ex_i);
     method Bit#(1) mv_csr_misa_c;
-    method Bit#(3) mv_cacheenable;
   `ifdef arith_trap
-   //This method returns value of csr_reg which enables or disables arithmetic exceptions
-    method Bit#(1) arith_excep;
+    method Bit#(1) mv_arithtrap_en;
   `endif
     method Bit#(2) mv_curr_priv;
     method Bit#(XLEN) csr_mstatus;
@@ -159,10 +157,9 @@ package csr;
     `endif
 	  method Action ext_interrupt(Bit#(1) ex_i) = csrfile.ext_interrupt(ex_i);
     method mv_csr_misa_c = csrfile.mv_csr_misa_c;
-    method mv_cacheenable = csrfile.mv_cacheenable;
  
   `ifdef arith_trap
-    method arith_excep = csrfile.arith_excep;
+    method mv_arithtrap_en = csrfile.mv_arithtrap_en;
   `endif
     method mv_curr_priv = csrfile.mv_curr_priv;
     method csr_mstatus = csrfile.csr_mstatus;
