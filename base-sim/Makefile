@@ -71,6 +71,9 @@ endif
 ifeq ($(PMP), enable)
 	override define_macros += -D pmp=True
 endif
+ifeq ($(ARITHTRAP), enable)
+	override define_macros += -D arith_trap=True
+endif
 ifeq ($(DEBUG), enable)
 	override define_macros += -D debug=True
 endif
