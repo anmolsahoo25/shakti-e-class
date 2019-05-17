@@ -99,6 +99,8 @@ package eclass;
       Bit#(TAdd#(TLog#(TDiv#(XLEN,8)),3)) lv_shift = {lower_addr_bits,3'd0};
       let lv_data= response.rdata >> lv_shift;
       Bool bus_error = !(response.rresp == AXI4_OKAY);
+      if (bus_error)
+        lv_data = zeroExtend(ff_inst_request.first.addr);
       riscv.inst_response.put(InstResponse{inst : truncate(lv_data), err : bus_error, 
                                             epoch : ff_inst_request.first.epoch});
       ff_inst_request.deq;
@@ -158,6 +160,8 @@ package eclass;
       else if(req.size[1:0] == 2)
           rdata = req.size[2] == 0?signExtend(rdata[31 : 0]) : zeroExtend(rdata[31 : 0]);
       // TODO send address in case of error
+      if(bus_error)
+        rdata = zeroExtend(ff_mem_request.first.addr);
       riscv.memory_response.put(MemoryResponse{data: rdata, err: bus_error, epoch: req.epoch});
       `logLevel( eclass, 0, $format("CORE : Memory Read Response ", fshow(response)))
       ff_mem_request.deq;
@@ -170,6 +174,9 @@ package eclass;
       let response <- pop_o(memory_xactor.o_wr_resp);
       let bus_error = !(response.bresp == AXI4_OKAY);
       riscv.memory_response.put(MemoryResponse{data:0, err: bus_error, epoch: req.epoch});
+      if(bus_error)
+        data = zeroExtend(ff_mem_request.first.addr);
+      riscv.memory_response.put(MemoryResponse{data:data, err: bus_error, epoch: req.epoch});
       ff_mem_request.deq;
       `logLevel( eclass, 0, $format("CORE : Memory Write Response ", fshow(response)))
     endrule

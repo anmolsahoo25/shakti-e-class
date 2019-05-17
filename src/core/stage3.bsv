@@ -204,7 +204,7 @@ package stage3;
               end
               else begin
                 let newpc <- csr.take_trap(mem.memaccess == Load ? `Load_access_fault:
-                                            `Store_access_fault, s3common.pc, mem.address);
+                                            `Store_access_fault, s3common.pc, data);
                 wr_flush <= tuple2(newpc, True);
                 rg_epoch <= ~rg_epoch;
                 deq_rx;

@@ -204,8 +204,8 @@ package common_types;
 
   typedef struct{
     Access_type   memaccess;
-    Bit#(`vaddr)  address;
   `ifdef triggers
+    Bit#(`vaddr)  address;
     Bit#(2)       size;
   `endif
   } Stage3Memory deriving(Bits, Eq, FShow);
