@@ -57,6 +57,8 @@ package sign_dump;
     AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) m_xactor <- mkAXI4_Master_Xactor;
     AXI4_Slave_Xactor_IFC #(`paddr, XLEN, USERSPACE) s_xactor <- mkAXI4_Slave_Xactor;
 
+    FIFOF#(Bit#(TLog#(TDiv#(XLEN,8)))) ff_lower_order_bits <- mkSizedFIFOF(8);
+
     Reg#(Bit#(`paddr)) rg_start_address<- mkReg(0);    // 0x2000
     Reg#(Bit#(`paddr)) rg_end_address<- mkReg(0);      // 0x2008
 
@@ -87,10 +89,11 @@ package sign_dump;
       end
       else if (aw.awaddr[3:0]=='h8) begin
         rg_end_address<=truncate(w.wdata);
-        rg_start<=True;
         b.bresp=AXI4_OKAY;
         Bit#(`paddr) total_bytes=truncate(w.wdata)-rg_start_address;
         rg_total_count<=total_bytes>>2;
+        if(rg_start_address != truncate(w.wdata))
+          rg_start<=True;
       end
       else if (aw.awaddr[3:0]=='hc) begin
         $finish(0);        
@@ -101,15 +104,20 @@ package sign_dump;
     rule send_request(rg_start);
       if(rg_start_address<rg_end_address) begin
         AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr: rg_start_address, aruser: ?, 
-          arlen:0, arsize: 2, arburst: 'b01, arid:2, arprot: 'b001}; // arburst: 00-FIXED 01-INCR 10-WRAP
+          arlen:0, arsize: 2, arburst: 'b01, arid:2, arprot: 'b001};
         m_xactor.i_rd_addr.enq(read_request);	
         rg_start_address<=rg_start_address+4;
+        ff_lower_order_bits.enq(truncate(rg_start_address));
       end
     endrule
 
     rule receive_response(rg_cnt>=5 && rg_start);
       let response <- pop_o (m_xactor.o_rd_data);	
-      $fwrite(dump,"%4h\n", response.rdata[31:0]); 
+      ff_lower_order_bits.deq();
+      Bit#(TLog#(TDiv#(XLEN,8))) lower_addr_bits= ff_lower_order_bits.first();
+      Bit#(TAdd#(TLog#(TDiv#(XLEN,8)),3)) lv_shift = {lower_addr_bits,3'd0};
+      let lv_data= response.rdata >> lv_shift;
+      $fwrite(dump,"%4h\n", lv_data[31:0]); 
       rg_total_count<=rg_total_count-1;
       if (response.rresp!=AXI4_OKAY)begin
         $display($time, "\tSIGNATUREDUMP got Bus Error");
@@ -122,4 +130,3 @@ package sign_dump;
     interface slave=s_xactor.axi_side;
   endmodule
 endpackage
-
