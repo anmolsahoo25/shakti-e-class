@@ -203,7 +203,7 @@ package stage2;
       `logLevel( stage2, 1, $format("STAGE2 : Control: ", fshow(control)))
       `logLevel( stage2, 1, $format("STAGE2 : Fwding : Valid:%b Op1:%h Op2:%h", valid, op1, op2)) 
 
-      let aluout <- alu.inputs(fn, _op1, _op2, op3, zeroExtend(meta.immediate), 
+      let aluout <- alu.inputs(fn, _op1, _op2, op3, signExtend(meta.immediate), 
                               meta.inst_type, funct3, meta.memaccess, 
                               `ifdef RV64 meta.word32, `endif wr_misa_c, truncate(control.pc)
                               `ifdef triggers
