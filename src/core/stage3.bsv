@@ -182,7 +182,15 @@ package stage3;
           end
 
           if(s3type matches tagged Memory .mem)begin
-            if(wr_memory_response matches tagged Valid .resp &&& resp.epoch == rg_epoch)begin
+            if(mem.memaccess == Fence)begin
+              wr_commit <= tagged Valid (CommitPacket{rdaddr : 0, rdvalue : 0});
+              deq_rx;
+              rg_rerun <= True;
+            `ifdef rtldump 
+              dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, 0, 0));
+            `endif
+            end
+            else if(wr_memory_response matches tagged Valid .resp &&& resp.epoch == rg_epoch)begin
               let data = resp.data;
               if( !resp.err )begin
                 if(s3common.rd == 0)
