@@ -175,20 +175,20 @@ package stage1;
   `endif
 
   
-`ifdef debug
+  `ifdef debug
     // This wire will capture info about the current debug state of the core
     Wire#(DebugStatus) wr_debug_info <- mkWire();
 
     // This register indicates when an instruction passed the decode stage after a resume request is
     // received while is step is set.
     Reg#(Bool) rg_step_done <- mkReg(False);
+  `endif
 
   `ifdef triggers
     Vector#(`trigger_num, Wire#(TriggerData)) v_trigger_data1 <- replicateM(mkWire());
     Vector#(`trigger_num, Wire#(Bit#(XLEN))) v_trigger_data2 <- replicateM(mkWire());
     Vector#(`trigger_num, Wire#(Bool)) v_trigger_enable <- replicateM(mkWire());
   `endif
-`endif
 
     Bit#(2) curr_epoch = {rg_eEpoch, rg_wEpoch};
     // ----------------------------------End instantiations ------------------------------------ //
