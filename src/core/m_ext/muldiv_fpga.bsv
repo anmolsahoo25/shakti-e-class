@@ -35,6 +35,7 @@ package muldiv_fpga;
   import restoring_div::*;
   import common_types::*;
   `include "common_params.bsv"
+  `include "Logger.bsv"
 
   interface Ifc_muldiv;
     method ActionValue#(ALU_OUT) get_inputs(Bit#(XLEN) operand1, Bit#(XLEN) operand2, 
@@ -43,9 +44,11 @@ package muldiv_fpga;
   endinterface : Ifc_muldiv
 
   (*synthesize*)
-  (*conflict_free="get_inputs, increment_counter"*)
+  (*preempts="get_inputs, increment_counter"*)
   module mkmuldiv(Ifc_muldiv);
-    let verbosity = valueOf(`VERBOSITY);
+
+    String muldiv = "" ;
+
     Ifc_multiplier#(XLEN) mult <- mkmultiplier;
     Ifc_restoring_div divider <- mkrestoring_div();
     Reg#(Bit#(TLog#(TAdd#(TMax#(`MULSTAGES, `DIVSTAGES), 1)))) rg_count <- mkReg(0);
@@ -59,13 +62,11 @@ package muldiv_fpga;
     rule increment_counter(rg_count != 0);
       if((rg_count == fromInteger(`MULSTAGES) && !mul_div) || 
           (rg_count == fromInteger(`DIVSTAGES) + 1 && mul_div)) begin
-        if(verbosity>1)
-          $display($time, "\tALU : got output from Mul / Div. mul_div: %b", mul_div);
+        `logLevel( muldiv, 0, $format("MULDIV : got output from Mul/Div. mul_div: %b", mul_div))
         rg_count <= 0;
       end
       else begin
-        if(verbosity>1)
-          $display($time, "\tALU : Waiting for mul / div to respond. Count: %d", rg_count);
+        `logLevel( muldiv, 0, $format("MULDIV : Waiting for mul/div to respond. Count: %d", rg_count))
         rg_count <= rg_count + 1;
       end
     endrule
@@ -113,9 +114,8 @@ package muldiv_fpga;
       Bit#(XLEN) default_out = '1;
       Bool result_avail = False;
       if(funct3[2] == 0)begin // multiplication operation
-        if(verbosity>1)
-          $display($time, "\tALU : Sending inputs to multiplier. A: %h B: %h funct3: %b", op1, op2,
-        funct3);
+          `logLevel( muldiv, 0, $format("MULDIV : Sending inputs to multiplier. A: %h B: %h funct3: %b", op1, op2,
+        funct3))
         mult.iA(op1);
         mult.iB(op2);
         if(`MULSTAGES == 0)begin
@@ -141,7 +141,7 @@ package muldiv_fpga;
       `endif
       if((funct3[2] == 0 && `MULSTAGES != 0) || (funct3[2] == 1 && `DIVSTAGES != 0) 
             && !result_avail)begin
-        rg_count <= rg_count + 1;
+        rg_count <= 1;
         rg_upperbits <= lv_upperbits;
         rg_complement <= lv_take_complement;
         `ifdef RV64 rg_word32 <= word32; `endif
@@ -159,6 +159,7 @@ package muldiv_fpga;
         reslt=~reslt + 1;
       Bit#(XLEN) product = `ifdef RV64 rg_word32 ? signExtend(reslt[31 : 0]) : `endif 
           (!mul_div && rg_upperbits) ? truncateLSB(reslt) : truncate(reslt);
+      `logLevel( muldiv, 0, $format("MULDIV: Responding with DelayedOut: %h", product))
       return ALU_OUT{done : True, cmtype : REGULAR, aluresult : zeroExtend(product), 
                     effective_addr:?, cause:?, redirect : False
                     `ifdef bpu, branch_taken: ?, redirect_pc: ? `endif };
