@@ -87,9 +87,8 @@ package eclass;
     FIFOF#(Bool) ff_inst_access_fault <- mkSizedFIFOF(2);
 
     // fifo of size 1 effectively enables only one data request to be be latched & served at a time.
-    // TODO make this more than 1?
-    FIFOF#(MemoryRequest) ff_mem_request <- mkFIFOF1();
-    FIFOF#(Bool) ff_mem_access_fault <- mkFIFOF1();
+    FIFOF#(MemoryRequest) ff_mem_request <- mkSizedFIFOF(2);
+    FIFOF#(Bool) ff_mem_access_fault <- mkSizedFIFOF(2);
   
   `ifdef debug
     Reg#(Maybe#(Bit#(DXLEN))) rg_abst_response <- mkReg(tagged Invalid); // registered container for responses
