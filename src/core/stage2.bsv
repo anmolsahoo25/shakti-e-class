@@ -227,7 +227,7 @@ package stage2;
           if(aluout.redirect)
             rg_eEpoch <= ~rg_eEpoch;
           if(aluout.cmtype == MEMORY && meta.memaccess != Fence)
-            ff_memory_request.enq(MemoryRequest{addr : aluout.effective_addr, data : ops.op2, 
+            ff_memory_request.enq(MemoryRequest{addr : aluout.effective_addr, data : _op2, 
                                                 memaccess : meta.memaccess, size : funct3, 
                                                 epoch : rg_wEpoch});
         // -------------------------- Derive types for Next stage --------------------------- //
