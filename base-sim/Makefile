@@ -297,8 +297,8 @@ link_verilator: ## Generate simulation executable using Verilator
 	@echo "#define TOPMODULE V$(TOP_MODULE)" > sim_main.h
 	@echo '#include "V$(TOP_MODULE).h"' >> sim_main.h
 	verilator $(VERILATOR_FLAGS) --cc $(TOP_MODULE).v -y $(VERILOGDIR) --exe
-	@ln -f -s sim_main.cpp obj_dir/sim_main.cpp
-	@ln -f -s sim_main.h obj_dir/sim_main.h
+	@ln -f -s ../sim_main.cpp obj_dir/sim_main.cpp
+	@ln -f -s ../sim_main.h obj_dir/sim_main.h
 	@make -j8 -C obj_dir -f V$(TOP_MODULE).mk
 	@cp obj_dir/V$(TOP_MODULE) $(BSVOUTDIR)/out
 
