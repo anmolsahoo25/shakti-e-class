@@ -31,46 +31,59 @@ the same address in the same cycle
 package registerfile;
   // library package
   import RegFile :: *;
+  import common_types :: *;
+`ifdef debug
+  import debug_types :: *;
+`endif
 
   // -------------------------- interface definitions ------------------------------------------ //
-  interface Ifc_registerfile#(type index_t, type data_t);
-    method Action upd(index_t addr, data_t d);
-    method data_t sub(index_t addr);
+  interface Ifc_registerfile;
+    method Action upd(Bit#(5) addr, Bit#(XLEN) d);
+    method Bit#(XLEN) sub(Bit#(5) addr);
+  `ifdef debug
+    method ActionValue#(Bit#(XLEN)) mav_debug_access_gprs(AbstractRegOp cmd);
+  `endif
   endinterface: Ifc_registerfile
   // ----------------------------end interface definitions ------------------------------------- //
 
   // ------------------------- module definitions ---------------------------------------------- //
-  module mkregisterfile(Ifc_registerfile#(index_t, data_t))
-    provisos(Bits#(index_t, size_index), 
-              Bits#(data_t, size_data),
-              Bounded#(index_t),
-              Eq#(index_t),
-              Literal#(data_t),
-              Literal#(index_t));
+  module mkregisterfile(Ifc_registerfile);
     // -------------------- Instantiations ------------------------------------------------------ //
 
     // instantiate a CF regile file module. CF is required since you will be reading and writing in
     // the same cycle.
-    RegFile#(index_t, data_t) rf <- mkRegFileWCF(0,fromInteger(valueOf(TExp#(size_index))-1));
+    RegFile#(Bit#(5), Bit#(XLEN)) rf <- mkRegFileWCF(0,31);
 
     // capture the curren address and value being written into the regfile
-    Wire#(index_t) wr_write_address <- mkDWire(0);
-    Wire#(data_t) wr_write_data <- mkDWire(0);
+    Wire#(Bit#(5)) wr_write_address <- mkDWire(0);
+    Wire#(Bit#(XLEN)) wr_write_data <- mkDWire(0);
 
     // update the regfile with new data
-    method Action upd(index_t addr, data_t d);
+    method Action upd(Bit#(5) addr, Bit#(XLEN) d);
       rf.upd(addr, d);
       wr_write_address <= addr;
       wr_write_data <= d;
     endmethod
 
     // read the latest content of the regfile at a particular address
-    method data_t sub(index_t addr);
+    method Bit#(XLEN) sub(Bit#(5) addr);
       if( addr == wr_write_address )
         return wr_write_data;
       else
         return rf.sub(addr);
     endmethod
+
+  `ifdef debug
+    method ActionValue#(Bit#(XLEN)) mav_debug_access_gprs(AbstractRegOp cmd);
+      Bit#(XLEN) read = ?;
+      Bit#(5) index = truncate(cmd.address);
+      if (cmd.read_write) // write_op
+        rf.upd(index, cmd.writedata);
+      else
+        read = rf.sub(index);
+      return read;
+    endmethod
+  `endif
   endmodule: mkregisterfile
   // ----------------------------end module definitions ------------------------------------- //
 endpackage
