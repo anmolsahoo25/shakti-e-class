@@ -37,6 +37,7 @@ package stage2;
   import UniqueWrappers ::*;
   import TxRx ::*;
   import Vector :: *;
+  import SpecialFIFOs :: *;
 
   // project packages
   import common_types::*;
@@ -110,14 +111,11 @@ package stage2;
     Reg#(Bit#(1)) rg_eEpoch <- mkReg(0);
 
     Reg#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
-    FIFOF#(MemoryRequest) ff_memory_request <- mkSizedFIFOF(2);
+    FIFOF#(MemoryRequest) ff_memory_request <- mkBypassFIFOF();
 
     Ifc_alu alu <- mkalu();
 
   `ifdef atomic
-    FIFOF#(Tuple3#(Bit#(XLEN), Bool, Access_type)) ff_atomic_response <- mkSizedFIFOF(2);
-    Reg#(Bit#(`paddr)) rg_atomic_address <- mkReg(0);
-    Reg#(Bit#(XLEN)) rg_op2 <- mkReg(0);
     Reg#(Maybe#(Bit#(`paddr))) rg_loadreserved_addr <- mkReg(tagged Invalid);
   `endif
 
@@ -229,7 +227,10 @@ package stage2;
           if(aluout.cmtype == MEMORY && meta.memaccess != Fence)
             ff_memory_request.enq(MemoryRequest{addr : aluout.effective_addr, data : _op2, 
                                                 memaccess : meta.memaccess, size : funct3, 
-                                                epoch : rg_wEpoch});
+                                                epoch : rg_wEpoch
+                                              `ifdef atomic
+                                                ,atomic_op: {funct3[0],fn}
+                                              `endif });
         // -------------------------- Derive types for Next stage --------------------------- //
             let s3common = Stage3Common{pc      : control.pc, 
                                         rd      : opaddr.rd,
