@@ -70,13 +70,13 @@ package csr;
   `endif
 
   `ifdef debug
-    method ActionValue#(Bit#(XLEN)) debug_access_csrs(AbstractRegOp cmd);
-    method Action debug_halt_request(Bit#(1) ip);
-    method Action debug_resume_request(Bit#(1) ip);
-    method Bit#(1) core_is_halted;
-    method Bit#(1) step_is_set;
-    method Bit#(1) step_ie;
-    method Bit#(1) core_debugenable;
+    method ActionValue#(Bit#(XLEN)) mav_debug_access_csrs(AbstractRegOp cmd);
+    method Action ma_debug_halt_request(Bit#(1) ip);
+    method Action ma_debug_resume_request(Bit#(1) ip);
+    method Bit#(1) mv_core_is_halted;
+    method Bit#(1) mv_step_is_set;
+    method Bit#(1) mv_step_ie;
+    method Bit#(1) mv_core_debugenable;
   `endif
   `ifdef triggers
     method Vector#(`trigger_num, TriggerData) mv_trigger_data1;
@@ -158,7 +158,7 @@ package csr;
     method pmp_addr = csrfile.pmp_addr;
   `endif
   `ifdef debug
-    method ActionValue#(Bit#(XLEN)) debug_access_csrs(AbstractRegOp cmd);
+    method ActionValue#(Bit#(XLEN)) mav_debug_access_csrs(AbstractRegOp cmd);
       if(cmd.read_write) begin
         csrfile.write_csr(truncate(cmd.address), cmd.writedata, 'd0);
         return 0;
@@ -168,12 +168,12 @@ package csr;
         return x;
       end
     endmethod
-    method debug_halt_request = csrfile.debug_halt_request;
-    method debug_resume_request = csrfile.debug_resume_request ;
-    method core_is_halted = csrfile.core_is_halted ;
-    method step_is_set = csrfile.step_is_set;
-    method step_ie = csrfile.step_ie;
-    method core_debugenable = csrfile.core_debugenable;
+    method ma_debug_halt_request = csrfile.debug_halt_request;
+    method ma_debug_resume_request = csrfile.debug_resume_request ;
+    method mv_core_is_halted = csrfile.core_is_halted ;
+    method mv_step_is_set = csrfile.step_is_set;
+    method mv_step_ie = csrfile.step_ie;
+    method mv_core_debugenable = csrfile.core_debugenable;
   `endif
   `ifdef triggers
     method mv_trigger_data1 =   csrfile.mv_trigger_data1;

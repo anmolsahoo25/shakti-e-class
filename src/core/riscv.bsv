@@ -45,6 +45,9 @@ package riscv;
   import stage3 :: *;
   `include "common_params.bsv"
   `include "Logger.bsv"
+`ifdef debug
+  import debug_types ::*;
+`endif
 
   interface Ifc_riscv;
     // interface between fetch and fabric
@@ -64,6 +67,17 @@ package riscv;
     `ifdef rtldump
       interface Get#(DumpType) dump;
     `endif
+  
+  `ifdef debug
+    // interface to interact with debugger
+    method ActionValue#(Bit#(XLEN)) mav_debug_access_gprs(AbstractRegOp cmd);
+    method ActionValue#(Bit#(XLEN)) mav_debug_access_csrs(AbstractRegOp cmd);
+    method Action ma_debug_halt_request(Bit#(1) ip);
+    method Action ma_debug_resume_request(Bit#(1) ip);
+    method Action ma_debugger_available (Bit#(1) avail);
+    method Bit#(1) mv_core_is_halted;
+    method Bit#(1) mv_core_debugenable;
+  `endif
 
     method Bit#(2) mv_curr_priv;
   endinterface : Ifc_riscv
@@ -74,6 +88,10 @@ package riscv;
     Ifc_stage1              stage1          <- mkstage1(resetpc);
     Ifc_stage2              stage2          <- mkstage2();
     Ifc_stage3              stage3          <- mkstage3();
+
+  `ifdef debug
+    Wire#(Bool) wr_debugger_available <- mkWire();
+  `endif
 
     mkChan(mkLFIFOF()   , stage1.tx_stage1_operands , stage2.rx_stage1_operands);
     mkChan(mkLFIFOF()   , stage1.tx_stage1_control  , stage2.rx_stage1_control);
@@ -112,6 +130,17 @@ package riscv;
 
     let {newpc, trap}=stage3.flush; 
     let {redirect_pc, redirect} = stage2.mv_redirection;
+  
+  `ifdef debug
+    (*fire_when_enabled*)
+    rule connect_debug_info;
+      stage1.ma_debug_status(DebugStatus {debugger_available : wr_debugger_available ,
+                                          core_is_halted     : unpack(stage3.mv_core_is_halted),
+                                          step_set           : unpack(stage3.mv_step_is_set),
+                                          step_ie            : unpack(stage3.mv_step_ie),
+                                          core_debugenable   : unpack(stage3.mv_core_debugenable)} );
+    endrule
+  `endif
 
     // TODO ma_interrupt to stage1 to be connected to interrupt from stage3
     rule connect_interrupt;
@@ -156,5 +185,16 @@ package riscv;
       interface dump = stage3.dump;
     `endif
     method mv_curr_priv = stage3.mv_curr_priv;
+  `ifdef debug
+    method mav_debug_access_gprs    = stage1.mav_debug_access_gprs;
+    method mav_debug_access_csrs    = stage3.mav_debug_access_csrs;
+    method ma_debug_halt_request    = stage3.ma_debug_halt_request;
+    method ma_debug_resume_request  = stage3.ma_debug_resume_request;
+    method mv_core_is_halted        = stage3.mv_core_is_halted;
+    method mv_core_debugenable      = stage3.mv_core_debugenable;
+    method Action ma_debugger_available (Bit#(1) avail);
+      wr_debugger_available <= unpack(avail);
+    endmethod
+  `endif
   endmodule : mkriscv
 endpackage : riscv

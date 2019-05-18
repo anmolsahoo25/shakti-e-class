@@ -43,6 +43,9 @@ package stage3;
   import csr::*;
   `include "common_params.bsv"
   `include "Logger.bsv"
+`ifdef debug
+  import debug_types :: *;
+`endif
 
   interface Ifc_stage3;
     interface RXe#(Stage3Common)  rx_stage3_common;
@@ -69,6 +72,15 @@ package stage3;
   `ifdef rtldump
     interface Get#(DumpType) dump;
   `endif
+  `ifdef debug
+    method ActionValue#(Bit#(XLEN)) mav_debug_access_csrs(AbstractRegOp cmd);
+    method Action ma_debug_halt_request(Bit#(1) ip);
+    method Action ma_debug_resume_request(Bit#(1) ip);
+    method Bit#(1) mv_core_is_halted;
+    method Bit#(1) mv_step_is_set;
+    method Bit#(1) mv_step_ie;
+    method Bit#(1) mv_core_debugenable;
+  `endif
   `ifdef triggers
     method Vector#(`trigger_num, TriggerData) mv_trigger_data1;
     method Vector#(`trigger_num, Bit#(XLEN))  mv_trigger_data2;
@@ -84,6 +96,9 @@ package stage3;
   endinterface : Ifc_stage3
 
   (*synthesize*)
+`ifdef debug
+  (*conflict_free="mav_debug_access_csrs,instruction_commit"*)
+`endif
   module mkstage3(Ifc_stage3);
 
     let stage3 = "" ;
@@ -300,6 +315,15 @@ package stage3;
       endinterface;
     `endif
     method mv_csr_misa_c = csr.mv_csr_misa_c;
+  `ifdef debug
+    method mav_debug_access_csrs    = csr.mav_debug_access_csrs;
+    method ma_debug_halt_request    = csr.ma_debug_halt_request;
+    method ma_debug_resume_request  = csr.ma_debug_resume_request;
+    method mv_core_is_halted        = csr.mv_core_is_halted;
+    method mv_step_is_set           = csr.mv_step_is_set;
+    method mv_step_ie               = csr.mv_step_ie;
+    method mv_core_debugenable      = csr.mv_core_debugenable;
+  `endif
   `ifdef triggers
     method mv_trigger_data1 =   csr.mv_trigger_data1;
     method mv_trigger_data2 =   csr.mv_trigger_data2;

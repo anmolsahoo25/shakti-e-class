@@ -299,6 +299,14 @@ package common_types;
     Bit#(32)  csr_dcsr;
   `endif } CSRtoDecode deriving(Bits, Eq, FShow);
 
+  typedef struct {
+      Bool debugger_available;
+      Bool core_is_halted;
+      Bool step_set;
+      Bool step_ie;
+      Bool core_debugenable;
+  } DebugStatus deriving(Bits, Eq, FShow);
+
   typedef Tuple5#(Privilege_mode, Bit#(XLEN), Bit#(32), Bit#(5), Bit#(XLEN)) DumpType;
 
   // fabrics related definitions.

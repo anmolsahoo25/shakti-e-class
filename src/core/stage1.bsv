@@ -43,6 +43,9 @@ package stage1;
   import registerfile :: *;
   `include "common_params.bsv"
   `include "Logger.bsv"
+`ifdef debug
+  import debug_types :: *; // for importing the debug abstract interface
+`endif
 
   // ----------------------------- local type definitions -------------------------------------- //
   typedef enum {CheckPrev, None} ActionType deriving(Bits, Eq, FShow);
@@ -86,6 +89,14 @@ package stage1;
     method Action ma_update_eEpoch;
     method Action ma_update_wEpoch;
 
+  `ifdef debug
+    // interface to interact with debugger
+    method ActionValue#(Bit#(XLEN)) mav_debug_access_gprs(AbstractRegOp cmd);
+
+    // debug related info checking interrupts
+    (*always_enabled, always_ready*)
+    method Action ma_debug_status (DebugStatus status);
+  `endif
   `ifdef triggers
     // receives the TDATA1 from the csrs
     (*always_ready, always_enabled*)
@@ -103,6 +114,9 @@ package stage1;
   (*synthesize*)
   (*preempts = "ma_flush, wait_for_interrupt"*)
   (*preempts = "ma_flush, process_instruction"*)
+`ifdef debug
+  (*conflict_free="mav_debug_access_gprs,commit_rd_put"*)
+`endif
   module mkstage1#(parameter Bit#(`vaddr) resetpc)(Ifc_stage1);
 
     let stage1 = ""; // for logger
@@ -144,7 +158,7 @@ package stage1;
     FIFOF#(InstResponse) ff_memory_response <- mkSizedFIFOF(2);
     
     // operand register file
-    Ifc_registerfile#(Bit#(5), Bit#(XLEN)) integer_rf <- mkregisterfile;
+    Ifc_registerfile integer_rf <- mkregisterfile;
     
     // register to indicate that the RegFile is being initialized to all zeros
     Reg#(Bool) rg_initialize<-mkReg(True);
@@ -161,11 +175,20 @@ package stage1;
   `endif
 
   
+`ifdef debug
+    // This wire will capture info about the current debug state of the core
+    Wire#(DebugStatus) wr_debug_info <- mkWire();
+
+    // This register indicates when an instruction passed the decode stage after a resume request is
+    // received while is step is set.
+    Reg#(Bool) rg_step_done <- mkReg(False);
+
   `ifdef triggers
     Vector#(`trigger_num, Wire#(TriggerData)) v_trigger_data1 <- replicateM(mkWire());
     Vector#(`trigger_num, Wire#(Bit#(XLEN))) v_trigger_data2 <- replicateM(mkWire());
     Vector#(`trigger_num, Wire#(Bool)) v_trigger_enable <- replicateM(mkWire());
   `endif
+`endif
 
     Bit#(2) curr_epoch = {rg_eEpoch, rg_wEpoch};
     // ----------------------------------End instantiations ------------------------------------ //
@@ -365,7 +388,8 @@ package stage1;
                                                               fshow(rg_prev)))
       `endif
 
-        let y <- decoder_func(final_instruction, resp.err, wr_csr_decode);
+        let y <- decoder_func(final_instruction, resp.err, wr_csr_decode
+                              `ifdef debug ,wr_debug_info, rg_step_done `endif );
         if(y.meta.inst_type == WFI && perform_decode) begin
           rg_wfi <= True;
           perform_decode = False;
@@ -383,6 +407,14 @@ package stage1;
       TraceDump dump = TraceDump {pc : rg_pc, instruction : final_instruction};
     `endif
       if(perform_decode) begin
+      `ifdef debug
+        `logLevel( stage1, 0, $format("STAGE1: step_done:%b", rg_step_done))
+        if(rg_step_done && wr_debug_info.core_is_halted)
+          rg_step_done <= False;
+        else
+          rg_step_done <= !wr_debug_info.core_is_halted && wr_debug_info.step_set
+                                                      && wr_debug_info.debugger_available;
+      `endif
         ff_stage1_operands.u.enq(_ops);
         ff_stage1_meta.u.enq(y);
         ff_stage1_control.u.enq(STAGE1_control{ epoch : curr_epoch, pc : rg_pc});
@@ -450,6 +482,15 @@ package stage1;
     method Action ma_csr_decode (CSRtoDecode c);
       wr_csr_decode <= c;
     endmethod
+  `ifdef debug
+    method ActionValue#(Bit#(XLEN)) mav_debug_access_gprs(AbstractRegOp cmd) if(!rg_initialize);
+      let _x <- integer_rf.mav_debug_access_gprs(cmd);
+      return _x;
+    endmethod
+    method Action ma_debug_status (DebugStatus status);
+      wr_debug_info <= status;
+    endmethod
+  `endif
   `ifdef triggers
     method Action ma_trigger_data1(Vector#(`trigger_num, TriggerData) t);
       for(Integer i = 0; i<`trigger_num; i = i+1)

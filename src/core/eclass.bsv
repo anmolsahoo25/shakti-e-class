@@ -44,6 +44,9 @@ package eclass;
   import common_types:: * ;
   `include "common_params.bsv"
   `include "Logger.bsv"
+`ifdef debug
+  import debug_types::*;
+`endif
 
   export Ifc_eclass_axi4    (..);
   export mkeclass_axi4;
@@ -58,9 +61,12 @@ package eclass;
     interface Put#(Bit#(1)) sb_clint_mtip;
     interface Put#(Bit#(64)) sb_clint_mtime;
     interface Put#(Bit#(1)) sb_ext_interrupt;
-    `ifdef rtldump
-      interface Get#(DumpType) io_dump;
-    `endif
+  `ifdef rtldump
+    interface Get#(DumpType) io_dump;
+  `endif
+  `ifdef debug
+    interface Hart_Debug_Ifc debug_server;
+  `endif
   endinterface : Ifc_eclass_axi4
 
   (*synthesize*)
@@ -84,6 +90,10 @@ package eclass;
     // TODO make this more than 1?
     FIFOF#(MemoryRequest) ff_mem_request <- mkFIFOF1();
     FIFOF#(Bool) ff_mem_access_fault <- mkFIFOF1();
+  
+  `ifdef debug
+    Reg#(Maybe#(Bit#(DXLEN))) rg_abst_response <- mkReg(tagged Invalid); // registered container for responses
+  `endif
 
     rule handle_fetch_request;
       let req <- riscv.inst_request.get; 
@@ -226,10 +236,44 @@ package eclass;
         riscv.ext_interrupt(intrpt);
       endmethod
     endinterface;
-  interface master_i = fetch_xactor.axi_side;
-  interface master_d = memory_xactor.axi_side;
+    interface master_i = fetch_xactor.axi_side;
+    interface master_d = memory_xactor.axi_side;
   `ifdef rtldump
     interface io_dump = riscv.dump;
+  `endif
+  `ifdef debug
+    interface debug_server = interface Hart_Debug_Ifc
+      method Action   abstractOperation(AbstractRegOp cmd)if (!(isValid(rg_abst_response)));
+        if(cmd.address < zeroExtend(14'h1000))begin // Explot address bits to optimize this filter
+          let lv_resp <- riscv.mav_debug_access_csrs(cmd);
+          rg_abst_response <= tagged Valid zeroExtend(lv_resp);
+        end
+        else if(cmd.address < 'h1020 )begin
+          let lv_resp <- riscv.mav_debug_access_gprs(cmd);
+          rg_abst_response <= tagged Valid zeroExtend(lv_resp);
+        end
+        else begin
+          rg_abst_response <= tagged Valid zeroExtend(32'h00000000);
+        end
+      endmethod
+
+      method ActionValue#(Bit#(DXLEN)) abstractReadResponse if (isValid(rg_abst_response));
+        rg_abst_response <= tagged Invalid;
+        return validValue(rg_abst_response);
+      endmethod
+
+      method haltRequest    = riscv.ma_debug_halt_request;
+      method resumeRequest  = riscv.ma_debug_resume_request;
+      method dm_active      = riscv.ma_debugger_available;
+      method is_halted      = riscv.mv_core_is_halted();
+      method is_unavailable = ~riscv.mv_core_debugenable;
+      method Action hartReset(Bit#(1) hart_reset_v);
+        noAction;
+      endmethod
+      method Bit#(1) has_reset;
+        return 1;
+      endmethod
+    endinterface;
   `endif
   endmodule : mkeclass_axi4
 endpackage
