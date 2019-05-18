@@ -51,17 +51,12 @@ package csr;
 	  method ActionValue#(Tuple3#(Bool, Bit#(`vaddr), Bit#(XLEN))) system_instruction(
             Bit#(12) csr_address, Bit#(XLEN) op1, Bit#(3) funct3, Bit#(2) lpc);
     method CSRtoDecode mv_csr_decode;
-    method ActionValue#(Bit#(`vaddr)) take_trap(Bit#(`causesize) type_cause, Bit#(`vaddr) pc, Bit#(`vaddr) badaddr);
+    method ActionValue#(Bit#(`vaddr)) take_trap(Bit#(`causesize) type_cause, Bit#(`vaddr) pc, 
+                                                Bit#(`vaddr) badaddr);
 	  method Action clint_msip(Bit#(1) intrpt);
 		method Action clint_mtip(Bit#(1) intrpt);
 		method Action clint_mtime(Bit#(64) c_mtime);
     method Action incr_minstret;
-		`ifdef supervisor
-			method Bit#(XLEN) csr_satp;
-		`endif
-    `ifdef spfpu
-      method Action update_fflags(Bit#(5) flags);
-    `endif
 	  method Action ext_interrupt(Bit#(1) ex_i);
     method Bit#(1) mv_csr_misa_c;
   `ifdef arith_trap
@@ -105,13 +100,15 @@ package csr;
 	  	let csrread <- csrfile.read_csr(csr_address);
       Bit#(XLEN) writecsrdata = 0;
 	  	Bit#(XLEN) destination_value = 0;
-      `logLevel( csr, 2, $format("CSR : Operation csr: %h op1: %h, funct3: %b csr_read: %h", csr_address, 
-            op1, funct3, csrread))
+      `logLevel( csr, 2, $format("CSR : Operation csr: %h op1: %h, funct3: %b csr_read: %h", 
+                                  csr_address, op1, funct3, csrread))
 
 	  	case(funct3)
         'd0 : case (csr_address[11 : 8])
-              'h0, `ifdef supervisor 'h1, `endif 'h3 : begin // URET, SRET, MRET
-                let temp <- csrfile.upd_on_ret( `ifdef non_m_traps unpack(csr_address[9 : 8]) `endif );
+              'h0, 'h3 : begin // URET, SRET, MRET
+                let temp <- csrfile.upd_on_ret( `ifdef non_m_traps 
+                                                  unpack(csr_address[9 : 8]) 
+                                                `endif );
                 jump_add = temp;
                 flush = True;
                 `logLevel( csr, 1, $format("CSR : RET Function: %h",csr_address))
@@ -131,7 +128,8 @@ package csr;
 	  	return tuple3(flush, jump_add, destination_value);
 	  endmethod
 	
-    method ActionValue#(Bit#(`vaddr)) take_trap(Bit#(`causesize) type_cause, Bit#(`vaddr) pc, Bit#(`vaddr) badaddr);
+    method ActionValue#(Bit#(`vaddr)) take_trap(Bit#(`causesize) type_cause, Bit#(`vaddr) pc, 
+                                                Bit#(`vaddr) badaddr);
       let jump_address <- csrfile.upd_on_trap(type_cause, pc, badaddr); 
 		  return jump_address;
   	endmethod
@@ -147,14 +145,6 @@ package csr;
 	  	csrfile.clint_mtime(c_mtime);
 	  endmethod
     method incr_minstret = csrfile.incr_minstret;
-		`ifdef supervisor
-			method csr_satp = csrfile.csr_satp;
-		`endif
-    `ifdef spfpu
-      method Action update_fflags(Bit#(5) flags);
-        csrfile.update_fflags(flags);
-      endmethod
-    `endif
 	  method Action ext_interrupt(Bit#(1) ex_i) = csrfile.ext_interrupt(ex_i);
     method mv_csr_misa_c = csrfile.mv_csr_misa_c;
  
