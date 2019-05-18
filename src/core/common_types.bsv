@@ -261,6 +261,9 @@ package common_types;
     Access_type memaccess;
     Bit#(3) size;
     Bit#(1) epoch;
+  `ifdef atomic
+    Bit#(5) atomic_op;
+  `endif
   } MemoryRequest deriving (Eq, FShow, Bits);
 
   typedef struct{

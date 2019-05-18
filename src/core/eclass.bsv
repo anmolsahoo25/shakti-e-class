@@ -69,10 +69,38 @@ package eclass;
   `endif
   endinterface : Ifc_eclass_axi4
 
+`ifdef atomic
+  function Bit#(XLEN) fn_atomic_op (Bit#(5) op,  Bit#(XLEN) rs2, Bit#(XLEN) loaded);
+      Bit#(XLEN) op1 = loaded;
+      Bit#(XLEN) op2 = rs2;
+      if(op[4] == 0)begin
+	  		op1 = signExtend(loaded[31 : 0]);
+        op2 = signExtend(rs2[31 : 0]);
+      end
+      Int#(XLEN) s_op1 = unpack(op1);
+	  	Int#(XLEN) s_op2 = unpack(op2);
+      
+      case (op[3 : 0])
+	  			'b0011 : return op2;
+	  			'b0000 : return (op1 + op2);
+	  			'b0010 : return (op1 ^ op2);
+	  			'b0110 : return (op1 & op2);
+	  			'b0100 : return (op1 | op2);
+	  			'b1100 : return min(op1, op2);
+	  			'b1110 : return max(op1, op2);
+	  			'b1000 : return pack(min(s_op1, s_op2));
+	  			'b1010 : return pack(max(s_op1, s_op2));
+	  			default : return op1;
+	  		endcase
+    endfunction
+`endif
+
+
   (*synthesize*)
   module mkeclass_axi4#(parameter Bit#(`vaddr) resetpc) (Ifc_eclass_axi4);
 
     String eclass = ""; // for logger
+
 
     Ifc_riscv riscv <- mkriscv(resetpc);
     AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
@@ -89,6 +117,9 @@ package eclass;
     // fifo of size 1 effectively enables only one data request to be be latched & served at a time.
     FIFOF#(MemoryRequest) ff_mem_request <- mkSizedFIFOF(2);
     FIFOF#(Bool) ff_mem_access_fault <- mkSizedFIFOF(2);
+  `ifdef atomic
+    FIFOF#(Bit#(XLEN)) ff_atomic_state <- mkFIFOF1();
+  `endif
   
   `ifdef debug
     Reg#(Maybe#(Bit#(DXLEN))) rg_abst_response <- mkReg(tagged Invalid); // registered container for responses
@@ -118,9 +149,9 @@ package eclass;
     rule handle_fetch_response(!ff_inst_access_fault.first);
       let response <- pop_o (fetch_xactor.o_rd_data);	
 			
-      Bit#(TLog#(TDiv#(XLEN,8))) lower_addr_bits = truncate(ff_inst_request.first.addr); 
-      Bit#(TAdd#(TLog#(TDiv#(XLEN,8)),3)) lv_shift = {lower_addr_bits,3'd0};
-      let lv_data= response.rdata >> lv_shift;
+      Bit#(TLog#(TDiv#(XLEN, 8))) lower_addr_bits = truncate(ff_inst_request.first.addr); 
+      Bit#(TAdd#(TLog#(TDiv#(XLEN, 8)), 3)) lv_shift = {lower_addr_bits, 3'd0};
+      let lv_data = response.rdata >> lv_shift;
       Bool bus_error = !(response.rresp == AXI4_OKAY);
       if (bus_error)
         lv_data = zeroExtend(ff_inst_request.first.addr);
@@ -144,11 +175,11 @@ package eclass;
     // being propagated to mem_wb stage.
     rule handle_memory_request;
       let req <- riscv.memory_request.get;
-      if(req.size[1:0] == 0)
+      if(req.size[1 : 0] == 0)
         req.data = duplicate(req.data[7 : 0]);
-      else if(req.size[1:0] == 1)
+      else if(req.size[1 : 0] == 1)
         req.data = duplicate(req.data[15 : 0]);
-      else if(req.size[1:0] == 2)
+      else if(req.size[1 : 0] == 2)
         req.data = duplicate(req.data[31 : 0]);
       Bit#(TDiv#(XLEN, 8)) write_strobe = req.size == 0?'b1 : req.size == 1?'b11 : 
                                                               req.size == 2?'hf : '1;
@@ -159,15 +190,15 @@ package eclass;
 
       if(req.memaccess != Store) begin
         AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), 
-              aruser : 0, arlen : 0, arsize : zeroExtend(req.size[1:0]), arburst : 'b01, arid : 0,
-              arprot: {1'b0, 1'b0, curr_priv[1]}};
+              aruser : 0, arlen : 0, arsize : zeroExtend(req.size[1 : 0]), arburst : 'b01, arid : 0,
+              arprot: {1'b0, 1'b0,1'b1}};
         memory_xactor.i_rd_addr.enq(read_request);	
         `logLevel( eclass, 0, $format("CORE : Memory Read Request ", fshow(read_request)))
       end
       else begin
         AXI4_Wr_Addr#(`paddr, 0) aw = AXI4_Wr_Addr {awaddr : truncate(req.addr), awuser : 0, 
-              awlen : 0, awsize : zeroExtend(req.size[1:0]), awburst : 'b01, awid : 0,
-              awprot: {1'b0, 1'b0, curr_priv[1]} };
+              awlen : 0, awsize : zeroExtend(req.size[1 : 0]), awburst : 'b01, awid : 0,
+              awprot: {1'b0, 1'b0,1'b1} };
         let w  = AXI4_Wr_Data {wdata : req.data, wstrb : write_strobe, wlast : True, wid : 0};
         memory_xactor.i_wr_addr.enq(aw);
         memory_xactor.i_wr_data.enq(w);
@@ -183,20 +214,19 @@ package eclass;
       let req =  ff_mem_request.first;
       let response <- pop_o (memory_xactor.o_rd_data);	
       let bus_error = !(response.rresp == AXI4_OKAY);
-      Bit#(TLog#(TDiv#(XLEN,8))) lower_addr_bits = truncate(ff_mem_request.first.addr); 
-      Bit#(TAdd#(TLog#(TDiv#(XLEN,8)),3)) lv_shift = {lower_addr_bits,3'd0};
-      let rdata= response.rdata >> lv_shift;
+      Bit#(TLog#(TDiv#(XLEN, 8))) lower_addr_bits = truncate(ff_mem_request.first.addr); 
+      Bit#(TAdd#(TLog#(TDiv#(XLEN, 8)), 3)) lv_shift = {lower_addr_bits, 3'd0};
+      let rdata = response.rdata >> lv_shift;
 
-      if(req.size[1:0] == 0)
+      if(req.size[1 : 0] == 0)
           rdata = req.size[2] == 0?signExtend(rdata[7 : 0]) : zeroExtend(rdata[7 : 0]);
-      else if(req.size[1:0] == 1)
+      else if(req.size[1 : 0] == 1)
           rdata = req.size[2] == 0?signExtend(rdata[15 : 0]) : zeroExtend(rdata[15 : 0]);
-      else if(req.size[1:0] == 2)
+      else if(req.size[1 : 0] == 2)
           rdata = req.size[2] == 0?signExtend(rdata[31 : 0]) : zeroExtend(rdata[31 : 0]);
-      // TODO send address in case of error
       if(bus_error)
         rdata = zeroExtend(ff_mem_request.first.addr);
-      riscv.memory_response.put(MemoryResponse{data: rdata, err: bus_error, epoch: req.epoch});
+      riscv.memory_response.put(MemoryResponse{data : rdata, err : bus_error, epoch : req.epoch});
       `logLevel( eclass, 0, $format("CORE : Memory Read Response ", fshow(response)))
       ff_mem_request.deq;
     endrule
@@ -210,11 +240,57 @@ package eclass;
       Bit#(XLEN) data = ?;
       if(bus_error)
         data = zeroExtend(ff_mem_request.first.addr);
-      riscv.memory_response.put(MemoryResponse{data:data, err: bus_error, epoch: req.epoch});
+      riscv.memory_response.put(MemoryResponse{data : data, err : bus_error, epoch : req.epoch});
       ff_mem_request.deq;
       `logLevel( eclass, 0, $format("CORE : Memory Write Response ", fshow(response)))
     endrule
+  `ifdef atomic
+    rule handle_atomic_readresponse( ff_mem_request.first.memaccess == Atomic && !ff_atomic_state.notEmpty );
+      let req =  ff_mem_request.first;
+      let response <- pop_o (memory_xactor.o_rd_data);	
+      let bus_error = !(response.rresp == AXI4_OKAY);
+      Bit#(TLog#(TDiv#(XLEN, 8))) lower_addr_bits = truncate(ff_mem_request.first.addr); 
+      Bit#(TAdd#(TLog#(TDiv#(XLEN, 8)), 3)) lv_shift = {lower_addr_bits, 3'd0};
+      let rdata = response.rdata >> lv_shift;
 
+      if(req.size[1 : 0] == 2)
+          rdata = req.size[2] == 0?signExtend(rdata[31 : 0]) : zeroExtend(rdata[31 : 0]);
+      Bit#(TDiv#(XLEN, 8)) write_strobe = req.size == 2?'hf : '1;
+      Bit#(TAdd#(1, TDiv#(XLEN, 32))) byte_offset = truncate(req.addr);
+      if(req.size != 3)begin			// 8 - bit write;
+        write_strobe = write_strobe<<byte_offset;
+      end
+      `logLevel( eclass, 0, $format("CORE : Atomic Read Response ", fshow(response)))
+      if(bus_error) begin
+        rdata = zeroExtend(ff_mem_request.first.addr);
+        riscv.memory_response.put(MemoryResponse{data : rdata, err : bus_error, epoch : req.epoch});
+        ff_mem_request.deq;
+      end
+      else begin
+        ff_atomic_state.enq(rdata);
+        Bit#(XLEN) wdata = fn_atomic_op(req.atomic_op, req.data, rdata); // TODO put atomic func here
+        AXI4_Wr_Addr#(`paddr, 0) aw = AXI4_Wr_Addr {awaddr : truncate(req.addr), awuser : 0, 
+              awlen : 0, awsize : zeroExtend(req.size[1 : 0]), awburst : 'b01, awid : 0,
+              awprot: {1'b0, 1'b0, curr_priv[1]} };
+        let w  = AXI4_Wr_Data {wdata : wdata, wstrb : write_strobe, wlast : True, wid : 0};
+        memory_xactor.i_wr_addr.enq(aw);
+        memory_xactor.i_wr_data.enq(w);
+      end
+    endrule
+
+    rule handle_atomic_writeresponse( ff_mem_request.first.memaccess == Atomic);
+      let req =  ff_mem_request.first;
+      let response <- pop_o(memory_xactor.o_wr_resp);
+      let bus_error = !(response.bresp == AXI4_OKAY);
+      Bit#(XLEN) data = ff_atomic_state.first;
+      if(bus_error)
+        data = zeroExtend(ff_mem_request.first.addr);
+      riscv.memory_response.put(MemoryResponse{data : data, err : bus_error, epoch : req.epoch});
+      ff_mem_request.deq;
+      ff_atomic_state.deq;
+      `logLevel( eclass, 0, $format("CORE : Atomic Write Response ", fshow(response)))
+    endrule
+  `endif
     interface sb_clint_msip = interface Put
       method Action put(Bit#(1) intrpt);
         riscv.clint_msip(intrpt);
