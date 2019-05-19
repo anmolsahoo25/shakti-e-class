@@ -46,6 +46,9 @@ package stage1;
 `ifdef debug
   import debug_types :: *; // for importing the debug abstract interface
 `endif
+`ifdef compressed
+  import decompress :: *;
+`endif
 
   // ----------------------------- local type definitions -------------------------------------- //
   typedef enum {CheckPrev, None} ActionType deriving(Bits, Eq, FShow);
@@ -144,7 +147,7 @@ package stage1;
     Reg#(ActionType) rg_action <- mkReg(None);
   `ifdef compressed
     Reg#(Bool) rg_discard_lower <- mkReg(False);
-    Reg#(PrevMeta) rg_prev <- mkReg(?);
+    Reg#(PrevMeta) rg_prev <- mkReg(unpack(0));
   `endif
 
     // This wire will be set if any interrupts have been detected by the core
@@ -385,10 +388,16 @@ package stage1;
         lv_prev.epoch = curr_epoch;
         rg_prev <= lv_prev;
         `logLevel( stage1, 1, $format("STAGE1 : rg_action: ",fshow(rg_action), " Prev: ",
-                                                              fshow(rg_prev)))
+                                              fshow(rg_prev) , " rg_discard:%b", rg_discard_lower))
       `endif
-
-        let y <- decoder_func(final_instruction, resp.err, wr_csr_decode
+        Bit#(32) decode_instruction = final_instruction;
+      `ifdef compressed
+        if (compressed)
+          decode_instruction = fn_decompress(final_instruction[15:0]);
+        `logLevel( stage1, 0, $format("STAGE1: Decompressed: %h", decode_instruction))
+      `endif
+        let y <- decoder_func(decode_instruction, resp.err, wr_csr_decode
+                              `ifdef compressed ,compressed `endif
                               `ifdef debug ,wr_debug_info, rg_step_done `endif );
         if(y.meta.inst_type == WFI && perform_decode) begin
           rg_wfi <= True;
@@ -467,9 +476,11 @@ package stage1;
     `ifdef compressed
       if(newpc[1 : 0] != 0)
         rg_discard_lower <= True;
+      else 
+        rg_discard_lower <= False;
     `endif
       rg_wfi <= False;
-      `logLevel( stage1, 0, $format("STAGE1 : Received Flush. PC: %h Flush: ",newpc)) 
+      `logLevel( stage1, 0, $format("STAGE1 : Received Flush. PC: %h ",newpc)) 
     endmethod
 
     // This method captures the "c" of misa csr
