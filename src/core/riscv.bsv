@@ -111,6 +111,7 @@ package riscv;
     mkConnection(stage1.ma_csr_decode     , stage3.mv_csr_decode);
     mkConnection(stage1.ma_csr_misa_c     , stage3.mv_csr_misa_c);
     mkConnection(stage2.ma_csr_misa_c     , stage3.mv_csr_misa_c);
+    mkConnection(stage1.ma_interrupt      , stage3.mv_interrupt);
   `ifdef triggers
     mkConnection(stage1.ma_trigger_data1  , stage3.mv_trigger_data1);
     mkConnection(stage1.ma_trigger_data2  , stage3.mv_trigger_data2);
@@ -141,11 +142,6 @@ package riscv;
                                           core_debugenable   : unpack(stage3.mv_core_debugenable)});
     endrule
   `endif
-
-    // TODO ma_interrupt to stage1 to be connected to interrupt from stage3
-    rule connect_interrupt;
-      stage1.ma_interrupt(False);
-    endrule
 
     rule gen_new_pc(trap || redirect);
       if(trap)

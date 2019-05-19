@@ -69,6 +69,8 @@ package stage3;
     method Action clint_mtime(Bit#(64) c_mtime);
     method Action ext_interrupt(Bit#(1) i);
     method Bool csr_updated;
+    (*always_ready, always_enabled*)
+    method Bool mv_interrupt;
   `ifdef rtldump
     interface Get#(DumpType) dump;
   `endif
@@ -315,6 +317,7 @@ package stage3;
       endinterface;
     `endif
     method mv_csr_misa_c = csr.mv_csr_misa_c;
+    method mv_interrupt  = csr.mv_interrupt;
   `ifdef debug
     method mav_debug_access_csrs    = csr.mav_debug_access_csrs;
     method ma_debug_halt_request    = csr.ma_debug_halt_request;

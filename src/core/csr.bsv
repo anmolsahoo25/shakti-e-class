@@ -59,6 +59,8 @@ package csr;
     method Action incr_minstret;
     method Action ext_interrupt(Bit#(1) ex_i);
     method Bit#(1) mv_csr_misa_c;
+    (*always_ready, always_enabled*)
+    method Bool mv_interrupt;
   `ifdef arith_trap
     method Bit#(1) mv_arithtrap_en;
   `endif
@@ -147,6 +149,7 @@ package csr;
     method incr_minstret = csrfile.incr_minstret;
     method Action ext_interrupt(Bit#(1) ex_i) = csrfile.ext_interrupt(ex_i);
     method mv_csr_misa_c = csrfile.mv_csr_misa_c;
+    method mv_interrupt = csrfile.mv_interrupt;
  
   `ifdef arith_trap
     method mv_arithtrap_en = csrfile.mv_arithtrap_en;

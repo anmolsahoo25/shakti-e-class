@@ -144,6 +144,8 @@ package csrfile;
     method Action clint_mtime(Bit#(64) c_mtime);
     method Action ext_interrupt(Bit#(1) ex_i);
   // ---------------------------------------------------------------------------------------//
+    (*always_ready, always_enabled*)
+    method Bool mv_interrupt;
   `ifdef pmp
     method Vector#(`PMPSIZE, Bit#(8)) pmp_cfg;
     method Vector#(`PMPSIZE, Bit#(`paddr )) pmp_addr;
@@ -1039,6 +1041,7 @@ package csrfile;
                 hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie};
       `endif
     endmethod
+    method mv_interrupt = unpack(|(csr_mie&csr_mip));
   `ifdef arith_trap
     method Bit#(1) mv_arithtrap_en = rg_customcontrol[3];
   `endif
