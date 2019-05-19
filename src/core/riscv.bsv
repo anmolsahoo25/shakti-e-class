@@ -138,7 +138,7 @@ package riscv;
                                           core_is_halted     : unpack(stage3.mv_core_is_halted),
                                           step_set           : unpack(stage3.mv_step_is_set),
                                           step_ie            : unpack(stage3.mv_step_ie),
-                                          core_debugenable   : unpack(stage3.mv_core_debugenable)} );
+                                          core_debugenable   : unpack(stage3.mv_core_debugenable)});
     endrule
   `endif
 

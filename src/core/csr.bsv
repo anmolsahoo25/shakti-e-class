@@ -4,12 +4,12 @@ Copyright (c) 2013, IIT Madras All rights reserved.
 Redistribution and use in source and binary forms, with or without modification, are permitted
 provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright notice, this list of conditions
+ * Redistributions of source code must retain the above copyright notice, this list of conditions
   and the following disclaimer.  
-* Redistributions in binary form must reproduce the above copyright notice, this list of 
+ * Redistributions in binary form must reproduce the above copyright notice, this list of 
   conditions and the following disclaimer in the documentation and / or other materials provided 
- with the distribution.  
-* Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
+  with the distribution.  
+ * Neither the name of IIT Madras  nor the names of its contributors may be used to endorse or 
   promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS
@@ -28,7 +28,7 @@ Details : This module contains the methods and functions which will perform task
 Trap handling and Updating the CSRs for system - instruction
 
 --------------------------------------------------------------------------------------------------
-*/
+ */
 
 package csr;
   // project related imports
@@ -48,16 +48,16 @@ package csr;
   import ConfigReg::*;
 	
   interface Ifc_csr;
-	  method ActionValue#(Tuple3#(Bool, Bit#(`vaddr), Bit#(XLEN))) system_instruction(
+    method ActionValue#(Tuple3#(Bool, Bit#(`vaddr), Bit#(XLEN))) system_instruction(
             Bit#(12) csr_address, Bit#(XLEN) op1, Bit#(3) funct3, Bit#(2) lpc);
     method CSRtoDecode mv_csr_decode;
     method ActionValue#(Bit#(`vaddr)) take_trap(Bit#(`causesize) type_cause, Bit#(`vaddr) pc, 
                                                 Bit#(`vaddr) badaddr);
-	  method Action clint_msip(Bit#(1) intrpt);
-		method Action clint_mtip(Bit#(1) intrpt);
-		method Action clint_mtime(Bit#(64) c_mtime);
+    method Action clint_msip(Bit#(1) intrpt);
+    method Action clint_mtip(Bit#(1) intrpt);
+    method Action clint_mtime(Bit#(64) c_mtime);
     method Action incr_minstret;
-	  method Action ext_interrupt(Bit#(1) ex_i);
+    method Action ext_interrupt(Bit#(1) ex_i);
     method Bit#(1) mv_csr_misa_c;
   `ifdef arith_trap
     method Bit#(1) mv_arithtrap_en;
@@ -93,17 +93,17 @@ package csr;
   module mkcsr(Ifc_csr);
   
     Ifc_csrfile csrfile <- mkcsrfile();
-	  method ActionValue#(Tuple3#(Bool, Bit#(`vaddr), Bit#(XLEN))) system_instruction(
-         Bit#(12) csr_address, Bit#(XLEN) op1, Bit#(3) funct3, Bit#(2) lpc);
+    method ActionValue#(Tuple3#(Bool, Bit#(`vaddr), Bit#(XLEN))) system_instruction(
+        Bit#(12) csr_address, Bit#(XLEN) op1, Bit#(3) funct3, Bit#(2) lpc);
       Bool flush = False;
       Bit#(`vaddr) jump_add = 0;
-	  	let csrread <- csrfile.read_csr(csr_address);
+      let csrread <- csrfile.read_csr(csr_address);
       Bit#(XLEN) writecsrdata = 0;
-	  	Bit#(XLEN) destination_value = 0;
+      Bit#(XLEN) destination_value = 0;
       `logLevel( csr, 2, $format("CSR : Operation csr: %h op1: %h, funct3: %b csr_read: %h", 
                                   csr_address, op1, funct3, csrread))
 
-	  	case(funct3)
+      case(funct3)
         'd0 : case (csr_address[11 : 8])
               'h0, 'h3 : begin // URET, SRET, MRET
                 let temp <- csrfile.upd_on_ret( `ifdef non_m_traps 
@@ -113,7 +113,7 @@ package csr;
                 flush = True;
                 `logLevel( csr, 1, $format("CSR : RET Function: %h",csr_address))
               end
-	  		    endcase
+            endcase
         default : begin
           destination_value = csrread;
           if(funct3[1 : 0] == 'd1)
@@ -125,27 +125,27 @@ package csr;
           csrfile.write_csr(csr_address, writecsrdata,  lpc);
         end
       endcase
-	  	return tuple3(flush, jump_add, destination_value);
-	  endmethod
+      return tuple3(flush, jump_add, destination_value);
+    endmethod
 	
     method ActionValue#(Bit#(`vaddr)) take_trap(Bit#(`causesize) type_cause, Bit#(`vaddr) pc, 
                                                 Bit#(`vaddr) badaddr);
       let jump_address <- csrfile.upd_on_trap(type_cause, pc, badaddr); 
-		  return jump_address;
-  	endmethod
+      return jump_address;
+    endmethod
 
     method mv_csr_decode = csrfile.mv_csr_decode;
-	  method Action clint_msip(Bit#(1) intrpt);
-	  	csrfile.clint_msip(intrpt);
-	  endmethod
-	  method Action clint_mtip(Bit#(1) intrpt);
-	  	csrfile.clint_mtip(intrpt);
-	  endmethod
-	  method Action clint_mtime(Bit#(64) c_mtime);
-	  	csrfile.clint_mtime(c_mtime);
-	  endmethod
+    method Action clint_msip(Bit#(1) intrpt);
+      csrfile.clint_msip(intrpt);
+    endmethod
+    method Action clint_mtip(Bit#(1) intrpt);
+      csrfile.clint_mtip(intrpt);
+    endmethod
+    method Action clint_mtime(Bit#(64) c_mtime);
+      csrfile.clint_mtime(c_mtime);
+    endmethod
     method incr_minstret = csrfile.incr_minstret;
-	  method Action ext_interrupt(Bit#(1) ex_i) = csrfile.ext_interrupt(ex_i);
+    method Action ext_interrupt(Bit#(1) ex_i) = csrfile.ext_interrupt(ex_i);
     method mv_csr_misa_c = csrfile.mv_csr_misa_c;
  
   `ifdef arith_trap

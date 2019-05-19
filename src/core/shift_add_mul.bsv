@@ -34,7 +34,8 @@ package shift_add_mul;
       Data mop1 = (sn_op1 == 1) ? (~operand1+1) : operand1;
       Data mop2 = (sn_op2 == 1) ? (~operand2+1) : operand2; 
       if(funct3==f3_MUL)begin op1<=zeroExtend(operand1);op2<=operand2;is32Bit<=False; end
-      else if(funct3==f3_MULHSU)begin op1<=zeroExtend(mop1);op2<=operand2;is32Bit<=take_complement; end
+      else if(funct3==f3_MULHSU)begin op1<=zeroExtend(mop1);op2<=operand2;
+                                      is32Bit<=take_complement; end
       else if(funct3==f3_MULH)begin op1<=zeroExtend(mop1);op2<=mop2;is32Bit<=take_complement; end
       else if(funct3==f3_MULHU)begin op1<=zeroExtend(operand1);op2<=operand2;is32Bit<=False; end
       rg_counter<=1;

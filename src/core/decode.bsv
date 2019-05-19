@@ -658,16 +658,19 @@ package decode;
     Bool t_CB = (t_BR);
     Bool t_CIW = (opcode == 'b00000);
     Bool t_ANDI = (opcode == 'b01100 && inst[9 : 7] == 3);
-    Bool t_IMM = ((funct3_comp == 'b000)||(op_comp == 'b01 && inst[15] == 1'b0)||(opcode == 'b01100 &&
+    Bool t_IMM = ((funct3_comp == 'b000)||(op_comp == 'b01 && inst[15] == 1'b0)||
+                  (opcode == 'b01100 &&
     inst[11 : 10] != 'b11)); 
     Bool t_BREAK = ((opcode == 'b10100) && inst[11 : 2] == 0);
     Bit#(5) rs1={2'b01, inst[9 : 7]};
     Bit#(5) rs2={2'b01, inst[4 : 2]};
     Bit#(5) rd={2'b01, inst[4 : 2]};
     
-    if((t_CL)||(t_CB)||(t_CS)||(opcode == 'b01100 && inst[11 : 10] != 'b11))//Memory, branch and logical
+    //Memory, branch and logical
+    if((t_CL)||(t_CB)||(t_CS)||(opcode == 'b01100 && inst[11 : 10] != 'b11))
           rs1={2'b01, inst[9 : 7]};
-    else if((opcode == 5'b01000)||t_ADDIW||(t_ADD&&inst[12] == 1)||t_J_R||t_SLLI)//SLLI, JUMP, ADDI and ADDIW
+    //SLLI, JUMP, ADDI and ADDIW
+    else if((opcode == 5'b01000)||t_ADDIW||(t_ADD&&inst[12] == 1)||t_J_R||t_SLLI)
           rs1 = inst[11 : 7];
     else if (t_SP_OP)//SP operations
           rs1 = 2;
@@ -721,7 +724,8 @@ package decode;
     else if(t_SDSP)
       imm_value = zeroExtend({inst[9 : 7], inst[12 : 10], 3'b000});
     else if(t_CIW)
-      imm_value = zeroExtend({inst[10], inst[9], inst[8], inst[7], inst[12], inst[11], inst[5], inst[6], 2'b00}); 
+      imm_value = zeroExtend({inst[10], inst[9], inst[8], inst[7], inst[12], inst[11], inst[5], 
+                            inst[6], 2'b00}); 
     else if(t_ADDI16SP)
       imm_value = signExtend({inst[12], inst[4], inst[3], inst[5], inst[2], inst[6], 4'b0000});
     else if(t_CL)
@@ -730,9 +734,11 @@ package decode;
       else
         imm_value = zeroExtend({inst[6], inst[5], inst[12], inst[11], inst[10], 3'b000});
     else if(t_CJ)
-      imm_value = signExtend({inst[12], inst[8], inst[10 : 9], inst[6], inst[7], inst[2], inst[11], inst[5 : 3], 1'b0});
+      imm_value = signExtend({inst[12], inst[8], inst[10 : 9], inst[6], inst[7], inst[2], inst[11], 
+                            inst[5 : 3], 1'b0});
     else if(t_CB)
-      imm_value = signExtend({inst[12], inst[6], inst[5], inst[2], inst[11], inst[10], inst[4], inst[3], 1'b0}); 
+      imm_value = signExtend({inst[12], inst[6], inst[5], inst[2], inst[11], inst[10], inst[4], 
+                            inst[3], 1'b0}); 
     else if( t_ADDI||t_ADDIW||t_LI||(opcode == 'b01100&&inst[11 : 10] != 2'b11||t_SLLI))//imm_arith
       imm_value = signExtend({inst[12], inst[6], inst[5], inst[4], inst[3], inst[2]});
     else if (t_LUI)
@@ -830,7 +836,7 @@ package decode;
     `endif
 
     `ifdef RV64 
-      return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);            
+      return tuple8(fn, rs1, rs2, rd, signExtend(immediate_value), word32, funct3, type_tuple);
     `else
       return tuple7(fn, rs1, rs2, rd, signExtend(immediate_value), funct3, type_tuple);            
     `endif
