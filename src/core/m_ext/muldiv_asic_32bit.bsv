@@ -30,6 +30,7 @@ package muldiv_asic_32bit;
   /*==== Project Import=== */
   import common_types::*;
   `include "common_params.bsv"
+  `include "Logger.bsv"
   /*====================== */
 
   `define UnrollMul 4 // this means the number of bits being analysed simultaneously
