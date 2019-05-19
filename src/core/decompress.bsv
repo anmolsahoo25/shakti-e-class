@@ -162,7 +162,7 @@ package decompress;
 
   // Immediate field encodings
   `define IMM_4SP         zeroExtend({inst[10:7], inst[12:11], inst[6:5] ,2'b0})
-  `define IMM_16SP        signExtend({inst[12], inst[4:3], inst[5], inst[2], inst[6]})
+  `define IMM_16SP        signExtend({inst[12], inst[4:3], inst[5], inst[2], inst[6], 4'd0})
   `define IMM_MEMLD       zeroExtend({inst[6:5], inst[12:10], 3'd0})
   `define IMM_MEMLW       zeroExtend({inst[5], inst[12:10], inst[6], 2'd0})
   `define IMM_MEMSD_low   {inst[11:10], 3'd0}
@@ -181,9 +181,9 @@ package decompress;
   `define IMM_0           12'd0
   `define IMM_MEMDSP_lo   {inst[11:10], 3'd0}
   `define IMM_MEMDSP_hi   zeroExtend({inst[9:7], inst[12]})
-  `define IMM_MEMWSP_lo   {inst[11:9], 2'd0})
+  `define IMM_MEMWSP_lo   {inst[11:9], 2'd0}
   `define IMM_MEMWSP_hi   zeroExtend({inst[8:7], inst[12]})
-  `define IMM_LUI         signExtend({inst[12], inst[6:2], 12'd0})
+  `define IMM_LUI         signExtend({inst[12], inst[6:2]})
 
 
   // funct3 encodings
@@ -242,20 +242,28 @@ package decompress;
       `CADDI4SPN5 : return {`IMM_4SP      , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
       `CADDI4SPN6 : return {`IMM_4SP      , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
       `CADDI4SPN7 : return {`IMM_4SP      , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
+    `ifdef spfpu
       `CFLD       : return {`IMM_MEMLD    , `RS1_P  , `F3_LD    , `RD_P   , `OP_FLOADS  , 2'b11};
+    `endif
       `CLW        : return {`IMM_MEMLW    , `RS1_P  , `F3_LW    , `RD_P   , `OP_LOADS   , 2'b11};
-    `ifdef RV32
+  `ifdef RV32
+    `ifdef spfpu  
       `CFLW       : return {`IMM_MEMLW    , `RS1_P  , `F3_LW    , `RD_P   , `OP_FLOADS  , 2'b11};
-    `else
+    `endif
+  `else
       `CLD        : return {`IMM_MEMLD    , `RS1_P  , `F3_LD    , `RD_P   , `OP_LOADS   , 2'b11};
-    `endif
+  `endif
+    `ifdef spfpu
       `CFSD       : return {`IMM_MEMSD_hi , `RS2_P  , `RS1_P    , `F3_SD  , `IMM_MEMSD_low  , `OP_FSTORES , 2'b11};
-      `CSW        : return {`IMM_MEMSW_hi , `RS2_P  , `RS1_P    , `F3_SW  , `IMM_MEMSW_low  , `OP_STORES  , 2'b11};
-    `ifdef RV32
-      `CFSW       : return {`IMM_MEMSW_hi , `RS2_P  , `RS1_P    , `F3_SD  , `IMM_MEMSW_low  , `OP_FSTORES , 2'b11};
-    `else
-      `CSD        : return {`IMM_MEMSD_hi , `RS2_P  , `RS1_P    , `F3_SD  , `IMM_MEMSD_low  , `OP_STORES  , 2'b11};
     `endif
+      `CSW        : return {`IMM_MEMSW_hi , `RS2_P  , `RS1_P    , `F3_SW  , `IMM_MEMSW_low  , `OP_STORES  , 2'b11};
+  `ifdef RV32
+    `ifdef spfpu
+      `CFSW       : return {`IMM_MEMSW_hi , `RS2_P  , `RS1_P    , `F3_SD  , `IMM_MEMSW_low  , `OP_FSTORES , 2'b11};
+    `endif
+  `else
+      `CSD        : return {`IMM_MEMSD_hi , `RS2_P  , `RS1_P    , `F3_SD  , `IMM_MEMSD_low  , `OP_STORES  , 2'b11};
+  `endif
 
       // ------------------------------ C1 space decode ---------------------------------------- //
       `CADDI      : return {`IMM_IOP  , `RS1    , `F3_ADDI    , `RD     , `OP_IMM     , 2'b11};
@@ -305,16 +313,16 @@ package decompress;
       `CLUI27     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
       `CLUI28     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
       `CLUI29     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
-      `CSRLI      : return {`IMM_SRLI , `RS1_P  , `F3_SRLSRAI , `RD_P   , `OP_IMM     , 2'b11};
-      `CSRAI      : return {`IMM_SRAI , `RS1_P  , `F3_SRLSRAI , `RD_P   , `OP_IMM     , 2'b11};
-      `CANDI      : return {`IMM_IOP  , `RS1_P  , `F3_ANDI    , `RD_P   , `OP_IMM     , 2'b11};
-      `CSUB       : return {`F7_SUB   , `RS2_P  , `RS1_P      , `F3_SUB , `RD_P , `OP_ARITH , 2'b11};
-      `CXOR       : return {`F7_XOR   , `RS2_P  , `RS1_P      , `F3_XOR , `RD_P , `OP_ARITH , 2'b11};
-      `COR        : return {`F7_OR    , `RS2_P  , `RS1_P      , `F3_OR  , `RD_P , `OP_ARITH , 2'b11};
-      `CAND       : return {`F7_AND   , `RS2_P  , `RS1_P      , `F3_ANDI, `RD_P , `OP_ARITH , 2'b11};
+      `CSRLI      : return {`IMM_SRLI , `RS1_P  , `F3_SRLSRAI , `RS1_P  , `OP_IMM     , 2'b11};
+      `CSRAI      : return {`IMM_SRAI , `RS1_P  , `F3_SRLSRAI , `RS1_P  , `OP_IMM     , 2'b11};
+      `CANDI      : return {`IMM_IOP  , `RS1_P  , `F3_ANDI    , `RS1_P  , `OP_IMM     , 2'b11};
+      `CSUB       : return {`F7_SUB   , `RS2_P  , `RS1_P      , `F3_SUB , `RS1_P , `OP_ARITH , 2'b11};
+      `CXOR       : return {`F7_XOR   , `RS2_P  , `RS1_P      , `F3_XOR , `RS1_P , `OP_ARITH , 2'b11};
+      `COR        : return {`F7_OR    , `RS2_P  , `RS1_P      , `F3_OR  , `RS1_P , `OP_ARITH , 2'b11};
+      `CAND       : return {`F7_AND   , `RS2_P  , `RS1_P      , `F3_ANDI, `RS1_P , `OP_ARITH , 2'b11};
     `ifdef RV64
-      `CSUBW      : return {`F7_SUB   , `RS2_P  , `RS1_P      , `F3_SUBW, `RD_P , `OP_ARITHW, 2'b11};
-      `CADDW      : return {`F7_ADD   , `RS2_P  , `RS1_P      , `F3_ADDW, `RD_P , `OP_ARITHW, 2'b11};
+      `CSUBW      : return {`F7_SUB   , `RS2_P  , `RS1_P      , `F3_SUBW, `RS1_P , `OP_ARITHW, 2'b11};
+      `CADDW      : return {`F7_ADD   , `RS2_P  , `RS1_P      , `F3_ADDW, `RS1_P , `OP_ARITHW, 2'b11};
     `endif
       `CJ         : return {`IMM_J    ,                         `RD_0   , `OP_JAL     , 2'b11};
       `CBEQZ      : return {`IMM_BRANCH_hi , `RS2_0, `RS1_P, `F3_BEQ, `IMM_BRANCH_low, `OP_BRANCH, 2'b11};
@@ -322,18 +330,22 @@ package decompress;
 
 
       // ------------------------------ C2 space decode ---------------------------------------- //
-      `CSLLI      : return {`IMM_SLLI , `RS1_P  , `F3_SLLI , `RD_P  , `OP_IMM   , 2'b11};
+      `CSLLI      : return {`IMM_SLLI , `RS1    , `F3_SLLI, `RD , `OP_IMM     , 2'b11};
+    `ifdef spfpu
       `CFLDSP     : return {`IMM_DSP  , `RS1_SP , `F3_LD  , `RD , `OP_FLOADS  , 2'b11};
+    `endif
       `CLWSP0     : return {`IMM_WSP  , `RS1_SP , `F3_LW  , `RD , `OP_LOADS   , 2'b11};
       `CLWSP1     : return {`IMM_WSP  , `RS1_SP , `F3_LW  , `RD , `OP_LOADS   , 2'b11};
       `CLWSP2     : return {`IMM_WSP  , `RS1_SP , `F3_LW  , `RD , `OP_LOADS   , 2'b11};
       `CLWSP3     : return {`IMM_WSP  , `RS1_SP , `F3_LW  , `RD , `OP_LOADS   , 2'b11};
       `CLWSP4     : return {`IMM_WSP  , `RS1_SP , `F3_LW  , `RD , `OP_LOADS   , 2'b11};
-    `ifdef RV32
+  `ifdef RV32
+    `ifdef spfpu
       `CFLWSP     : return {`IMM_WSP  , `RS1_SP , `F3_LW  , `RD , `OP_FLOADS  , 2'b11};
-    `else
-      `CLDSP      : return {`IMM_DSP  , `RS1_SP , `F3_LD  , `RD , `OP_LOADS   , 2'b11};
     `endif
+  `else
+      `CLDSP      : return {`IMM_DSP  , `RS1_SP , `F3_LD  , `RD , `OP_LOADS   , 2'b11};
+  `endif
       `CJR0       : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_0   , `OP_JALR    , 2'b11};
       `CJR1       : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_0   , `OP_JALR    , 2'b11};
       `CJR2       : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_0   , `OP_JALR    , 2'b11};
@@ -350,14 +362,18 @@ package decompress;
       `CJALR2     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
       `CJALR3     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
       `CJALR4     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
-      `CMV4       : return {`F7_ADD   , `RS2  , `RS1    , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
-      `CFSDSP     : return {`IMM_MEMDSP_hi , `RS2  ,  `RS1_SP, `F3_SD  ,`IMM_MEMSD_low  , `OP_FSTORES , 2'b11};
-      `CSWSP      : return {`IMM_MEMWSP_hi , `RS2  ,  `RS1_SP, `F3_SW  ,`IMM_MEMSW_low  , `OP_STORES  , 2'b11};
-    `ifdef RV32
-      `CFSWSP     : return {`IMM_MEMWSP_hi , `RS2  ,  `RS1_SP, `F3_SW  ,`IMM_MEMSW_low  , `OP_FSTORES , 2'b11};
-    `else
-      `CSDSP      : return {`IMM_MEMDSP_hi , `RS2  ,  `RS1_SP, `F3_SD  ,`IMM_MEMSD_low  , `OP_STORES  , 2'b11};
+      `CADD       : return {`F7_ADD   , `RS2  , `RS1    , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
+    `ifdef spfpu
+      `CFSDSP     : return {`IMM_MEMDSP_hi , `RS2  ,  `RS1_SP, `F3_SD  ,`IMM_MEMDSP_lo  , `OP_FSTORES , 2'b11};
     `endif
+      `CSWSP      : return {`IMM_MEMWSP_hi , `RS2  ,  `RS1_SP, `F3_SW  ,`IMM_MEMWSP_lo  , `OP_STORES  , 2'b11};
+  `ifdef RV32
+    `ifdef spfpu
+      `CFSWSP     : return {`IMM_MEMWSP_hi , `RS2  ,  `RS1_SP, `F3_SW  ,`IMM_MEMWSP_lo  , `OP_FSTORES , 2'b11};
+    `endif
+  `else
+      `CSDSP      : return {`IMM_MEMDSP_hi , `RS2  ,  `RS1_SP, `F3_SD  ,`IMM_MEMDSP_lo  , `OP_STORES  , 2'b11};
+  `endif
       default: return 0;
     endcase
   endfunction
