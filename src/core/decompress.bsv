@@ -161,7 +161,7 @@ package decompress;
   `define RD_0      5'b00000
 
   // Immediate field encodings
-  `define IMM_4SP         zeroExtend({inst[10:7], inst[12:11], inst[6:5] ,2'b0})
+  `define IMM_4SP         zeroExtend({inst[10:7], inst[12:11], inst[5] , inst[6] ,2'b0})
   `define IMM_16SP        signExtend({inst[12], inst[4:3], inst[5], inst[2], inst[6], 4'd0})
   `define IMM_MEMLD       zeroExtend({inst[6:5], inst[12:10], 3'd0})
   `define IMM_MEMLW       zeroExtend({inst[5], inst[12:10], inst[6], 2'd0})
