@@ -31,22 +31,22 @@ Details:
 package decompress;
                                           
   // Quad-0
-  `define CADDI4SPN0 16'b0001??????????00  
-  `define CADDI4SPN1 16'b000?1?????????00  
-  `define CADDI4SPN2 16'b000??1????????00  
-  `define CADDI4SPN3 16'b000???1???????00  
-  `define CADDI4SPN4 16'b000????1??????00  
-  `define CADDI4SPN5 16'b000?????1?????00  
-  `define CADDI4SPN6 16'b000??????1????00  
-  `define CADDI4SPN7 16'b000???????1???00  
-  `define CFLD      16'b001???????????00  
-  `define CLW       16'b010???????????00  
-  `define CFLW      16'b011???????????00  
-  `define CLD       16'b011???????????00  
-  `define CFSD      16'b101???????????00  
-  `define CSW       16'b110???????????00  
-  `define CFSW      16'b111???????????00  
-  `define CSD       16'b111???????????00  
+  `define CADDI4SPN0  16'b0001??????????00  
+  `define CADDI4SPN1  16'b000?1?????????00  
+  `define CADDI4SPN2  16'b000??1????????00  
+  `define CADDI4SPN3  16'b000???1???????00  
+  `define CADDI4SPN4  16'b000????1??????00  
+  `define CADDI4SPN5  16'b000?????1?????00  
+  `define CADDI4SPN6  16'b000??????1????00  
+  `define CADDI4SPN7  16'b000???????1???00  
+  `define CFLD        16'b001???????????00  
+  `define CLW         16'b010???????????00  
+  `define CFLW        16'b011???????????00  
+  `define CLD         16'b011???????????00  
+  `define CFSD        16'b101???????????00  
+  `define CSW         16'b110???????????00  
+  `define CFSW        16'b111???????????00  
+  `define CSD         16'b111???????????00  
 
   // Quad-1
   `define CADDI       16'b000???????????01  // CNOP 
@@ -109,37 +109,37 @@ package decompress;
   `define CBNEZ       16'b111???????????01
 
   // Quad-2
-  `define CSLLI     16'b000???????????10
-  `define CSLLI64   16'b000???????????10  // only in RV128
-  `define CFLDSP    16'b001???????????10
-  `define CLWSP0     16'b010?1?????????10
-  `define CLWSP1     16'b010??1????????10
-  `define CLWSP2     16'b010???1???????10
-  `define CLWSP3     16'b010????1??????10
-  `define CLWSP4     16'b010?????1?????10
-  `define CFLWSP    16'b011???????????10  // only in RV32
-  `define CLDSP     16'b011???????????10  // only in RV64/128
-  `define CJR0       16'b10001????0000010
-  `define CJR1       16'b1000?1???0000010
-  `define CJR2       16'b1000??1??0000010
-  `define CJR3       16'b1000???1?0000010
-  `define CJR4       16'b1000????10000010
-  `define CMV0       16'b1000?????1????10
-  `define CMV1       16'b1000??????1???10
-  `define CMV2       16'b1000???????1??10
-  `define CMV3       16'b1000????????1?10
-  `define CMV4       16'b1000?????????110
-  `define CEBREAK   16'b1001000000000010
-  `define CJALR0     16'b10011????0000010
-  `define CJALR1     16'b1001?1???0000010
-  `define CJALR2     16'b1001??1??0000010
-  `define CJALR3     16'b1001???1?0000010
-  `define CJALR4     16'b1001????10000010
-  `define CADD      16'b1001??????????10  // subsumes CJR, CMV, CEBREAK, CJALR
-  `define CFSDSP    16'b101???????????10
-  `define CSWSP     16'b110???????????10
-  `define CFSWSP    16'b111???????????10  // only in RV32
-  `define CSDSP     16'b111???????????10  // only in RV64/128
+  `define CSLLI       16'b000???????????10
+  `define CSLLI64     16'b000???????????10  // only in RV128
+  `define CFLDSP      16'b001???????????10
+  `define CLWSP0      16'b010?1?????????10
+  `define CLWSP1      16'b010??1????????10
+  `define CLWSP2      16'b010???1???????10
+  `define CLWSP3      16'b010????1??????10
+  `define CLWSP4      16'b010?????1?????10
+  `define CFLWSP      16'b011???????????10  // only in RV32
+  `define CLDSP       16'b011???????????10  // only in RV64/128
+  `define CJR0        16'b10001????0000010
+  `define CJR1        16'b1000?1???0000010
+  `define CJR2        16'b1000??1??0000010
+  `define CJR3        16'b1000???1?0000010
+  `define CJR4        16'b1000????10000010
+  `define CMV0        16'b1000?????1????10
+  `define CMV1        16'b1000??????1???10
+  `define CMV2        16'b1000???????1??10
+  `define CMV3        16'b1000????????1?10
+  `define CMV4        16'b1000?????????110
+  `define CEBREAK     16'b1001000000000010
+  `define CJALR0      16'b10011????0000010
+  `define CJALR1      16'b1001?1???0000010
+  `define CJALR2      16'b1001??1??0000010
+  `define CJALR3      16'b1001???1?0000010
+  `define CJALR4      16'b1001????10000010
+  `define CADD        16'b1001??????????10  // subsumes CJR, CMV, CEBREAK, CJALR
+  `define CFSDSP      16'b101???????????10
+  `define CSWSP       16'b110???????????10
+  `define CFSWSP      16'b111???????????10  // only in RV32
+  `define CSDSP       16'b111???????????10  // only in RV64/128
 
   // operand 1 encodings
   `define RS1_SP    5'b00010
@@ -161,22 +161,29 @@ package decompress;
   `define RD_0      5'b00000
 
   // Immediate field encodings
-  `define IMM_4SP     zeroExtend({inst[10:7], inst[12:11], inst[6:5] ,2'b0})
-  `define IMM_16SP    signExtend({inst[12], inst[4:3], inst[5], inst[2], inst[6]})
-  `define IMM_MEMD    zeroExtend({inst[6:5], inst[12:10], 3'd0})
-  `define IMM_MEMW    zeroExtend({inst[5], inst[12:10], inst[6], 2'd0})
-  `define IMM_IOP     signExtend({inst[12], inst[6:2]})
-  `define IMM_J       signExtend({inst[12], inst[8], inst[10:9], inst[6], inst[7], inst[2], inst[11], inst[5:3]})
-  `define IMM_SRLI    zeroExtend({6'b000000, inst[12], inst[6:2]})
-  `define IMM_SRAI    zeroExtend({6'b010000, inst[12], inst[6:2]})
-  `define IMM_SLLI    zeroExtend({6'b000000, inst[12], inst[6:2]})
-  `define IMM_BRANCH  signExtend({inst[12], inst[6:5], inst[2], inst[11:10], inst[4:3]})
-  `define IMM_DSP     zeroExtend({inst[4:2], inst[12], inst[6:5], 3'd0})
-  `define IMM_WSP     zeroExtend({inst[3:2], inst[12], inst[6:4], 2'd0})
-  `define IMM_0       12'd0
-  `define IMM_MEMDSP  zeroExtend({inst[9:7], inst[12:10], 3'd0})
-  `define IMM_MEMWSP  zeroExtend({inst[8:7], inst[12:9], 2'd0})
-  `define IMM_LUI     signExtend({inst[12], inst[6:2], 12'd0})
+  `define IMM_4SP         zeroExtend({inst[10:7], inst[12:11], inst[6:5] ,2'b0})
+  `define IMM_16SP        signExtend({inst[12], inst[4:3], inst[5], inst[2], inst[6]})
+  `define IMM_MEMLD       zeroExtend({inst[6:5], inst[12:10], 3'd0})
+  `define IMM_MEMLW       zeroExtend({inst[5], inst[12:10], inst[6], 2'd0})
+  `define IMM_MEMSD_low   {inst[11:10], 3'd0}
+  `define IMM_MEMSD_hi    zeroExtend({inst[6:5], inst[12]})
+  `define IMM_MEMSW_low   {inst[11:10], inst[6], 2'd0}
+  `define IMM_MEMSW_hi    zeroExtend({inst[5], inst[12]})
+  `define IMM_IOP         signExtend({inst[12], inst[6:2]})
+  `define IMM_J           {inst[12], inst[8], inst[10:9], inst[6], inst[7], inst[2], inst[11], inst[5:3], inst[12], inst[12],inst[12],inst[12],inst[12],inst[12],inst[12],inst[12],inst[12]}
+  `define IMM_SRLI        zeroExtend({6'b000000, inst[12], inst[6:2]})
+  `define IMM_SRAI        zeroExtend({6'b010000, inst[12], inst[6:2]})
+  `define IMM_SLLI        zeroExtend({6'b000000, inst[12], inst[6:2]})
+  `define IMM_BRANCH_low  {inst[11:10], inst[4:3], inst[12]}
+  `define IMM_BRANCH_hi   {inst[12], inst[12], inst[12], inst[12], inst[6:5], inst[2]}
+  `define IMM_DSP         zeroExtend({inst[4:2], inst[12], inst[6:5], 3'd0})
+  `define IMM_WSP         zeroExtend({inst[3:2], inst[12], inst[6:4], 2'd0})
+  `define IMM_0           12'd0
+  `define IMM_MEMDSP_lo   {inst[11:10], 3'd0}
+  `define IMM_MEMDSP_hi   zeroExtend({inst[9:7], inst[12]})
+  `define IMM_MEMWSP_lo   {inst[11:9], 2'd0})
+  `define IMM_MEMWSP_hi   zeroExtend({inst[8:7], inst[12]})
+  `define IMM_LUI         signExtend({inst[12], inst[6:2], 12'd0})
 
 
   // funct3 encodings
@@ -227,27 +234,27 @@ package decompress;
   function Bit#(32) fn_decompress(Bit#(16) inst);
     case (inst) matches
       // ------------------------------ C0 space decode ---------------------------------------- //
-      `CADDI4SPN0 : return {`IMM_4SP  , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
-      `CADDI4SPN1 : return {`IMM_4SP  , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11}; 
-      `CADDI4SPN2 : return {`IMM_4SP  , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
-      `CADDI4SPN3 : return {`IMM_4SP  , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
-      `CADDI4SPN4 : return {`IMM_4SP  , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
-      `CADDI4SPN5 : return {`IMM_4SP  , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
-      `CADDI4SPN6 : return {`IMM_4SP  , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
-      `CADDI4SPN7 : return {`IMM_4SP  , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
-      `CFLD       : return {`IMM_MEMD , `RS1_P  , `F3_LD    , `RD_P   , `OP_FLOADS  , 2'b11};
-      `CLW        : return {`IMM_MEMW , `RS1_P  , `F3_LW    , `RD_P   , `OP_LOADS   , 2'b11};
+      `CADDI4SPN0 : return {`IMM_4SP      , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
+      `CADDI4SPN1 : return {`IMM_4SP      , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11}; 
+      `CADDI4SPN2 : return {`IMM_4SP      , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
+      `CADDI4SPN3 : return {`IMM_4SP      , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
+      `CADDI4SPN4 : return {`IMM_4SP      , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
+      `CADDI4SPN5 : return {`IMM_4SP      , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
+      `CADDI4SPN6 : return {`IMM_4SP      , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
+      `CADDI4SPN7 : return {`IMM_4SP      , `RS1_SP , `F3_ADDI  , `RD_P   , `OP_IMM     , 2'b11};
+      `CFLD       : return {`IMM_MEMLD    , `RS1_P  , `F3_LD    , `RD_P   , `OP_FLOADS  , 2'b11};
+      `CLW        : return {`IMM_MEMLW    , `RS1_P  , `F3_LW    , `RD_P   , `OP_LOADS   , 2'b11};
     `ifdef RV32
-      `CFLW       : return {`IMM_MEMW , `RS1_P  , `F3_LW    , `RD_P   , `OP_FLOADS  , 2'b11};
+      `CFLW       : return {`IMM_MEMLW    , `RS1_P  , `F3_LW    , `RD_P   , `OP_FLOADS  , 2'b11};
     `else
-      `CLD        : return {`IMM_MEMD , `RS1_P  , `F3_LD    , `RD_P   , `OP_LOADS   , 2'b11};
+      `CLD        : return {`IMM_MEMLD    , `RS1_P  , `F3_LD    , `RD_P   , `OP_LOADS   , 2'b11};
     `endif
-      `CFSD       : return {`IMM_MEMD , `RS1_P  , `F3_SD    , `RS2_P  , `OP_FSTORES , 2'b11};
-      `CSW        : return {`IMM_MEMW , `RS1_P  , `F3_SW    , `RS2_P  , `OP_STORES  , 2'b11};
+      `CFSD       : return {`IMM_MEMSD_hi , `RS2_P  , `RS1_P    , `F3_SD  , `IMM_MEMSD_low  , `OP_FSTORES , 2'b11};
+      `CSW        : return {`IMM_MEMSW_hi , `RS2_P  , `RS1_P    , `F3_SW  , `IMM_MEMSW_low  , `OP_STORES  , 2'b11};
     `ifdef RV32
-      `CFSW       : return {`IMM_MEMW , `RS1_P  , `F3_SW    , `RS2_P  , `OP_FSTORES , 2'b11};
+      `CFSW       : return {`IMM_MEMSW_hi , `RS2_P  , `RS1_P    , `F3_SD  , `IMM_MEMSW_low  , `OP_FSTORES , 2'b11};
     `else
-      `CSD        : return {`IMM_MEMD , `RS1_P  , `F3_SD    , `RS2_P  , `OP_STORES  , 2'b11};
+      `CSD        : return {`IMM_MEMSD_hi , `RS2_P  , `RS1_P    , `F3_SD  , `IMM_MEMSD_low  , `OP_STORES  , 2'b11};
     `endif
 
       // ------------------------------ C1 space decode ---------------------------------------- //
@@ -311,8 +318,9 @@ package decompress;
     `endif
       `CJ         : return {`IMM_J    ,                       `RD_0  , `OP_JAL     , 2'b11};
       // TODO immediates are wrong here
-      `CBEQZ      : return {`IMM_BRANCH , `RS2_0, `RS1_P, `F3_BEQ, `OP_BRANCH, 2'b11};
-      `CBNEZ      : return {`IMM_BRANCH , `RS2_0, `RS1_P, `F3_BNE, `OP_BRANCH, 2'b11};
+      `CBEQZ      : return {`IMM_BRANCH_hi , `RS2_0, `RS1_P, `F3_BEQ, `IMM_BRANCH_low, `OP_BRANCH, 2'b11};
+      `CBNEZ      : return {`IMM_BRANCH_hi , `RS2_0, `RS1_P, `F3_BNE, `IMM_BRANCH_low, `OP_BRANCH, 2'b11};
+
 
       // ------------------------------ C2 space decode ---------------------------------------- //
       `CSLLI      : return {`IMM_SLLI , `RS1_P  , `F3_SLLI , `RD_P  , `OP_IMM   , 2'b11};
@@ -344,12 +352,12 @@ package decompress;
       `CJALR3     : return {`IMM_0  , `RS1  , `F3_JALR, `RD_RA , `OP_JALR  , 2'b11};
       `CJALR4     : return {`IMM_0  , `RS1  , `F3_JALR, `RD_RA , `OP_JALR  , 2'b11};
       `CMV4       : return {`F7_ADD , `RS2  , `RS1  , `F3_ADD, `RD, `OP_ARITH , 2'b11};
-      `CFSDSP     : return {`IMM_MEMDSP , `RS1_SP  , `F3_SD    , `RS2   , `OP_FSTORES , 2'b11};
-      `CSWSP      : return {`IMM_MEMWSP , `RS1_SP  , `F3_SD    , `RS2   , `OP_STORES , 2'b11};
+      `CFSDSP     : return {`IMM_MEMDSP_hi , `RS2  ,  `RS1_SP, `F3_SD  ,`IMM_MEMSD_low  , `OP_FSTORES , 2'b11};
+      `CSWSP      : return {`IMM_MEMWSP_hi , `RS2  ,  `RS1_SP, `F3_SW  ,`IMM_MEMSW_low  , `OP_STORES , 2'b11};
     `ifdef RV32
-      `CFSWSP     : return {`IMM_MEMWSP , `RS1_SP   , `F3_SW  , `RS2  , `OP_FSTORES  , 2'b11};
+      `CFSWSP     : return {`IMM_MEMWSP_hi , `RS2  ,  `RS1_SP, `F3_SW  ,`IMM_MEMSW_low  , `OP_FSTORES , 2'b11};
     `else
-      `CSDSP      : return {`IMM_MEMDSP , `RS1_SP  , `F3_SD    , `RS2   , `OP_STORES , 2'b11};
+      `CSDSP      : return {`IMM_MEMDSP_hi , `RS2  ,  `RS1_SP, `F3_SD  ,`IMM_MEMSD_low  , `OP_STORES , 2'b11};
     `endif
       default: return 0;
     endcase
