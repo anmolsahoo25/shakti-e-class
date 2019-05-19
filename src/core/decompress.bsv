@@ -49,13 +49,13 @@ package decompress;
   `define CSD         16'b111???????????00  
 
   // Quad-1
-  `define CADDI       16'b000???????????01  // CNOP 
-  `define CJAL        16'b001???????????01  // only in RV32
-  `define CADDIW0     16'b001?1?????????01  // only in RV64/128
-  `define CADDIW1     16'b001??1????????01  // only in RV64/128
-  `define CADDIW2     16'b001???1???????01  // only in RV64/128
-  `define CADDIW3     16'b001????1??????01  // only in RV64/128
-  `define CADDIW4     16'b001?????1?????01  // only in RV64/128
+  `define CADDI       16'b000???????????01  
+  `define CJAL        16'b001???????????01  
+  `define CADDIW0     16'b001?1?????????01  
+  `define CADDIW1     16'b001??1????????01  
+  `define CADDIW2     16'b001???1???????01  
+  `define CADDIW3     16'b001????1??????01  
+  `define CADDIW4     16'b001?????1?????01  
   `define CLI         16'b010???????????01  
   `define CADDI16SP0  16'b011100010?????01  
   `define CADDI16SP1  16'b011?000101????01  
@@ -258,66 +258,65 @@ package decompress;
     `endif
 
       // ------------------------------ C1 space decode ---------------------------------------- //
-      `CADDI      : return {`IMM_IOP  , `RS1    , `F3_ADDI  , `RD     , `OP_IMM     , 2'b11};
+      `CADDI      : return {`IMM_IOP  , `RS1    , `F3_ADDI    , `RD     , `OP_IMM     , 2'b11};
     `ifdef RV32
-      `CJAL       : return {`IMM_J    ,                       `RD_RA  , `OP_JAL     , 2'b11};
+      `CJAL       : return {`IMM_J    ,                         `RD_RA  , `OP_JAL     , 2'b11};
     `else
-      `CADDIW0    : return {`IMM_IOP  , `RS1    , `F3_ADDIW , `RD     , `OP_IMMW    , 2'b11};
-      `CADDIW1    : return {`IMM_IOP  , `RS1    , `F3_ADDIW , `RD     , `OP_IMMW    , 2'b11};
-      `CADDIW2    : return {`IMM_IOP  , `RS1    , `F3_ADDIW , `RD     , `OP_IMMW    , 2'b11};
-      `CADDIW3    : return {`IMM_IOP  , `RS1    , `F3_ADDIW , `RD     , `OP_IMMW    , 2'b11};
-      `CADDIW4    : return {`IMM_IOP  , `RS1    , `F3_ADDIW , `RD     , `OP_IMMW    , 2'b11};
+      `CADDIW0    : return {`IMM_IOP  , `RS1    , `F3_ADDIW   , `RD     , `OP_IMMW    , 2'b11};
+      `CADDIW1    : return {`IMM_IOP  , `RS1    , `F3_ADDIW   , `RD     , `OP_IMMW    , 2'b11};
+      `CADDIW2    : return {`IMM_IOP  , `RS1    , `F3_ADDIW   , `RD     , `OP_IMMW    , 2'b11};
+      `CADDIW3    : return {`IMM_IOP  , `RS1    , `F3_ADDIW   , `RD     , `OP_IMMW    , 2'b11};
+      `CADDIW4    : return {`IMM_IOP  , `RS1    , `F3_ADDIW   , `RD     , `OP_IMMW    , 2'b11};
     `endif
-      `CLI        : return {`IMM_IOP  , `RS1_0  , `F3_ADDI  , `RD     , `OP_IMM     , 2'b11};
-      `CADDI16SP0  : return {`IMM_16SP , `RS1_SP , `F3_ADDI  , `RD_SP  , `OP_IMM     , 2'b11};
-      `CADDI16SP1  : return {`IMM_16SP , `RS1_SP , `F3_ADDI  , `RD_SP  , `OP_IMM     , 2'b11};
-      `CADDI16SP2  : return {`IMM_16SP , `RS1_SP , `F3_ADDI  , `RD_SP  , `OP_IMM     , 2'b11};
-      `CADDI16SP3  : return {`IMM_16SP , `RS1_SP , `F3_ADDI  , `RD_SP  , `OP_IMM     , 2'b11};
-      `CADDI16SP4  : return {`IMM_16SP , `RS1_SP , `F3_ADDI  , `RD_SP  , `OP_IMM     , 2'b11};
-      `CADDI16SP5  : return {`IMM_16SP , `RS1_SP , `F3_ADDI  , `RD_SP  , `OP_IMM     , 2'b11};
-      `CLUI0       : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI1       : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI2       : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI3       : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI4       : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI5       : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI6       : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI7       : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI8       : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI9       : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI10      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI11      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI12      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI13      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI14      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI15      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI16      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI17      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI18      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI19      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI20      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI21      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI22      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI23      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI24      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI25      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI26      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI27      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI28      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CLUI29      : return {`IMM_LUI  , `RD , `OP_LUI , 2'b11};
-      `CSRLI      : return {`IMM_SRLI , `RS1_P  , `F3_SRLSRAI , `RD_P  , `OP_IMM   , 2'b11};
-      `CSRAI      : return {`IMM_SRAI , `RS1_P  , `F3_SRLSRAI , `RD_P  , `OP_IMM   , 2'b11};
-      `CANDI      : return {`IMM_IOP  , `RS1_P  , `F3_ANDI    , `RD_P , `OP_IMM     , 2'b11};
+      `CLI        : return {`IMM_IOP  , `RS1_0  , `F3_ADDI    , `RD     , `OP_IMM     , 2'b11};
+      `CADDI16SP0 : return {`IMM_16SP , `RS1_SP , `F3_ADDI    , `RD_SP  , `OP_IMM     , 2'b11};
+      `CADDI16SP1 : return {`IMM_16SP , `RS1_SP , `F3_ADDI    , `RD_SP  , `OP_IMM     , 2'b11};
+      `CADDI16SP2 : return {`IMM_16SP , `RS1_SP , `F3_ADDI    , `RD_SP  , `OP_IMM     , 2'b11};
+      `CADDI16SP3 : return {`IMM_16SP , `RS1_SP , `F3_ADDI    , `RD_SP  , `OP_IMM     , 2'b11};
+      `CADDI16SP4 : return {`IMM_16SP , `RS1_SP , `F3_ADDI    , `RD_SP  , `OP_IMM     , 2'b11};
+      `CADDI16SP5 : return {`IMM_16SP , `RS1_SP , `F3_ADDI    , `RD_SP  , `OP_IMM     , 2'b11};
+      `CLUI0      : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI1      : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI2      : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI3      : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI4      : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI5      : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI6      : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI7      : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI8      : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI9      : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI10     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI11     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI12     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI13     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI14     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI15     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI16     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI17     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI18     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI19     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI20     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI21     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI22     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI23     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI24     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI25     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI26     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI27     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI28     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CLUI29     : return {`IMM_LUI                          , `RD     , `OP_LUI     , 2'b11};
+      `CSRLI      : return {`IMM_SRLI , `RS1_P  , `F3_SRLSRAI , `RD_P   , `OP_IMM     , 2'b11};
+      `CSRAI      : return {`IMM_SRAI , `RS1_P  , `F3_SRLSRAI , `RD_P   , `OP_IMM     , 2'b11};
+      `CANDI      : return {`IMM_IOP  , `RS1_P  , `F3_ANDI    , `RD_P   , `OP_IMM     , 2'b11};
       `CSUB       : return {`F7_SUB   , `RS2_P  , `RS1_P      , `F3_SUB , `RD_P , `OP_ARITH , 2'b11};
       `CXOR       : return {`F7_XOR   , `RS2_P  , `RS1_P      , `F3_XOR , `RD_P , `OP_ARITH , 2'b11};
       `COR        : return {`F7_OR    , `RS2_P  , `RS1_P      , `F3_OR  , `RD_P , `OP_ARITH , 2'b11};
       `CAND       : return {`F7_AND   , `RS2_P  , `RS1_P      , `F3_ANDI, `RD_P , `OP_ARITH , 2'b11};
     `ifdef RV64
-      `CSUBW      : return {`F7_SUB   , `RS2_P  , `RS1_P      , `F3_SUBW , `RD_P , `OP_ARITHW, 2'b11};
-      `CADDW      : return {`F7_ADD   , `RS2_P  , `RS1_P      , `F3_ADDW , `RD_P , `OP_ARITHW, 2'b11};
+      `CSUBW      : return {`F7_SUB   , `RS2_P  , `RS1_P      , `F3_SUBW, `RD_P , `OP_ARITHW, 2'b11};
+      `CADDW      : return {`F7_ADD   , `RS2_P  , `RS1_P      , `F3_ADDW, `RD_P , `OP_ARITHW, 2'b11};
     `endif
-      `CJ         : return {`IMM_J    ,                       `RD_0  , `OP_JAL     , 2'b11};
-      // TODO immediates are wrong here
+      `CJ         : return {`IMM_J    ,                         `RD_0   , `OP_JAL     , 2'b11};
       `CBEQZ      : return {`IMM_BRANCH_hi , `RS2_0, `RS1_P, `F3_BEQ, `IMM_BRANCH_low, `OP_BRANCH, 2'b11};
       `CBNEZ      : return {`IMM_BRANCH_hi , `RS2_0, `RS1_P, `F3_BNE, `IMM_BRANCH_low, `OP_BRANCH, 2'b11};
 
@@ -335,29 +334,29 @@ package decompress;
     `else
       `CLDSP      : return {`IMM_DSP  , `RS1_SP , `F3_LD  , `RD , `OP_LOADS   , 2'b11};
     `endif
-      `CJR0       : return {`IMM_0  , `RS1  , `F3_JALR, `RD_0 , `OP_JALR  , 2'b11};
-      `CJR1       : return {`IMM_0  , `RS1  , `F3_JALR, `RD_0 , `OP_JALR  , 2'b11};
-      `CJR2       : return {`IMM_0  , `RS1  , `F3_JALR, `RD_0 , `OP_JALR  , 2'b11};
-      `CJR3       : return {`IMM_0  , `RS1  , `F3_JALR, `RD_0 , `OP_JALR  , 2'b11};
-      `CJR4       : return {`IMM_0  , `RS1  , `F3_JALR, `RD_0 , `OP_JALR  , 2'b11};
-      `CMV0       : return {`F7_ADD , `RS2  , `RS1_0  , `F3_ADD, `RD, `OP_ARITH , 2'b11};
-      `CMV1       : return {`F7_ADD , `RS2  , `RS1_0  , `F3_ADD, `RD, `OP_ARITH , 2'b11};
-      `CMV2       : return {`F7_ADD , `RS2  , `RS1_0  , `F3_ADD, `RD, `OP_ARITH , 2'b11};
-      `CMV3       : return {`F7_ADD , `RS2  , `RS1_0  , `F3_ADD, `RD, `OP_ARITH , 2'b11};
-      `CMV4       : return {`F7_ADD , `RS2  , `RS1_0  , `F3_ADD, `RD, `OP_ARITH , 2'b11};
-      `CEBREAK    : return {25'd0, `OP_EBREAK , 2'b11};
-      `CJALR0     : return {`IMM_0  , `RS1  , `F3_JALR, `RD_RA , `OP_JALR  , 2'b11};
-      `CJALR1     : return {`IMM_0  , `RS1  , `F3_JALR, `RD_RA , `OP_JALR  , 2'b11};
-      `CJALR2     : return {`IMM_0  , `RS1  , `F3_JALR, `RD_RA , `OP_JALR  , 2'b11};
-      `CJALR3     : return {`IMM_0  , `RS1  , `F3_JALR, `RD_RA , `OP_JALR  , 2'b11};
-      `CJALR4     : return {`IMM_0  , `RS1  , `F3_JALR, `RD_RA , `OP_JALR  , 2'b11};
-      `CMV4       : return {`F7_ADD , `RS2  , `RS1  , `F3_ADD, `RD, `OP_ARITH , 2'b11};
+      `CJR0       : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_0   , `OP_JALR    , 2'b11};
+      `CJR1       : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_0   , `OP_JALR    , 2'b11};
+      `CJR2       : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_0   , `OP_JALR    , 2'b11};
+      `CJR3       : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_0   , `OP_JALR    , 2'b11};
+      `CJR4       : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_0   , `OP_JALR    , 2'b11};
+      `CMV0       : return {`F7_ADD   , `RS2  , `RS1_0  , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
+      `CMV1       : return {`F7_ADD   , `RS2  , `RS1_0  , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
+      `CMV2       : return {`F7_ADD   , `RS2  , `RS1_0  , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
+      `CMV3       : return {`F7_ADD   , `RS2  , `RS1_0  , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
+      `CMV4       : return {`F7_ADD   , `RS2  , `RS1_0  , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
+      `CEBREAK    : return {25'd0                                             , `OP_EBREAK  , 2'b11};
+      `CJALR0     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
+      `CJALR1     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
+      `CJALR2     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
+      `CJALR3     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
+      `CJALR4     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
+      `CMV4       : return {`F7_ADD   , `RS2  , `RS1    , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
       `CFSDSP     : return {`IMM_MEMDSP_hi , `RS2  ,  `RS1_SP, `F3_SD  ,`IMM_MEMSD_low  , `OP_FSTORES , 2'b11};
-      `CSWSP      : return {`IMM_MEMWSP_hi , `RS2  ,  `RS1_SP, `F3_SW  ,`IMM_MEMSW_low  , `OP_STORES , 2'b11};
+      `CSWSP      : return {`IMM_MEMWSP_hi , `RS2  ,  `RS1_SP, `F3_SW  ,`IMM_MEMSW_low  , `OP_STORES  , 2'b11};
     `ifdef RV32
       `CFSWSP     : return {`IMM_MEMWSP_hi , `RS2  ,  `RS1_SP, `F3_SW  ,`IMM_MEMSW_low  , `OP_FSTORES , 2'b11};
     `else
-      `CSDSP      : return {`IMM_MEMDSP_hi , `RS2  ,  `RS1_SP, `F3_SD  ,`IMM_MEMSD_low  , `OP_STORES , 2'b11};
+      `CSDSP      : return {`IMM_MEMDSP_hi , `RS2  ,  `RS1_SP, `F3_SD  ,`IMM_MEMSD_low  , `OP_STORES  , 2'b11};
     `endif
       default: return 0;
     endcase
