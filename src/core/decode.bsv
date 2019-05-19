@@ -235,7 +235,8 @@ package decode;
   endfunction
   
   (*noinline*)
-  function DecodeOut decoder_func_32(Bit#(32) inst, CSRtoDecode csrs);
+  function DecodeOut decoder_func_32(Bit#(32) inst, CSRtoDecode csrs
+                                    `ifdef compressed , Bool compressed `endif );
 
     Bit#(1) fs = |csrs.csr_mstatus[14 : 13];
     Bit#(3) frm = csrs.frm;
@@ -390,8 +391,10 @@ package decode;
       rs1type = PC;
 
     // rs2type is IRF by default. Assign Immediate value based on the instructions
-    if(opcode == `JALR_op || opcode == `JAL_op || opcode == `FENCE_op)
+    if(opcode == `JALR_op || opcode == `JAL_op || opcode == `FENCE_op) begin
+      `ifdef compressed if(compressed) rs2type = Constant2; else `endif
       rs2type = Constant4;
+    end
     else if(itype || utype || jtype )
       rs2type = Immediate;
 
@@ -562,9 +565,10 @@ package decode;
   endfunction
 
   function ActionValue#(DecodeOut) decoder_func (Bit#(32) inst, Bool trap, CSRtoDecode csrs
+                `ifdef compressed , Bool compressed `endif
                 `ifdef debug, DebugStatus debug, Bool step_done `endif ) =  actionvalue
 
-    DecodeOut result_decode = decoder_func_32(inst, csrs);
+    DecodeOut result_decode = decoder_func_32(inst, csrs `ifdef compressed ,compressed `endif );
     let {icause, takeinterrupt, resume_wfi} = 
             chk_interrupt( csrs.prv, csrs.csr_mstatus, zeroExtend(csrs.csr_mip), csrs.csr_mie 
                           `ifdef non_m_traps, csrs.csr_mideleg `endif
