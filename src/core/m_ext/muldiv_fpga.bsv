@@ -66,7 +66,8 @@ package muldiv_fpga;
         rg_count <= 0;
       end
       else begin
-        `logLevel( muldiv, 0, $format("MULDIV : Waiting for mul/div to respond. Count: %d", rg_count))
+        `logLevel( muldiv, 0, $format("MULDIV : Waiting for mul/div to respond. Count: %d", 
+                                      rg_count))
         rg_count <= rg_count + 1;
       end
     endrule
@@ -114,8 +115,7 @@ package muldiv_fpga;
       Bit#(XLEN) default_out = '1;
       Bool result_avail = False;
       if(funct3[2] == 0)begin // multiplication operation
-          `logLevel( muldiv, 0, $format("MULDIV : Sending inputs to multiplier. A: %h B: %h funct3: %b", op1, op2,
-        funct3))
+          `logLevel( muldiv, 0, $format("MULDIV : Inps to Mul. A:%h B:%h f3: %b", op1, op2, funct3))
         mult.iA(op1);
         mult.iB(op2);
         if(`MULSTAGES == 0)begin
