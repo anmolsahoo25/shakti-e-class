@@ -74,24 +74,24 @@ package eclass;
       Bit#(XLEN) op1 = loaded;
       Bit#(XLEN) op2 = rs2;
       if(op[4] == 0)begin
-	  		op1 = signExtend(loaded[31 : 0]);
+        op1 = signExtend(loaded[31 : 0]);
         op2 = signExtend(rs2[31 : 0]);
       end
       Int#(XLEN) s_op1 = unpack(op1);
-	  	Int#(XLEN) s_op2 = unpack(op2);
+      Int#(XLEN) s_op2 = unpack(op2);
       
       case (op[3 : 0])
-	  			'b0011 : return op2;
-	  			'b0000 : return (op1 + op2);
-	  			'b0010 : return (op1 ^ op2);
-	  			'b0110 : return (op1 & op2);
-	  			'b0100 : return (op1 | op2);
-	  			'b1100 : return min(op1, op2);
-	  			'b1110 : return max(op1, op2);
-	  			'b1000 : return pack(min(s_op1, s_op2));
-	  			'b1010 : return pack(max(s_op1, s_op2));
-	  			default : return op1;
-	  		endcase
+          'b0011 : return op2;
+          'b0000 : return (op1 + op2);
+          'b0010 : return (op1 ^ op2);
+          'b0110 : return (op1 & op2);
+          'b0100 : return (op1 | op2);
+          'b1100 : return min(op1, op2);
+          'b1110 : return max(op1, op2);
+          'b1000 : return pack(min(s_op1, s_op2));
+          'b1010 : return pack(max(s_op1, s_op2));
+          default : return op1;
+        endcase
     endfunction
 `endif
 
@@ -122,7 +122,8 @@ package eclass;
   `endif
   
   `ifdef debug
-    Reg#(Maybe#(Bit#(DXLEN))) rg_abst_response <- mkReg(tagged Invalid); // registered container for responses
+    // registered container for responses
+    Reg#(Maybe#(Bit#(DXLEN))) rg_abst_response <- mkReg(tagged Invalid); 
   `endif
 
     rule handle_fetch_request;
@@ -133,9 +134,9 @@ package eclass;
         err = (|upper_bits == 1);
       end
       if (!err) begin
-        AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), aruser: ?, 
-                                                arlen : 0, arsize : 2, arburst : 'b01, arid : 0, 
-                                                arprot: {1'b0, 1'b0, curr_priv[1]}};
+        AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), 
+                                                aruser: ?, arlen : 0, arsize : 2, arburst : 'b01, 
+                                                arid : 0, arprot: {1'b0, 1'b0, curr_priv[1]}};
         fetch_xactor.i_rd_addr.enq(read_request);
         `logLevel( eclass, 0, $format("CORE : Fetch Request ", fshow(read_request)))
       end
@@ -190,8 +191,8 @@ package eclass;
 
       if(req.memaccess != Store) begin
         AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), 
-              aruser : 0, arlen : 0, arsize : zeroExtend(req.size[1 : 0]), arburst : 'b01, arid : 0,
-              arprot: {1'b0, 1'b0,1'b1}};
+              aruser : 0, arlen : 0, arsize : zeroExtend(req.size[1 : 0]), arburst : 'b01, 
+              arid : 0, arprot: {1'b0, 1'b0,1'b1}};
         memory_xactor.i_rd_addr.enq(read_request);	
         `logLevel( eclass, 0, $format("CORE : Memory Read Request ", fshow(read_request)))
       end
@@ -245,7 +246,8 @@ package eclass;
       `logLevel( eclass, 0, $format("CORE : Memory Write Response ", fshow(response)))
     endrule
   `ifdef atomic
-    rule handle_atomic_readresponse( ff_mem_request.first.memaccess == Atomic && !ff_atomic_state.notEmpty );
+    rule handle_atomic_readresponse( ff_mem_request.first.memaccess == Atomic && 
+                                    !ff_atomic_state.notEmpty );
       let req =  ff_mem_request.first;
       let response <- pop_o (memory_xactor.o_rd_data);	
       let bus_error = !(response.rresp == AXI4_OKAY);
@@ -268,7 +270,7 @@ package eclass;
       end
       else begin
         ff_atomic_state.enq(rdata);
-        Bit#(XLEN) wdata = fn_atomic_op(req.atomic_op, req.data, rdata); // TODO put atomic func here
+        Bit#(XLEN) wdata = fn_atomic_op(req.atomic_op, req.data, rdata);
         AXI4_Wr_Addr#(`paddr, 0) aw = AXI4_Wr_Addr {awaddr : truncate(req.addr), awuser : 0, 
               awlen : 0, awsize : zeroExtend(req.size[1 : 0]), awburst : 'b01, awid : 0,
               awprot: {1'b0, 1'b0, curr_priv[1]} };
