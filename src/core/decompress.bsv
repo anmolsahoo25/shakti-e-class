@@ -184,6 +184,7 @@ package decompress;
   `define IMM_MEMWSP_lo   {inst[11:9], 2'd0}
   `define IMM_MEMWSP_hi   zeroExtend({inst[8:7], inst[12]})
   `define IMM_LUI         signExtend({inst[12], inst[6:2]})
+  `define IMM_EBREAK      12'b000000000001
 
 
   // funct3 encodings
@@ -356,7 +357,7 @@ package decompress;
       `CMV2       : return {`F7_ADD   , `RS2  , `RS1_0  , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
       `CMV3       : return {`F7_ADD   , `RS2  , `RS1_0  , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
       `CMV4       : return {`F7_ADD   , `RS2  , `RS1_0  , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
-      `CEBREAK    : return {25'd0                                             , `OP_EBREAK  , 2'b11};
+      `CEBREAK    : return {`IMM_EBREAK       , `RS1_0  , `F3_ADD   , `RD_0   , `OP_EBREAK  , 2'b11};
       `CJALR0     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
       `CJALR1     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
       `CJALR2     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
