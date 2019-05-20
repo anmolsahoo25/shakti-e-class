@@ -111,7 +111,7 @@ package stage2;
     Reg#(Bit#(1)) rg_eEpoch <- mkReg(0);
 
     Reg#(OpFwding) wr_opfwding <- mkDWire(unpack(0));
-    FIFOF#(MemoryRequest) ff_memory_request <- mkBypassFIFOF();
+    FIFOF#(MemoryRequest) ff_memory_request <- mkLFIFOF();
 
     Ifc_alu alu <- mkalu();
 
@@ -305,6 +305,7 @@ package stage2;
     endinterface;
 
     method Action ma_update_wEpoch; //fence integration
+      `logLevel( stage2, 0, $format("STAGE2: Received Flush from WB"))
       rg_wEpoch <= ~rg_wEpoch;
       ff_memory_request.clear();
     endmethod

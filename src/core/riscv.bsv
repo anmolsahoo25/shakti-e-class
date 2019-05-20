@@ -80,6 +80,7 @@ package riscv;
   `endif
 
     method Bit#(2) mv_curr_priv;
+    method Bool mv_trap;
   endinterface : Ifc_riscv
 
   (*synthesize*)
@@ -192,5 +193,6 @@ package riscv;
       wr_debugger_available <= unpack(avail);
     endmethod
   `endif
+    method mv_trap = trap;
   endmodule : mkriscv
 endpackage : riscv

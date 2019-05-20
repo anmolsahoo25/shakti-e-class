@@ -106,6 +106,8 @@ package eclass;
     AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
     AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
 
+    Reg#(Bit#(1)) rg_wEpoch[2] <- mkCReg(2,0);
+
     let curr_priv = riscv.mv_curr_priv;
 
     // this fifo stores the epochs of instruction addresses latched onto fabric.
@@ -125,6 +127,10 @@ package eclass;
     // registered container for responses
     Reg#(Maybe#(Bit#(DXLEN))) rg_abst_response <- mkReg(tagged Invalid); 
   `endif
+
+    rule update_epochs(riscv.mv_trap);
+      rg_wEpoch[0] <= ~rg_wEpoch[0];
+    endrule
 
     rule handle_fetch_request;
       let req <- riscv.inst_request.get; 
@@ -188,26 +194,26 @@ package eclass;
       if(req.size != 3)begin			// 8 - bit write;
         write_strobe = write_strobe<<byte_offset;
       end
-
-      if(req.memaccess != Store) begin
-        AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), 
-              aruser : 0, arlen : 0, arsize : zeroExtend(req.size[1 : 0]), arburst : 'b01, 
-              arid : 0, arprot: {1'b0, 1'b0,1'b1}};
-        memory_xactor.i_rd_addr.enq(read_request);	
-        `logLevel( eclass, 0, $format("CORE : Memory Read Request ", fshow(read_request)))
+      if (rg_wEpoch[1] == req.epoch) begin
+        if(req.memaccess != Store) begin
+          AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), 
+                aruser : 0, arlen : 0, arsize : zeroExtend(req.size[1 : 0]), arburst : 'b01, 
+                arid : 0, arprot: {1'b0, 1'b0,1'b1}};
+          memory_xactor.i_rd_addr.enq(read_request);	
+          `logLevel( eclass, 0, $format("CORE : Memory Read Request ", fshow(read_request)))
+        end
+        else begin
+          AXI4_Wr_Addr#(`paddr, 0) aw = AXI4_Wr_Addr {awaddr : truncate(req.addr), awuser : 0, 
+                awlen : 0, awsize : zeroExtend(req.size[1 : 0]), awburst : 'b01, awid : 0,
+                awprot: {1'b0, 1'b0,1'b1} };
+          let w  = AXI4_Wr_Data {wdata : req.data, wstrb : write_strobe, wlast : True, wid : 0};
+          memory_xactor.i_wr_addr.enq(aw);
+          memory_xactor.i_wr_data.enq(w);
+          `logLevel( eclass, 0 , $format("CORE : Memory write Request ", fshow(aw)))
+          `logLevel( eclass, 0 , $format("CORE : Memory write Request ", fshow(w)))
+        end 
+        ff_mem_request.enq(req);
       end
-      else begin
-        AXI4_Wr_Addr#(`paddr, 0) aw = AXI4_Wr_Addr {awaddr : truncate(req.addr), awuser : 0, 
-              awlen : 0, awsize : zeroExtend(req.size[1 : 0]), awburst : 'b01, awid : 0,
-              awprot: {1'b0, 1'b0,1'b1} };
-        let w  = AXI4_Wr_Data {wdata : req.data, wstrb : write_strobe, wlast : True, wid : 0};
-        memory_xactor.i_wr_addr.enq(aw);
-        memory_xactor.i_wr_data.enq(w);
-        `logLevel( eclass, 0 , $format("CORE : Memory write Request ", fshow(aw)))
-        `logLevel( eclass, 0 , $format("CORE : Memory write Request ", fshow(w)))
-      end
-      
-      ff_mem_request.enq(req);
     endrule
     
   // Rule to handle memory response of Load and Atomic type instr 
