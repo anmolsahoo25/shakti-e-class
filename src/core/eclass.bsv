@@ -196,6 +196,9 @@ package eclass;
       end
       if (rg_wEpoch[1] == req.epoch) begin
         if(req.memaccess != Store) begin
+          `ifdef perfmonitors
+            riscv.ma_event_loads(1);
+          `endif
           AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), 
                 aruser : 0, arlen : 0, arsize : zeroExtend(req.size[1 : 0]), arburst : 'b01, 
                 arid : 0, arprot: {1'b0, 1'b0,1'b1}};
@@ -203,6 +206,9 @@ package eclass;
           `logLevel( eclass, 0, $format("CORE : Memory Read Request ", fshow(read_request)))
         end
         else begin
+          `ifdef perfmonitors
+            riscv.ma_event_stores(1);
+          `endif
           AXI4_Wr_Addr#(`paddr, 0) aw = AXI4_Wr_Addr {awaddr : truncate(req.addr), awuser : 0, 
                 awlen : 0, awsize : zeroExtend(req.size[1 : 0]), awburst : 'b01, awid : 0,
                 awprot: {1'b0, 1'b0,1'b1} };

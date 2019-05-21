@@ -163,6 +163,9 @@ package csrfile;
     method Vector#(`trigger_num, Bit#(XLEN))  mv_trigger_data2;
     method Vector#(`trigger_num, Bool)        mv_trigger_enable;
   `endif
+  `ifdef perfmonitors
+    method Action ma_events(Bit#(SizeOf#(Events)) e);
+  `endif
   endinterface
 
   function Reg#(Bit#(a)) extInterruptReg(Reg#(Bit#(a)) r1, Reg#(Bit#(a)) r2);
@@ -523,7 +526,7 @@ package csrfile;
       mhpmcounter[i] <- mkReg(0);
       mhpmevent[i] <- mkReg(0);
     end
-    Wire#(Bit#(8)) wr_events <- mkWire();
+    Wire#(Bit#(TAdd#(SizeOf#(Events),1))) wr_events <- mkWire();
   `endif
     ////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -549,9 +552,16 @@ package csrfile;
     endrule
 
   `ifdef perfmonitors
-    rule increment_perfmonitors;
+    rule increment_perfmonitors `ifdef debug (rg_dcsr_stopcount == 0) `endif ;
       for(Integer i=0; i<`counters; i=i+1)begin
         mhpmcounter[i] <= mhpmcounter[i] + zeroExtend(wr_events[mhpmevent[i]]) ;
+      end
+    endrule
+
+    rule display_perfmonitors;
+      for(Integer i=0; i<`counters; i=i+1)begin
+        `logLevel( csrfile, 0, $format("PERF: %s",event_to_string(mhpmevent[i]), 
+                                        ": %8d", mhpmcounter[i]))
       end
     endrule
   `endif
@@ -1087,6 +1097,11 @@ package csrfile;
     method mv_trigger_data1 = readVReg(v_trig_tdata1);
     method mv_trigger_data2 = readVReg(v_trig_tdata2);
     method mv_trigger_enable = v_trigger_enable;
+  `endif
+  `ifdef perfmonitors
+    method Action ma_events(Bit#(SizeOf#(Events)) e);
+      wr_events <= {e,1'b0};
+    endmethod
   `endif
   endmodule
 endpackage

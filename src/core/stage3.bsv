@@ -95,6 +95,11 @@ package stage3;
   `ifdef arith_trap
     method Bit#(1) mv_arithtrap_en;
   `endif
+  `ifdef perfmonitors
+    method Action ma_events(Bit#(SizeOf#(Events)) e);
+    method Bit#(1) mv_event_exceptions ;
+    method Bit#(1) mv_event_interrupts ;
+  `endif
   endinterface : Ifc_stage3
 
   (*synthesize*)
@@ -139,6 +144,11 @@ package stage3;
     Privilege_mode prv = unpack(csr.mv_curr_priv);
   `endif
 
+  `ifdef perfmonitors
+    Wire#(Bit#(1)) wr_event_exceptions <- mkDWire(0);
+    Wire#(Bit#(1)) wr_event_interrupts <- mkDWire(0);
+  `endif
+
     function Action deq_rx = action
       ff_stage3_common.u.deq;
       ff_stage3_type.u.deq;
@@ -174,6 +184,10 @@ package stage3;
             rg_epoch <= ~rg_epoch;
             deq_rx;
             `logLevel( stage3, 0, $format("STAGE3 : Jumping to PC:%h", newpc))
+          `ifdef perfmonitors
+            wr_event_exceptions <= ~truncateLSB(t.cause);
+            wr_event_interrupts <= truncateLSB(t.cause);
+          `endif
           end
 
           if(s3type matches tagged Regular .r)begin
@@ -341,5 +355,11 @@ package stage3;
   `ifdef arith_trap
     method mv_arithtrap_en = csr.mv_arithtrap_en;
   `endif
+  `ifdef perfmonitors
+    method ma_events = csr.ma_events;
+    method mv_event_exceptions = wr_event_exceptions ;
+    method mv_event_interrupts = wr_event_interrupts ;
+  `endif
+
   endmodule : mkstage3
 endpackage : stage3

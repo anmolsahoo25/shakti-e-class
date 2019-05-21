@@ -86,6 +86,15 @@ package stage2;
   `ifdef arith_trap
     method Action ma_arithtrap_en(Bit#(1) arith_en);
   `endif
+  `ifdef perfmonitors
+    method Bit#(1) mv_event_jumps;
+    method Bit#(1) mv_event_branch_taken;
+    method Bit#(1) mv_event_branch_nottaken;
+    method Bit#(1) mv_event_muldiv;
+    method Bit#(1) mv_event_csr_ops;
+    method Bit#(1) mv_event_raw_stalls;
+    method Bit#(1) mv_event_redirection;
+  `endif
   endinterface : Ifc_stage2
   
   (*synthesize*)
@@ -119,21 +128,6 @@ package stage2;
     Reg#(Maybe#(Bit#(`paddr))) rg_loadreserved_addr <- mkReg(tagged Invalid);
   `endif
 
-// If a CSR operation is detected then you need to stall fetching operands from the regfile
-// untill the csr instruction has been committed. the forwarding path from the csr operation to
-// the ALU is huge. This way we break the path and neither flush the entire pipe.
-// Flushing the entire pipe will lead to fetching the same instruction again.
-// However,  if we do add csrs which affect how an instruction is fetched (protection,  etc)
-// then the entire pipe will have to flushed. 
-// There does exist mechanism in the last stage to flush pipe on a trap. in case a full flush is
-// required,  that particular method should be excited.
-//    Reg#(Bool) rg_csr_stall[2] <- mkCReg(2, False);
-//  `ifdef muldiv
-//    Reg#(Bool) rg_stall <- mkReg(False);
-//  `elsif atomic
-//    Reg#(Bool) rg_stall <- mkReg(False);
-//  `endif
-
   `ifdef muldiv
     `ifdef atomic
       Reg#(Bool) rg_muldiv_atomic <- mkReg(False); // False = muldiv,  True = atomic
@@ -162,6 +156,16 @@ package stage2;
     Vector#(`trigger_num, Wire#(TriggerData)) v_trigger_data1 <- replicateM(mkWire());
     Vector#(`trigger_num, Wire#(Bit#(XLEN))) v_trigger_data2 <- replicateM(mkWire());
     Vector#(`trigger_num, Wire#(Bool)) v_trigger_enable <- replicateM(mkWire());
+  `endif
+  
+  `ifdef perfmonitors
+    Wire#(Bit#(1)) wr_event_jumps             <- mkDWire(0);
+    Wire#(Bit#(1)) wr_event_branch_taken      <- mkDWire(0);
+    Wire#(Bit#(1)) wr_event_branch_nottaken   <- mkDWire(0);
+    Wire#(Bit#(1)) wr_event_muldiv            <- mkDWire(0);
+    Wire#(Bit#(1)) wr_event_csr_ops           <- mkDWire(0);
+    Wire#(Bit#(1)) wr_event_raw_stalls        <- mkDWire(0);
+    Wire#(Bit#(1)) wr_event_redirection       <- mkDWire(0);
   `endif
 
     
@@ -266,11 +270,22 @@ package stage2;
           `ifdef rtldump
             ff_stage3_dump.u.enq(dump);
           `endif
+          `ifdef perfmonitors
+            wr_event_jumps <= pack(meta.inst_type==JALR || meta.inst_type == JAL);
+            wr_event_branch_taken <=  pack (meta.inst_type == BRANCH && aluout.redirect);
+            wr_event_branch_nottaken <= pack (meta.inst_type == BRANCH && !aluout.redirect);
+            wr_event_muldiv <=  pack(meta.inst_type == MULDIV);
+            wr_event_csr_ops <= pack(meta.inst_type == SYSTEM_INSTR);
+            wr_event_redirection <= pack(aluout.redirect);
+          `endif
         end
       end
       else begin
         `logLevel( stage2, 0, $format("STAGE2 : Dropping instruction due to mis - match"))
         deq_rx;
+      `ifdef perfmonitors
+        wr_event_raw_stalls <= 1;
+      `endif
       end
     endrule
  
@@ -339,5 +354,12 @@ package stage2;
       alu.ma_arithtrap_en(arith_en);
     endmethod
   `endif
+    method  mv_event_jumps           = wr_event_jumps;
+    method  mv_event_branch_taken    = wr_event_branch_taken;
+    method  mv_event_branch_nottaken = wr_event_branch_nottaken;
+    method  mv_event_muldiv          = wr_event_muldiv;
+    method  mv_event_csr_ops         = wr_event_csr_ops;
+    method  mv_event_raw_stalls      = wr_event_raw_stalls;
+    method  mv_event_redirection     = wr_event_redirection;
   endmodule : mkstage2
 endpackage : stage2

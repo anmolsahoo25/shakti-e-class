@@ -81,6 +81,10 @@ package riscv;
 
     method Bit#(2) mv_curr_priv;
     method Bool mv_trap;
+  `ifdef perfmonitors
+    method Action ma_event_loads(Bit#(1) e);
+    method Action ma_event_stores(Bit#(1) e);
+  `endif
   endinterface : Ifc_riscv
 
   (*synthesize*)
@@ -92,6 +96,11 @@ package riscv;
 
   `ifdef debug
     Wire#(Bool) wr_debugger_available <- mkWire();
+  `endif
+
+  `ifdef perfmonitors
+    Wire#(Bit#(1)) wr_event_load <- mkDWire(0);
+    Wire#(Bit#(1)) wr_event_store <- mkDWire(0);
   `endif
 
     mkChan(mkLFIFOF()   , stage1.tx_stage1_operands , stage2.rx_stage1_operands);
@@ -132,6 +141,15 @@ package riscv;
 
     let {newpc, trap}=stage3.flush; 
     let {redirect_pc, redirect} = stage2.mv_redirection;
+
+  `ifdef perfmonitors
+    rule connect_events;
+      stage3.ma_events({stage2.mv_event_raw_stalls, stage2.mv_event_redirection, wr_event_store, 
+                        wr_event_load, stage2.mv_event_jumps, stage2.mv_event_csr_ops, 
+                        stage2.mv_event_muldiv, stage2.mv_event_branch_nottaken, 
+                        stage2.mv_event_branch_taken,
+                        stage3.mv_event_interrupts, stage3.mv_event_exceptions});
+    endrule
   
   `ifdef debug
     (*fire_when_enabled*)
@@ -194,5 +212,13 @@ package riscv;
     endmethod
   `endif
     method mv_trap = trap;
+  `ifdef perfmonitors
+    method Action ma_event_loads(Bit#(1) e);
+      wr_event_load <= e;
+    endmethod
+    method Action ma_event_stores(Bit#(1) e);
+      wr_event_store <= e;
+    endmethod
+  `endif
   endmodule : mkriscv
 endpackage : riscv

@@ -317,13 +317,34 @@ package common_types;
 
   // types for events
   typedef struct{
-    Bit#(1) no_exceptions;
-    Bit#(1) no_interrupts;
-    Bit#(1) no_branches_taken;
-    Bit#(1) no_branches_notken;
-    Bit#(1) no_muldiv;
-    Bit#(1) no_csr_ops;
-    Bit#(1) no_jumps;
+    Bit#(1) exceptions;
+    Bit#(1) interrupts;
+    Bit#(1) branches_taken;
+    Bit#(1) branches_notken;
+    Bit#(1) muldiv;
+    Bit#(1) csr_ops;
+    Bit#(1) jumps;
+    Bit#(1) loads;
+    Bit#(1) stores;
+    Bit#(1) redirections;
+    Bit#(1) raw_stalls; 
   } Events deriving(Bits, Eq, FShow);
+
+  function String event_to_string(Bit#(XLEN) event_count);
+    case (event_count)
+      'd1:  return "Exceptions";
+      'd2:  return "Interrupts";
+      'd3:  return "Branches Taken";
+      'd4:  return "Branches Not Taken";
+      'd5:  return "MulDiv Inst";
+      'd6:  return "CSR Inst";
+      'd7:  return "Jumps";
+      'd8:  return "Loads";
+      'd9:  return "Stores";
+      'd10: return "Control Redirections";
+      'd11: return "RAW Stalls";
+      default: return "Unknown Event";
+    endcase
+  endfunction
 
 endpackage
