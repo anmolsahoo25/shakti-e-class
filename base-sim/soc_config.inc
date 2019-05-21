@@ -9,7 +9,6 @@ MULSTAGES=8
 DIVSTAGES=64
 FPGA=xc7a100tcsg324-1
 SYNTHTOP=mkriscv
-COUNTERS=0
 PADDR=32
 RESETPC=4096
 ARITHTRAP=disable
@@ -30,3 +29,6 @@ ASSERTIONS=enable
 
 # Trigger Setup
 TRIGGERS=2
+
+# performance counters
+COUNTERS=2

@@ -514,6 +514,20 @@ package csrfile;
         v_trigger_enable[i] = v_context_match[i] && v_privilege_match[i];
     `endif
     ////////////////////////////////////////////////////////////////////////////////////////////
+
+    ///////////////////////// Hardware Performance Counters ////////////////////////////////////
+  `ifdef perfmonitors
+    Reg#(Bit#(XLEN)) mhpmcounter [`counters];
+    Reg#(Bit#(XLEN)) mhpmevent [`counters];
+    for (Integer i=0; i<`counters; i=i+1) begin
+      mhpmcounter[i] <- mkReg(0);
+      mhpmevent[i] <- mkReg(0);
+    end
+    Wire#(Bit#(8)) wr_events <- mkWire();
+  `endif
+    ////////////////////////////////////////////////////////////////////////////////////////////
+
+
     let csr_mip= { `ifdef debug rg_resume_int&rg_core_halted, rg_halt_int&~rg_core_halted, `endif 
                   rg_meip, heip, misa_s & seip, misa_n & rg_ueip, rg_mtip, htip, misa_s & stip, 
                   misa_n & rg_utip, misa_s & rg_msip, hsip, misa_s & ssip, misa_n & rg_usip};
@@ -533,6 +547,14 @@ package csrfile;
         mcycleh <= new_cycle[63 : 32];
       `endif
     endrule
+
+  `ifdef perfmonitors
+    rule increment_perfmonitors;
+      for(Integer i=0; i<`counters; i=i+1)begin
+        mhpmcounter[i] <= mhpmcounter[i] + zeroExtend(wr_events[mhpmevent[i]]) ;
+      end
+    endrule
+  `endif
 
     method ActionValue#(Bit#(XLEN)) read_csr (Bit#(12) addr);
         `logLevel( csr, 0, $format("CSRFILE : Read Operation : Addr:%h",addr))

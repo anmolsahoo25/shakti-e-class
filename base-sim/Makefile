@@ -88,6 +88,11 @@ ifneq ($(TRIGGERS), 0)
 		override define_macros += -D mcontext=0 -D scontext=0
 	endif
 endif
+
+ifneq ($(COUNTERS), 0)
+	override define_macros += -D perfmonitors=True -D counters=$(COUNTERS)
+endif
+
 ifeq ($(COVERAGE), none)
 else ifeq ($(COVERAGE),all)
   coverage := --coverage
