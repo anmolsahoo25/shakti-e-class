@@ -314,4 +314,16 @@ package common_types;
 
   // fabrics related definitions.
   typedef 0 USERSPACE;
+
+  // types for events
+  typedef struct{
+    Bit#(1) no_exceptions;
+    Bit#(1) no_interrupts;
+    Bit#(1) no_branches_taken;
+    Bit#(1) no_branches_notken;
+    Bit#(1) no_muldiv;
+    Bit#(1) no_csr_ops;
+    Bit#(1) no_jumps;
+  } Events deriving(Bits, Eq, FShow);
+
 endpackage
