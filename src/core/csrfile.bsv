@@ -163,9 +163,12 @@ package csrfile;
     method Vector#(`trigger_num, Bit#(XLEN))  mv_trigger_data2;
     method Vector#(`trigger_num, Bool)        mv_trigger_enable;
   `endif
-  `ifdef perfmonitors
+`ifdef perfmonitors
     method Action ma_events(Bit#(SizeOf#(Events)) e);
+  `ifdef simulate
+    method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(XLEN))) counter_values;
   `endif
+`endif
   endinterface
 
   function Reg#(Bit#(a)) extInterruptReg(Reg#(Bit#(a)) r1, Reg#(Bit#(a)) r2);
@@ -520,12 +523,8 @@ package csrfile;
 
     ///////////////////////// Hardware Performance Counters ////////////////////////////////////
   `ifdef perfmonitors
-    Reg#(Bit#(XLEN)) mhpmcounter [`counters];
-    Reg#(Bit#(XLEN)) mhpmevent [`counters];
-    for (Integer i=0; i<`counters; i=i+1) begin
-      mhpmcounter[i] <- mkReg(0);
-      mhpmevent[i] <- mkReg(0);
-    end
+    Vector#(`counters, Reg#(Bit#(XLEN))) mhpmcounter <- replicateM(mkReg(0));
+    Vector#(`counters, Reg#(Bit#(XLEN))) mhpmevent <- replicateM(mkReg(0));
     Wire#(Bit#(TAdd#(SizeOf#(Events),1))) wr_events <- mkWire();
   `endif
     ////////////////////////////////////////////////////////////////////////////////////////////
@@ -555,13 +554,6 @@ package csrfile;
     rule increment_perfmonitors `ifdef debug (rg_dcsr_stopcount == 0) `endif ;
       for(Integer i=0; i<`counters; i=i+1)begin
         mhpmcounter[i] <= mhpmcounter[i] + zeroExtend(wr_events[mhpmevent[i]]) ;
-      end
-    endrule
-
-    rule display_perfmonitors;
-      for(Integer i=0; i<`counters; i=i+1)begin
-        `logLevel( csrfile, 0, $format("PERF: %s",event_to_string(mhpmevent[i]), 
-                                        ": %8d", mhpmcounter[i]))
       end
     endrule
   `endif
@@ -1098,10 +1090,14 @@ package csrfile;
     method mv_trigger_data2 = readVReg(v_trig_tdata2);
     method mv_trigger_enable = v_trigger_enable;
   `endif
-  `ifdef perfmonitors
+`ifdef perfmonitors
     method Action ma_events(Bit#(SizeOf#(Events)) e);
       wr_events <= {e,1'b0};
     endmethod
+  `ifdef simulate
+    method counter_values = tuple2(readVReg(mhpmevent), readVReg(mhpmcounter));
   `endif
+`endif
+
   endmodule
 endpackage

@@ -35,6 +35,7 @@ package eclass;
   import Connectable 				:: *;
   import GetPut:: *;
   import BUtils::*;
+  import Vector :: *;
 
   // project imports
   import Semi_FIFOF:: *;
@@ -66,6 +67,9 @@ package eclass;
   `endif
   `ifdef debug
     interface Hart_Debug_Ifc debug_server;
+  `endif
+  `ifdef simulate
+    method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(XLEN))) counter_values;
   `endif
   endinterface : Ifc_eclass_axi4
 
@@ -363,6 +367,9 @@ package eclass;
         return 1;
       endmethod
     endinterface;
+  `endif
+  `ifdef simulate
+    method counter_values = riscv.counter_values;
   `endif
   endmodule : mkeclass_axi4
 endpackage

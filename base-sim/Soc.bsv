@@ -104,6 +104,9 @@ package Soc;
     method Bit#(1)wire_tdo;                                                                       
       // ---------------------------------------------//
   `endif
+  `ifdef simulate
+    method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(XLEN))) counter_values;
+  `endif
   endinterface
 
   (*synthesize*)
@@ -220,6 +223,9 @@ package Soc;
     method Bit#(1)wire_tdo;                                                                       
       return tdo.crossed();                                                                       
     endmethod
+  `endif
+  `ifdef simulate
+    method counter_values = eclass.counter_values;
   `endif
       // -------------------------------------------- //
   endmodule: mkSoc

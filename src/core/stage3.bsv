@@ -95,11 +95,14 @@ package stage3;
   `ifdef arith_trap
     method Bit#(1) mv_arithtrap_en;
   `endif
-  `ifdef perfmonitors
+`ifdef perfmonitors
     method Action ma_events(Bit#(SizeOf#(Events)) e);
     method Bit#(1) mv_event_exceptions ;
     method Bit#(1) mv_event_interrupts ;
+  `ifdef simulate
+    method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(XLEN))) counter_values;
   `endif
+`endif
   endinterface : Ifc_stage3
 
   (*synthesize*)
@@ -355,11 +358,14 @@ package stage3;
   `ifdef arith_trap
     method mv_arithtrap_en = csr.mv_arithtrap_en;
   `endif
-  `ifdef perfmonitors
+`ifdef perfmonitors
     method ma_events = csr.ma_events;
     method mv_event_exceptions = wr_event_exceptions ;
     method mv_event_interrupts = wr_event_interrupts ;
+  `ifdef simulate
+    method counter_values = csr.counter_values;
   `endif
+`endif
 
   endmodule : mkstage3
 endpackage : stage3

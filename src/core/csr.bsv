@@ -85,9 +85,12 @@ package csr;
     method Vector#(`trigger_num, Bit#(XLEN))  mv_trigger_data2;
     method Vector#(`trigger_num, Bool)        mv_trigger_enable;
   `endif
-  `ifdef perfmonitors
+`ifdef perfmonitors
     method Action ma_events(Bit#(SizeOf#(Events)) e);
+  `ifdef simulate
+    method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(XLEN))) counter_values;
   `endif
+`endif
   endinterface : Ifc_csr
 
 
@@ -186,8 +189,11 @@ package csr;
     method mv_trigger_data2 =   csrfile.mv_trigger_data2;
     method mv_trigger_enable =  csrfile.mv_trigger_enable;
   `endif
-  `ifdef perfmonitors
+`ifdef perfmonitors
     method ma_events = csrfile.ma_events;
+  `ifdef simulate
+    method counter_values = csrfile.counter_values;
   `endif
+`endif
   endmodule
 endpackage

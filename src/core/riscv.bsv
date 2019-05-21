@@ -37,6 +37,7 @@ package riscv;
   import FIFOF::*;
   import SpecialFIFOs :: *;
   import TxRx :: *;
+  import Vector :: *;
 
   // project imports
   import common_types :: *;
@@ -81,10 +82,13 @@ package riscv;
 
     method Bit#(2) mv_curr_priv;
     method Bool mv_trap;
-  `ifdef perfmonitors
+`ifdef perfmonitors
     method Action ma_event_loads(Bit#(1) e);
     method Action ma_event_stores(Bit#(1) e);
+  `ifdef simulate
+    method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(XLEN))) counter_values;
   `endif
+`endif
   endinterface : Ifc_riscv
 
   (*synthesize*)
@@ -219,6 +223,9 @@ package riscv;
     method Action ma_event_stores(Bit#(1) e);
       wr_event_store <= e;
     endmethod
+  `ifdef simulate
+    method counter_values = stage3.counter_values;
   `endif
+`endif
   endmodule : mkriscv
 endpackage : riscv

@@ -274,7 +274,9 @@ package stage2;
             wr_event_jumps <= pack(meta.inst_type==JALR || meta.inst_type == JAL);
             wr_event_branch_taken <=  pack (meta.inst_type == BRANCH && aluout.redirect);
             wr_event_branch_nottaken <= pack (meta.inst_type == BRANCH && !aluout.redirect);
+          `ifdef muldiv
             wr_event_muldiv <=  pack(meta.inst_type == MULDIV);
+          `endif
             wr_event_csr_ops <= pack(meta.inst_type == SYSTEM_INSTR);
             wr_event_redirection <= pack(aluout.redirect);
           `endif
