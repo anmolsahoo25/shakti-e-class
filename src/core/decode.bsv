@@ -97,8 +97,9 @@ package decode;
           `endif
             endcase
         // Machine Counter / Timers
-      'b10 : `ifdef RV32 if(addr[6 : 5] == 0 `else if(addr[7 : 5] == 0 `endif && addr[3 : 0] != 1) 
-              valid = True;
+      'b10 : case (addr[7:4])
+              'd0 `ifdef RV32, 'd8 `endif : if(addr[3:0] != 1)  valid = True;
+            endcase
           // DTVEC and DEnable
       'b01 : begin 
         `ifdef debug 

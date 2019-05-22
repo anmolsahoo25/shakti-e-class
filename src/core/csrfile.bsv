@@ -523,7 +523,7 @@ package csrfile;
 
     ///////////////////////// Hardware Performance Counters ////////////////////////////////////
   `ifdef perfmonitors
-    Vector#(`counters, Reg#(Bit#(XLEN))) mhpmcounter <- replicateM(mkReg(0));
+    Vector#(`counters, Reg#(Bit#(64))) mhpmcounter <- replicateM(mkReg(0));
     Vector#(`counters, Reg#(Bit#(XLEN))) mhpmevent;
     for(Integer i=0; i<`counters; i=i+1)
       mhpmevent[i] <- mkReg(`ifdef simulate fromInteger(i+1) `else 0 `endif );
@@ -579,7 +579,7 @@ package csrfile;
         if (addr == `MTVEC ) data = signExtend({rg_mtvec, rg_mode}) ;
         if (addr == `MSTATUS )begin
           `ifdef RV64
-              data= {sd, 27'd0, 2'd0, uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
+              data= {sd, 27'd0, 2'd2, uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
                       hpp, spp, rg_mpie, hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie};
           `else
               data= {'d0, sd, 8'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp, hpp, spp, 
@@ -684,6 +684,68 @@ package csrfile;
         if(addr == `TINFO) data = v_tinfo[trigger_index];
         if(addr == `TMCONTEXT) data = csr_machine_context;
       `endif
+      `ifdef perfmonitors
+        if(addr == `MHPMCOUNTER3    && `counters > 0) data =  truncate(mhpmcounter[0]);   
+        if(addr == `MHPMCOUNTER4    && `counters > 1) data =  truncate(mhpmcounter[1]); 
+        if(addr == `MHPMCOUNTER5    && `counters > 2) data =  truncate(mhpmcounter[2]); 
+        if(addr == `MHPMCOUNTER6    && `counters > 3) data =  truncate(mhpmcounter[3]); 
+        if(addr == `MHPMCOUNTER7    && `counters > 4) data =  truncate(mhpmcounter[4]); 
+        if(addr == `MHPMCOUNTER8    && `counters > 5) data =  truncate(mhpmcounter[5]); 
+        if(addr == `MHPMCOUNTER9    && `counters > 6) data =  truncate(mhpmcounter[6]); 
+        if(addr == `MHPMCOUNTER10   && `counters > 7) data =  truncate(mhpmcounter[7]); 
+        if(addr == `MHPMCOUNTER11   && `counters > 8) data =  truncate(mhpmcounter[8]); 
+        if(addr == `MHPMCOUNTER12   && `counters > 9) data =  truncate(mhpmcounter[9]); 
+        if(addr == `MHPMCOUNTER13   && `counters > 10) data = truncate(mhpmcounter[10]); 
+        if(addr == `MHPMCOUNTER14   && `counters > 11) data = truncate(mhpmcounter[11]); 
+        if(addr == `MHPMCOUNTER15   && `counters > 12) data = truncate(mhpmcounter[12]); 
+        if(addr == `MHPMCOUNTER16   && `counters > 13) data = truncate(mhpmcounter[13]); 
+        if(addr == `MHPMCOUNTER17   && `counters > 14) data = truncate(mhpmcounter[14]); 
+        if(addr == `MHPMCOUNTER18   && `counters > 15) data = truncate(mhpmcounter[15]); 
+        if(addr == `MHPMCOUNTER19   && `counters > 16) data = truncate(mhpmcounter[16]); 
+        if(addr == `MHPMCOUNTER20   && `counters > 17) data = truncate(mhpmcounter[17]); 
+        if(addr == `MHPMCOUNTER21   && `counters > 18) data = truncate(mhpmcounter[18]); 
+        if(addr == `MHPMCOUNTER22   && `counters > 19) data = truncate(mhpmcounter[19]); 
+        if(addr == `MHPMCOUNTER23   && `counters > 20) data = truncate(mhpmcounter[20]); 
+        if(addr == `MHPMCOUNTER24   && `counters > 21) data = truncate(mhpmcounter[21]); 
+        if(addr == `MHPMCOUNTER25   && `counters > 22) data = truncate(mhpmcounter[22]); 
+        if(addr == `MHPMCOUNTER26   && `counters > 23) data = truncate(mhpmcounter[23]); 
+        if(addr == `MHPMCOUNTER27   && `counters > 24) data = truncate(mhpmcounter[24]); 
+        if(addr == `MHPMCOUNTER28   && `counters > 25) data = truncate(mhpmcounter[25]); 
+        if(addr == `MHPMCOUNTER29   && `counters > 26) data = truncate(mhpmcounter[26]); 
+        if(addr == `MHPMCOUNTER20   && `counters > 27) data = truncate(mhpmcounter[27]); 
+        if(addr == `MHPMCOUNTER31   && `counters > 28) data = truncate(mhpmcounter[28]); 
+      `ifdef RV32
+        if(addr == `MHPMCOUNTER3H   && `counters > 0)  data = truncateLSB(mhpmcounter[0]); 
+        if(addr == `MHPMCOUNTER4H   && `counters > 1)  data = truncateLSB(mhpmcounter[1]); 
+        if(addr == `MHPMCOUNTER5H   && `counters > 2)  data = truncateLSB(mhpmcounter[2]); 
+        if(addr == `MHPMCOUNTER6H   && `counters > 3)  data = truncateLSB(mhpmcounter[3]); 
+        if(addr == `MHPMCOUNTER7H   && `counters > 4)  data = truncateLSB(mhpmcounter[4]); 
+        if(addr == `MHPMCOUNTER8H   && `counters > 5)  data = truncateLSB(mhpmcounter[5]); 
+        if(addr == `MHPMCOUNTER9H   && `counters > 6)  data = truncateLSB(mhpmcounter[6]); 
+        if(addr == `MHPMCOUNTER10H  && `counters > 7)  data = truncateLSB(mhpmcounter[7]); 
+        if(addr == `MHPMCOUNTER11H  && `counters > 8)  data = truncateLSB(mhpmcounter[8]); 
+        if(addr == `MHPMCOUNTER12H  && `counters > 9)  data = truncateLSB(mhpmcounter[9]); 
+        if(addr == `MHPMCOUNTER13H  && `counters > 10) data = truncateLSB(mhpmcounter[10]); 
+        if(addr == `MHPMCOUNTER14H  && `counters > 11) data = truncateLSB(mhpmcounter[11]); 
+        if(addr == `MHPMCOUNTER15H  && `counters > 12) data = truncateLSB(mhpmcounter[12]); 
+        if(addr == `MHPMCOUNTER16H  && `counters > 13) data = truncateLSB(mhpmcounter[13]); 
+        if(addr == `MHPMCOUNTER17H  && `counters > 14) data = truncateLSB(mhpmcounter[14]); 
+        if(addr == `MHPMCOUNTER18H  && `counters > 15) data = truncateLSB(mhpmcounter[15]); 
+        if(addr == `MHPMCOUNTER19H  && `counters > 16) data = truncateLSB(mhpmcounter[16]); 
+        if(addr == `MHPMCOUNTER20H  && `counters > 17) data = truncateLSB(mhpmcounter[17]); 
+        if(addr == `MHPMCOUNTER21H  && `counters > 18) data = truncateLSB(mhpmcounter[18]); 
+        if(addr == `MHPMCOUNTER22H  && `counters > 19) data = truncateLSB(mhpmcounter[19]); 
+        if(addr == `MHPMCOUNTER23H  && `counters > 20) data = truncateLSB(mhpmcounter[20]); 
+        if(addr == `MHPMCOUNTER24H  && `counters > 21) data = truncateLSB(mhpmcounter[21]); 
+        if(addr == `MHPMCOUNTER25H  && `counters > 22) data = truncateLSB(mhpmcounter[22]); 
+        if(addr == `MHPMCOUNTER26H  && `counters > 23) data = truncateLSB(mhpmcounter[23]); 
+        if(addr == `MHPMCOUNTER27H  && `counters > 24) data = truncateLSB(mhpmcounter[24]); 
+        if(addr == `MHPMCOUNTER28H  && `counters > 25) data = truncateLSB(mhpmcounter[25]); 
+        if(addr == `MHPMCOUNTER29H  && `counters > 26) data = truncateLSB(mhpmcounter[26]); 
+        if(addr == `MHPMCOUNTER20H  && `counters > 27) data = truncateLSB(mhpmcounter[27]); 
+        if(addr == `MHPMCOUNTER31H  && `counters > 28) data = truncateLSB(mhpmcounter[28]); 
+      `endif
+    `endif
         `logLevel( csr, 0, $format("CSRFILE : Read Operation : Addr:%h Data:%h",addr,data))
         return data;
     endmethod
@@ -856,6 +918,8 @@ package csrfile;
           `TDATA2: v_trig_tdata2[trigger_index] <= word;
           `TDATA3: v_trig_tdata3[trigger_index] <= write_trigger_extra(word);
           `TMCONTEXT: csr_machine_context <= word;
+        `endif
+        `ifdef perfmonitors
         `endif
         default : noAction;
       endcase
