@@ -356,6 +356,7 @@ package stage2;
       alu.ma_arithtrap_en(arith_en);
     endmethod
   `endif
+  `ifdef perfmonitors
     method  mv_event_jumps           = wr_event_jumps;
     method  mv_event_branch_taken    = wr_event_branch_taken;
     method  mv_event_branch_nottaken = wr_event_branch_nottaken;
@@ -363,5 +364,6 @@ package stage2;
     method  mv_event_csr_ops         = wr_event_csr_ops;
     method  mv_event_raw_stalls      = wr_event_raw_stalls;
     method  mv_event_redirection     = wr_event_redirection;
+  `endif
   endmodule : mkstage2
 endpackage : stage2

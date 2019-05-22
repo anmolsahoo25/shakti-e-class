@@ -124,21 +124,27 @@ package TbSoc;
       $fwrite(dump1,"%c",data);
     endrule
 
+    rule end_simulation(soc.mv_end_simulation);
+      `ifdef perfmonitors
+        let eventcode = tpl_1(soc.counter_values);
+        let eventvalue = tpl_2(soc.counter_values);
+        for(Integer i=0; i<`counters; i=i+1)begin
+          `logLevel( tb, 0, $format("PERF: %s",event_to_string(eventcode[i]), 
+                                          ": %8d", eventvalue[i]))
+        end
+      `endif
+      $finish(0);
+    endrule
+      
+
   `ifdef rtldump
     rule write_dump_file(rg_cnt>=5 );
       let {prv, pc, instruction, rd, data}<- soc.io_dump.get;
-    `ifndef openocd
-      if(instruction=='h00006f||instruction =='h00a001)
-        $finish(0);
-      else 
-    `endif 
-      begin
-        $fwrite(dump, prv, " 0x%16h", pc, " (0x%8h", instruction, ")"); 
-        if(valueOf(XLEN) == 64)
-          $fwrite(dump, " x%d", rd, " 0x%16h", data[63:0], "\n"); 
-        else if(valueOf(XLEN) == 32)
-          $fwrite(dump, " x%d", rd, " 0x%8h", data[31:0], "\n"); 
-      end
+      $fwrite(dump, prv, " 0x%16h", pc, " (0x%8h", instruction, ")"); 
+      if(valueOf(XLEN) == 64)
+        $fwrite(dump, " x%d", rd, " 0x%16h", data[63:0], "\n"); 
+      else if(valueOf(XLEN) == 32)
+        $fwrite(dump, " x%d", rd, " 0x%8h", data[31:0], "\n"); 
     endrule
   `endif
 

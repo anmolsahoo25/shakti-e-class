@@ -524,7 +524,9 @@ package csrfile;
     ///////////////////////// Hardware Performance Counters ////////////////////////////////////
   `ifdef perfmonitors
     Vector#(`counters, Reg#(Bit#(XLEN))) mhpmcounter <- replicateM(mkReg(0));
-    Vector#(`counters, Reg#(Bit#(XLEN))) mhpmevent <- replicateM(mkReg(0));
+    Vector#(`counters, Reg#(Bit#(XLEN))) mhpmevent;
+    for(Integer i=0; i<`counters; i=i+1)
+      mhpmevent[i] <- mkReg(fromInteger(i+1));
     Wire#(Bit#(TAdd#(SizeOf#(Events),1))) wr_events <- mkWire();
   `endif
     ////////////////////////////////////////////////////////////////////////////////////////////

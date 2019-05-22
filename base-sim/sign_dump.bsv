@@ -45,6 +45,7 @@ package sign_dump;
   interface Ifc_sign_dump;
     interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) master;
     interface AXI4_Slave_IFC#(`paddr, XLEN, USERSPACE) slave;
+    method Bool mv_end_simulation;
   endinterface
 
   (*synthesize*)
@@ -61,7 +62,7 @@ package sign_dump;
 
     Reg#(Bit#(`paddr)) rg_start_address<- mkReg(0);    // 0x2000
     Reg#(Bit#(`paddr)) rg_end_address<- mkReg(0);      // 0x2008
-
+    Reg#(Bool) rg_end_sim[2] <- mkCReg(2, False);
 
     Reg#(Bit#(32)) dataarray[word_count];
     for(Integer i=0;i<word_count;i=i+1)
@@ -96,7 +97,7 @@ package sign_dump;
           rg_start<=True;
       end
       else if (aw.awaddr[3:0]=='hc) begin
-        $finish(0);        
+        rg_end_sim[0] <= True;
       end
       s_xactor.i_wr_resp.enq (b);
     endrule
@@ -128,5 +129,6 @@ package sign_dump;
     endrule
     interface master=m_xactor.axi_side;
     interface slave=s_xactor.axi_side;
+    method mv_end_simulation = rg_end_sim[1];
   endmodule
 endpackage

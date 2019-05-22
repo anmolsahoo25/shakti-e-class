@@ -68,9 +68,11 @@ package eclass;
   `ifdef debug
     interface Hart_Debug_Ifc debug_server;
   `endif
+`ifdef perfmonitors
   `ifdef simulate
     method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(XLEN))) counter_values;
   `endif
+`endif
   endinterface : Ifc_eclass_axi4
 
 `ifdef atomic
@@ -368,8 +370,10 @@ package eclass;
       endmethod
     endinterface;
   `endif
+`ifdef perfmonitors
   `ifdef simulate
     method counter_values = riscv.counter_values;
   `endif
+`endif
   endmodule : mkeclass_axi4
 endpackage

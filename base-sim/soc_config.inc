@@ -31,4 +31,4 @@ ASSERTIONS=enable
 TRIGGERS=2
 
 # performance counters
-COUNTERS=2
+COUNTERS=0

@@ -154,6 +154,7 @@ package riscv;
                         stage2.mv_event_branch_taken,
                         stage3.mv_event_interrupts, stage3.mv_event_exceptions});
     endrule
+  `endif
   
   `ifdef debug
     (*fire_when_enabled*)
@@ -216,7 +217,7 @@ package riscv;
     endmethod
   `endif
     method mv_trap = trap;
-  `ifdef perfmonitors
+`ifdef perfmonitors
     method Action ma_event_loads(Bit#(1) e);
       wr_event_load <= e;
     endmethod
