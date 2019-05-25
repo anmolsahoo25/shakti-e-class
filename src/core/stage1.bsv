@@ -63,52 +63,64 @@ package stage1;
   // Interface for the fetch and decode unit
   interface Ifc_stage1;
 
-    // interface to send request to the fabric
+    //(* doc = "subifc: interface to send request to the fabric " *)
     interface Get#(InstRequest)         inst_request;
-    // interface to receive response from fabric
+
+    //(* doc = "subifc: interface to receive response from fabric " *)
     interface Put#(InstResponse)        inst_response;
 
-    // interfaces to send info to the next stage
+    //(*doc = "subifc: interface to send operands to the next stage" *)
     interface TXe#(STAGE1_operands)     tx_stage1_operands;
+    //(*doc = "subifc: interface to send op-type and op-addr to the next stage" *)
     interface TXe#(STAGE1_meta)         tx_stage1_meta;
+    // (*doc = "subifc: interface to send instruction control information to the next stage" *)
     interface TXe#(STAGE1_control)      tx_stage1_control;
   `ifdef rtldump
     interface TXe#(TraceDump)         tx_stage1_dump ;
   `endif
   
-    //rd and value given back by the write back unit
+    // (*doc = "subifc: rd and value given back by the write back unit" *)
     interface Put#(CommitPacket)        commit_rd;
 
     // current csr status registers
     (*always_ready*)
+    // (*doc = "method: receives flush from later stages of the pipe" *)
     method Action ma_flush( Bit#(`vaddr) newpc);
     (*always_ready, always_enabled*)
+    // (*doc = "method: receives the current value of the 'c' field of the MISA CSR" *)
     method Action ma_csr_misa_c (Bit#(1) c);
     (*always_ready, always_enabled*)
+    // (*doc = "method: receives the current value of any interrupt activity on the core" *)
     method Action ma_interrupt(Bool i);
     (*always_ready, always_enabled*)
+    // (*doc = "method: receives multiple csrs for decode purposes" *)
     method Action ma_csr_decode (CSRtoDecode c);
 
-    method Action ma_update_eEpoch;
-    method Action ma_update_wEpoch;
+    // (*doc = "method: recives epoch updates from stage2" *)
+    method Action ma_update_eEpoch();
+    // (*doc = "method: recives epoch updates from stage3" *)
+    method Action ma_update_wEpoch();
 
   `ifdef debug
-    // interface to interact with debugger
+    // (*doc = "method: recives registerfile access packet from the debugger" *)
     method ActionValue#(Bit#(XLEN)) mav_debug_access_gprs(AbstractRegOp cmd);
 
     // debug related info checking interrupts
     (*always_enabled, always_ready*)
+    // (*doc = "method: recives the current status information from the Debugger" *)
     method Action ma_debug_status (DebugStatus status);
   `endif
   `ifdef triggers
-    // receives the TDATA1 from the csrs
     (*always_ready, always_enabled*)
+    //(*doc = "method: receives the TDATA1 from the csrs" *)
     method Action ma_trigger_data1(Vector#(`trigger_num, TriggerData) t);
-    // receives the TDATA2 register from the csrs for comparison
+
     (*always_ready, always_enabled*)
+    //(*doc = "method:  receives the TDATA2 register from the csrs for comparison" *)
     method Action ma_trigger_data2(Vector#(`trigger_num, Bit#(XLEN)) t);
-    // receives the info on which triggers are enabled
+
     (*always_ready, always_enabled*)
+    // (*doc = "method: receives a vector indicating which triggers are currently enabled" *)
     method Action ma_trigger_enable(Vector#(`trigger_num, Bool) t);
   `endif
 
@@ -120,53 +132,57 @@ package stage1;
 `ifdef debug
   (*conflict_free="mav_debug_access_gprs,commit_rd_put"*)
 `endif
+  (*doc = ""*)
   module mkstage1#(parameter Bit#(`vaddr) resetpc)(Ifc_stage1);
 
     let stage1 = ""; // for logger
 
     // ------------------------------------ Start instantiations --------------------------------//
 
-    // this wire carries the current value of the misa_c csr field
+    (*doc = "wire: this wire carries the current value of the misa_c csr field" *)
     Wire#(Bit#(1)) wr_csr_misa_c <- mkWire();
 
-    // this wire caries the current value of certain csrs
+    (*doc = "wire: this wire caries the current value of certain csrs" *)
     Wire#(CSRtoDecode) wr_csr_decode <- mkWire();
 
-    // register to hold the address of the next request to the fabric.
+    (*doc = "reg: register to hold the address of the next request to the fabric." *)
     Reg#(Bit#(`vaddr)) rg_fabric_request[2] <- mkCReg(2, (resetpc));
 
-    // register to hold the PC value of the instruction to be decoded.
+    (*doc = "reg: register to hold the PC value of the instruction to be decoded." *)
     Reg#(Bit#(`vaddr)) rg_pc <- mkReg((resetpc));
 
-    // holds the curren epoch values of the pipe.
+    (*doc = "reg: holds the current epoch values controlled by the stage2."*)
     Reg#(Bit#(1)) rg_eEpoch <- mkReg(0);
+
+    (*doc = "reg: holds the current epoch values controlled by the stage3."*)
     Reg#(Bit#(1)) rg_wEpoch <- mkReg(0);
 
-    // This register implements a simple state - machine which indicates how the instruction should 
-    // be extracted from the cache response.
+    (*doc = "reg: This register implements a simple state - machine which indicates how the \
+    instruction should be extracted from the cache response." *)
     Reg#(ActionType) rg_action <- mkReg(None);
+
   `ifdef compressed
     Reg#(Bool) rg_discard_lower <- mkReg(False);
     Reg#(PrevMeta) rg_prev <- mkReg(unpack(0));
   `endif
 
-    // This wire will be set if any interrupts have been detected by the core
+    (*doc = "wire: This wire will be set if any interrupts have been detected by the core" *)
     Wire#(Bool) wr_interrupt <- mkWire();
 
-    // this is register it set to True when a WFI instruction is executed. It set to False, when an
-    // interrupt has been received or there is a flush from the write - back stage.
+    (*doc = "reg: this is register it set to True when a WFI instruction is executed. It set to \
+    False, when an interrupt has been received or there is a flush from the write - back stage." *)
     Reg#(Bool) rg_wfi <- mkReg(False);
 
-    // fifo to hold the instruction response from the fabric
+    (*doc = "fifo: to hold the instruction response from the fabric" *)
     FIFOF#(InstResponse) ff_memory_response <- mkSizedFIFOF(2);
     
-    // operand register file
+    (*doc = "mod: operand register file" *)
     Ifc_registerfile integer_rf <- mkregisterfile;
     
-    // register to indicate that the RegFile is being initialized to all zeros
+    (*doc = "reg: register to indicate that the RegFile is being initialized to all zeros" *)
     Reg#(Bool) rg_initialize<-mkReg(True);
 
-    // register to index into the Regfile during initialization sequence.
+    (*doc = "reg: index into the Regfile during initialization sequence." *)
     Reg#(Bit#(5)) rg_index<-mkReg(0);
 
     // the fifo to communicate with the next stage.
@@ -179,17 +195,20 @@ package stage1;
 
   
   `ifdef debug
-    // This wire will capture info about the current debug state of the core
+    (*doc = "wire: This wire will capture info about the current debug state of the core" *)
     Wire#(DebugStatus) wr_debug_info <- mkWire();
 
-    // This register indicates when an instruction passed the decode stage after a resume request is
-    // received while is step is set.
+    (*doc = "reg: This register indicates when an instruction passed the decode stage after a \
+    resume request is received while is step is set." *)
     Reg#(Bool) rg_step_done <- mkReg(False);
   `endif
 
   `ifdef triggers
+    (*doc = "vector: Array of wires capturing the tdata1 values from csr" *)
     Vector#(`trigger_num, Wire#(TriggerData)) v_trigger_data1 <- replicateM(mkWire());
+    (*doc = "vector: Array of wires capturing the tdata2 values from csr" *)
     Vector#(`trigger_num, Wire#(Bit#(XLEN))) v_trigger_data2 <- replicateM(mkWire());
+    (*doc = "vector: Array of wires capturing which triggers are enabled currently" *)
     Vector#(`trigger_num, Wire#(Bool)) v_trigger_enable <- replicateM(mkWire());
   `endif
 
@@ -197,8 +216,8 @@ package stage1;
     // ----------------------------------End instantiations ------------------------------------ //
 
   `ifdef triggers
-
-    function ActionValue#(Tuple2#(Bool, Bit#(`causesize))) check_trigger (Bit#(`vaddr) pc, 
+    // (*doc = "func: function to check triggers" *)
+    function ActionValue#(Tuple2#(Bool, Bit#(`causesize))) fn_check_trigger (Bit#(`vaddr) pc, 
                           Bit#(32) instr `ifdef compressed, Bool compressed `endif ) = actionvalue
       Bool trap = False;
       Bit#(`causesize) cause = `Breakpoint;
@@ -253,8 +272,9 @@ package stage1;
     endactionvalue;
   `endif
 
-    function STAGE1_operands access_rf (Bit#(5) rs1addr, Bit#(5) rs2addr, Op1type rs1type, 
-                                        Op2type rs2type, Bit#(`vaddr) pc, Bit#(32) imm);
+    // (*doc = "func: function to access the register file and return the operands" *)
+    function STAGE1_operands fn_access_rf (Bit#(5) rs1addr, Bit#(5) rs2addr);
+                                        
       Bit#(XLEN) rs1irf = integer_rf.sub(rs1addr);
       Bit#(XLEN) rs2irf = integer_rf.sub(rs2addr);
 
@@ -262,12 +282,9 @@ package stage1;
     endfunction
     // ---------------------- End local function definitions ------------------//
 
-    // ---------------------------------------- rules ------------------------------------------ //
+    // -------------------------------------- start rules ------------------------------------- //
 
-    // RuleName: initialize_regfile
-    // Explicit Conditions: rg_initialize == True
-    // Implicit Conditions: None
-    // Description: rule to initialize all the registers to 0 on reset
+    (*doc = "rule: initialize all the registers to 0 on reset" *)
     rule initialize_regfile(rg_initialize);
       `logLevel( stage1, 1, $format("STAGE1: Initializing the RF. Index: %d", rg_index))
       integer_rf.upd(rg_index,0);
@@ -276,11 +293,8 @@ package stage1;
         rg_initialize<=False;
     endrule 
 
-    // RuleName : wait_for_interrupt
-    // Explicit Conditions : rg_wfi == True && rg_initialize == False
-    // Implicit Conditions : wr_interrupt should be written in the same cycle
-    // Desciption : This rule is fired when the core has executed the WFI instruction and waiting 
-    // for an intterupt to the core to resume fetch;
+    (*doc = "rule:This rule is fired when the core has executed the WFI instruction and waiting \
+    for an intterupt to the core to resume fetch" *)
     rule wait_for_interrupt(rg_wfi && !rg_initialize);
       if(wr_interrupt)
         rg_wfi <= False;
@@ -288,45 +302,32 @@ package stage1;
                                     wr_interrupt))
     endrule
 
-    // RuleName : process_instruction
-    // Explicit Conditions : rg_wfi == False
-    // Implicit Conditions: 
-    //    1. ff_memory_response.notEmpty
-    //    2. wr_csr_decode is written in the same cycle
-    //    3. wr_csr_misa_c is written in the same cycle
-    //    4. tostage FIFO notFull
-    // Schedule Conflicts : This rule will not fire if there is flush from the write - back stage. 
-    // A flush from the write - back stage will cause a change in the rg_pc and rg_discard,
-    // both of which are being updated in this method as well. This schedule is acceptable since
-    // anyways the response from the memory currently to be handled in this rule will match epochs
-    // and will be dropped.
-    //
-    // Details : This rule will receive the instruction from the memory subsystem and decide if the
-    // instruction is compressed or not. The final instruction is then sent to the next stage.
-    // To extract the instruction from the memory response a state machine is implemented.
-    // 
-    // 1. First the epochs are compared and if a mis - match is observed then the response is 
-    // dropped without any other changes to the state of the module.
-    // 2. if rg_discard is set and compressed is enabled then the lower 16 - bits of the
-    // resposne are discarded and the upper 16 - bits are probed to check if it is a compressed
-    // instruction. If so, then the instruction is sent to the next stage. However is it is not a
-    // compressed instruction it means the upper 16 - bits of the response refer to the lower 16 - 
-    // bits of a 32 - bit instruction and thus we will have to wait for the next response from the 
-    // cache to form the instruction is send to the next stage. To ensure the concatenation happens 
-    // in the next response we set rg_action to ChecPrev and set enque_instruction to False.
-    // 3. if rg_action is set to None, then we simply probe the lower 2 - bits to the response to
-    // check if it is compressed. If so then the lower 16 bits form an instruction which is sent to
-    // the next stage, the upper 16 - bits are stored to rg_instruction and rg_action is set to
-    // CheckPrev to ensure that in the next resposne we first probe rg_instruction.
-    // 4. if rg_Action if set to CheckPrev then we first probe the lower 2 - bits of the 
-    // rg_instruction which leads to two possibilities. Either rg_instruction could hold a
-    // compressed instruction from the previous response, in which case the current memory response
-    // is not dequed and rg_instruction is sent to the next stage. This can happen due to state - 3
-    // mentioned above. The other possibility is that rg_instruction holds the lower 16 - bits of a
-    // 32 - bit isntruction, in which case we have concatenate the lower 16 - bits of the response 
-    // with rg_instruction and send to the next, and also store the upper 16 - bits of the response 
-    // into rg_instruction. rg_Action in this case will remain CheckPrev so that the upper bits of 
-    // this repsonse are probed in the next cycle.
+    (* doc = "rule:This rule will receive the instruction from the memory subsystem and decide if \
+    the instruction is compressed or not. The final instruction is then sent to the next stage.\
+    To extract the instruction from the memory response a state machine is implemented.\
+    \
+    1. First the epochs are compared and if a mis - match is observed then the response is \
+    dropped without any other changes to the state of the module.\
+    2. if rg_discard is set and compressed is enabled then the lower 16 - bits of the\
+    resposne are discarded and the upper 16 - bits are probed to check if it is a compressed\
+    instruction. If so, then the instruction is sent to the next stage. However is it is not a\
+    compressed instruction it means the upper 16 - bits of the response refer to the lower 16 -\
+    bits of a 32 - bit instruction and thus we will have to wait for the next response from the \
+    cache to form the instruction is send to the next stage. To ensure the concatenation happens \
+    in the next response we set rg_action to ChecPrev and set enque_instruction to False.\
+    3. if rg_action is set to None, then we simply probe the lower 2 - bits to the response to\
+    check if it is compressed. If so then the lower 16 bits form an instruction which is sent to\
+    the next stage, the upper 16 - bits are stored to rg_instruction and rg_action is set to\
+    CheckPrev to ensure that in the next resposne we first probe rg_instruction.\
+    4. if rg_Action if set to CheckPrev then we first probe the lower 2 - bits of the \
+    rg_instruction which leads to two possibilities. Either rg_instruction could hold a\
+    compressed instruction from the previous response, in which case the current memory response\
+    is not dequed and rg_instruction is sent to the next stage. This can happen due to state - 3\
+    mentioned above. The other possibility is that rg_instruction holds the lower 16 - bits of a\
+    32 - bit isntruction, in which case we have concatenate the lower 16 - bits of the response \
+    with rg_instruction and send to the next, and also store the upper 16 - bits of the response \
+    into rg_instruction. rg_Action in this case will remain CheckPrev so that the upper bits of \
+    this repsonse are probed in the next cycle." *)
     rule process_instruction(!rg_wfi && !rg_initialize);
         let resp = ff_memory_response.first;
         Bit#(32) final_instruction = 0;
@@ -409,8 +410,7 @@ package stage1;
           offset = 2;
         end
       `endif
-      let _ops = access_rf(y.op_addr.rs1addr, y.op_addr.rs2addr, y.op_type.rs1type,
-                            y.op_type.rs2type, rg_pc, y.meta.immediate);
+      let _ops = fn_access_rf(y.op_addr.rs1addr, y.op_addr.rs2addr);
 
     `ifdef rtldump
       TraceDump dump = TraceDump {pc : rg_pc, instruction : final_instruction};
@@ -438,7 +438,6 @@ package stage1;
                                         compressed, perform_decode, curr_epoch))
       end
     endrule
-    
     interface inst_request = interface Get
       method ActionValue#(InstRequest) get;
         rg_fabric_request[0] <= rg_fabric_request[0] + 4; 
