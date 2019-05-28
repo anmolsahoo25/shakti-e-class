@@ -202,6 +202,9 @@ package csrfile;
   (*mutually_exclusive="upd_on_trap, write_csr"*)
   (*preempts="write_csr, increment_cycle_counter"*)
   (*preempts="write_csr, incr_minstret"*)
+`ifdef perfmonitors
+  (*preempts="write_csr, increment_perfmonitors"*)
+`endif
   module mkcsrfile(Ifc_csrfile);
 
     let maxIndex = valueOf(XLEN);
@@ -714,6 +717,35 @@ package csrfile;
         if(addr == `MHPMCOUNTER29   && `counters > 26) data = truncate(mhpmcounter[26]); 
         if(addr == `MHPMCOUNTER20   && `counters > 27) data = truncate(mhpmcounter[27]); 
         if(addr == `MHPMCOUNTER31   && `counters > 28) data = truncate(mhpmcounter[28]); 
+        if(addr == `MHPMEVENT3    && `counters > 0) data =  truncate(mhpmevent[0]);   
+        if(addr == `MHPMEVENT4    && `counters > 1) data =  truncate(mhpmevent[1]); 
+        if(addr == `MHPMEVENT5    && `counters > 2) data =  truncate(mhpmevent[2]); 
+        if(addr == `MHPMEVENT6    && `counters > 3) data =  truncate(mhpmevent[3]); 
+        if(addr == `MHPMEVENT7    && `counters > 4) data =  truncate(mhpmevent[4]); 
+        if(addr == `MHPMEVENT8    && `counters > 5) data =  truncate(mhpmevent[5]); 
+        if(addr == `MHPMEVENT9    && `counters > 6) data =  truncate(mhpmevent[6]); 
+        if(addr == `MHPMEVENT10   && `counters > 7) data =  truncate(mhpmevent[7]); 
+        if(addr == `MHPMEVENT11   && `counters > 8) data =  truncate(mhpmevent[8]); 
+        if(addr == `MHPMEVENT12   && `counters > 9) data =  truncate(mhpmevent[9]); 
+        if(addr == `MHPMEVENT13   && `counters > 10) data = truncate(mhpmevent[10]); 
+        if(addr == `MHPMEVENT14   && `counters > 11) data = truncate(mhpmevent[11]); 
+        if(addr == `MHPMEVENT15   && `counters > 12) data = truncate(mhpmevent[12]); 
+        if(addr == `MHPMEVENT16   && `counters > 13) data = truncate(mhpmevent[13]); 
+        if(addr == `MHPMEVENT17   && `counters > 14) data = truncate(mhpmevent[14]); 
+        if(addr == `MHPMEVENT18   && `counters > 15) data = truncate(mhpmevent[15]); 
+        if(addr == `MHPMEVENT19   && `counters > 16) data = truncate(mhpmevent[16]); 
+        if(addr == `MHPMEVENT20   && `counters > 17) data = truncate(mhpmevent[17]); 
+        if(addr == `MHPMEVENT21   && `counters > 18) data = truncate(mhpmevent[18]); 
+        if(addr == `MHPMEVENT22   && `counters > 19) data = truncate(mhpmevent[19]); 
+        if(addr == `MHPMEVENT23   && `counters > 20) data = truncate(mhpmevent[20]); 
+        if(addr == `MHPMEVENT24   && `counters > 21) data = truncate(mhpmevent[21]); 
+        if(addr == `MHPMEVENT25   && `counters > 22) data = truncate(mhpmevent[22]); 
+        if(addr == `MHPMEVENT26   && `counters > 23) data = truncate(mhpmevent[23]); 
+        if(addr == `MHPMEVENT27   && `counters > 24) data = truncate(mhpmevent[24]); 
+        if(addr == `MHPMEVENT28   && `counters > 25) data = truncate(mhpmevent[25]); 
+        if(addr == `MHPMEVENT29   && `counters > 26) data = truncate(mhpmevent[26]); 
+        if(addr == `MHPMEVENT20   && `counters > 27) data = truncate(mhpmevent[27]); 
+        if(addr == `MHPMEVENT31   && `counters > 28) data = truncate(mhpmevent[28]); 
       `ifdef RV32
         if(addr == `MHPMCOUNTER3H   && `counters > 0)  data = truncateLSB(mhpmcounter[0]); 
         if(addr == `MHPMCOUNTER4H   && `counters > 1)  data = truncateLSB(mhpmcounter[1]); 
@@ -920,7 +952,126 @@ package csrfile;
           `TMCONTEXT: csr_machine_context <= word;
         `endif
         `ifdef perfmonitors
-        `endif
+        `MHPMEVENT3    : if( `counters > 0)    mhpmevent[0] <= truncate(word);   
+        `MHPMEVENT4    : if( `counters > 1)    mhpmevent[1] <= truncate(word); 
+        `MHPMEVENT5    : if( `counters > 2)    mhpmevent[2] <= truncate(word); 
+        `MHPMEVENT6    : if( `counters > 3)    mhpmevent[3] <= truncate(word); 
+        `MHPMEVENT7    : if( `counters > 4)    mhpmevent[4] <= truncate(word); 
+        `MHPMEVENT8    : if( `counters > 5)    mhpmevent[5] <= truncate(word); 
+        `MHPMEVENT9    : if( `counters > 6)    mhpmevent[6] <= truncate(word); 
+        `MHPMEVENT10   : if( `counters > 7)    mhpmevent[7] <= truncate(word); 
+        `MHPMEVENT11   : if( `counters > 8)    mhpmevent[8] <= truncate(word); 
+        `MHPMEVENT12   : if( `counters > 9)    mhpmevent[9] <= truncate(word); 
+        `MHPMEVENT13   : if( `counters > 10)   mhpmevent[10] <= truncate(word); 
+        `MHPMEVENT14   : if( `counters > 11)   mhpmevent[11] <= truncate(word); 
+        `MHPMEVENT15   : if( `counters > 12)   mhpmevent[12] <= truncate(word); 
+        `MHPMEVENT16   : if( `counters > 13)   mhpmevent[13] <= truncate(word); 
+        `MHPMEVENT17   : if( `counters > 14)   mhpmevent[14] <= truncate(word); 
+        `MHPMEVENT18   : if( `counters > 15)   mhpmevent[15] <= truncate(word); 
+        `MHPMEVENT19   : if( `counters > 16)   mhpmevent[16] <= truncate(word); 
+        `MHPMEVENT20   : if( `counters > 17)   mhpmevent[17] <= truncate(word); 
+        `MHPMEVENT21   : if( `counters > 18)   mhpmevent[18] <= truncate(word); 
+        `MHPMEVENT22   : if( `counters > 19)   mhpmevent[19] <= truncate(word); 
+        `MHPMEVENT23   : if( `counters > 20)   mhpmevent[20] <= truncate(word); 
+        `MHPMEVENT24   : if( `counters > 21)   mhpmevent[21] <= truncate(word); 
+        `MHPMEVENT25   : if( `counters > 22)   mhpmevent[22] <= truncate(word); 
+        `MHPMEVENT26   : if( `counters > 23)   mhpmevent[23] <= truncate(word); 
+        `MHPMEVENT27   : if( `counters > 24)   mhpmevent[24] <= truncate(word); 
+        `MHPMEVENT28   : if( `counters > 25)   mhpmevent[25] <= truncate(word); 
+        `MHPMEVENT29   : if( `counters > 26)   mhpmevent[26] <= truncate(word); 
+        `MHPMEVENT20   : if( `counters > 27)   mhpmevent[27] <= truncate(word); 
+        `MHPMEVENT31   : if( `counters > 28)   mhpmevent[28] <= truncate(word); 
+      `ifdef RV64
+        `MHPMCOUNTER3  :  if( `counters > 0)  mhpmcounter[0] <=  word;   
+        `MHPMCOUNTER4  :  if( `counters > 1)  mhpmcounter[1] <=  word; 
+        `MHPMCOUNTER5  :  if( `counters > 2)  mhpmcounter[2] <=  word; 
+        `MHPMCOUNTER6  :  if( `counters > 3)  mhpmcounter[3] <=  word; 
+        `MHPMCOUNTER7  :  if( `counters > 4)  mhpmcounter[4] <=  word; 
+        `MHPMCOUNTER8  :  if( `counters > 5)  mhpmcounter[5] <=  word; 
+        `MHPMCOUNTER9  :  if( `counters > 6)  mhpmcounter[6] <=  word; 
+        `MHPMCOUNTER10 :  if( `counters > 7)  mhpmcounter[7] <=  word; 
+        `MHPMCOUNTER11 :  if( `counters > 8)  mhpmcounter[8] <=  word; 
+        `MHPMCOUNTER12 :  if( `counters > 9)  mhpmcounter[9] <=  word; 
+        `MHPMCOUNTER13 :  if( `counters > 10) mhpmcounter[10] <= word; 
+        `MHPMCOUNTER14 :  if( `counters > 11) mhpmcounter[11] <= word; 
+        `MHPMCOUNTER15 :  if( `counters > 12) mhpmcounter[12] <= word; 
+        `MHPMCOUNTER16 :  if( `counters > 13) mhpmcounter[13] <= word; 
+        `MHPMCOUNTER17 :  if( `counters > 14) mhpmcounter[14] <= word; 
+        `MHPMCOUNTER18 :  if( `counters > 15) mhpmcounter[15] <= word; 
+        `MHPMCOUNTER19 :  if( `counters > 16) mhpmcounter[16] <= word; 
+        `MHPMCOUNTER20 :  if( `counters > 17) mhpmcounter[17] <= word; 
+        `MHPMCOUNTER21 :  if( `counters > 18) mhpmcounter[18] <= word; 
+        `MHPMCOUNTER22 :  if( `counters > 19) mhpmcounter[19] <= word; 
+        `MHPMCOUNTER23 :  if( `counters > 20) mhpmcounter[20] <= word; 
+        `MHPMCOUNTER24 :  if( `counters > 21) mhpmcounter[21] <= word; 
+        `MHPMCOUNTER25 :  if( `counters > 22) mhpmcounter[22] <= word; 
+        `MHPMCOUNTER26 :  if( `counters > 23) mhpmcounter[23] <= word; 
+        `MHPMCOUNTER27 :  if( `counters > 24) mhpmcounter[24] <= word; 
+        `MHPMCOUNTER28 :  if( `counters > 25) mhpmcounter[25] <= word; 
+        `MHPMCOUNTER29 :  if( `counters > 26) mhpmcounter[26] <= word; 
+        `MHPMCOUNTER20 :  if( `counters > 27) mhpmcounter[27] <= word; 
+        `MHPMCOUNTER31 :  if( `counters > 28) mhpmcounter[28] <= word; 
+      `else
+        `MHPMCOUNTER3  :  if( `counters > 0)  mhpmcounter[0][31:0] <=  word;   
+        `MHPMCOUNTER4  :  if( `counters > 1)  mhpmcounter[1][31:0] <=  word; 
+        `MHPMCOUNTER5  :  if( `counters > 2)  mhpmcounter[2][31:0] <=  word; 
+        `MHPMCOUNTER6  :  if( `counters > 3)  mhpmcounter[3][31:0] <=  word; 
+        `MHPMCOUNTER7  :  if( `counters > 4)  mhpmcounter[4][31:0] <=  word; 
+        `MHPMCOUNTER8  :  if( `counters > 5)  mhpmcounter[5][31:0] <=  word; 
+        `MHPMCOUNTER9  :  if( `counters > 6)  mhpmcounter[6][31:0] <=  word; 
+        `MHPMCOUNTER10 :  if( `counters > 7)  mhpmcounter[7][31:0] <=  word; 
+        `MHPMCOUNTER11 :  if( `counters > 8)  mhpmcounter[8][31:0] <=  word; 
+        `MHPMCOUNTER12 :  if( `counters > 9)  mhpmcounter[9][31:0] <=  word; 
+        `MHPMCOUNTER13 :  if( `counters > 10) mhpmcounter[10][31:0] <= word; 
+        `MHPMCOUNTER14 :  if( `counters > 11) mhpmcounter[11][31:0] <= word; 
+        `MHPMCOUNTER15 :  if( `counters > 12) mhpmcounter[12][31:0] <= word; 
+        `MHPMCOUNTER16 :  if( `counters > 13) mhpmcounter[13][31:0] <= word; 
+        `MHPMCOUNTER17 :  if( `counters > 14) mhpmcounter[14][31:0] <= word; 
+        `MHPMCOUNTER18 :  if( `counters > 15) mhpmcounter[15][31:0] <= word; 
+        `MHPMCOUNTER19 :  if( `counters > 16) mhpmcounter[16][31:0] <= word; 
+        `MHPMCOUNTER20 :  if( `counters > 17) mhpmcounter[17][31:0] <= word; 
+        `MHPMCOUNTER21 :  if( `counters > 18) mhpmcounter[18][31:0] <= word; 
+        `MHPMCOUNTER22 :  if( `counters > 19) mhpmcounter[19][31:0] <= word; 
+        `MHPMCOUNTER23 :  if( `counters > 20) mhpmcounter[20][31:0] <= word; 
+        `MHPMCOUNTER24 :  if( `counters > 21) mhpmcounter[21][31:0] <= word; 
+        `MHPMCOUNTER25 :  if( `counters > 22) mhpmcounter[22][31:0] <= word; 
+        `MHPMCOUNTER26 :  if( `counters > 23) mhpmcounter[23][31:0] <= word; 
+        `MHPMCOUNTER27 :  if( `counters > 24) mhpmcounter[24][31:0] <= word; 
+        `MHPMCOUNTER28 :  if( `counters > 25) mhpmcounter[25][31:0] <= word; 
+        `MHPMCOUNTER29 :  if( `counters > 26) mhpmcounter[26][31:0] <= word; 
+        `MHPMCOUNTER20 :  if( `counters > 27) mhpmcounter[27][31:0] <= word; 
+        `MHPMCOUNTER31 :  if( `counters > 28) mhpmcounter[28][31:0] <= word; 
+        `MHPMCOUNTER3H  :  if( `counters > 0)  mhpmcounter[0][63:32] <= truncate(word); 
+        `MHPMCOUNTER4H  :  if( `counters > 1)  mhpmcounter[1][63:32] <= truncate(word); 
+        `MHPMCOUNTER5H  :  if( `counters > 2)  mhpmcounter[2][63:32] <= truncate(word); 
+        `MHPMCOUNTER6H  :  if( `counters > 3)  mhpmcounter[3][63:32] <= truncate(word); 
+        `MHPMCOUNTER7H  :  if( `counters > 4)  mhpmcounter[4][63:32] <= truncate(word); 
+        `MHPMCOUNTER8H  :  if( `counters > 5)  mhpmcounter[5][63:32] <= truncate(word); 
+        `MHPMCOUNTER9H  :  if( `counters > 6)  mhpmcounter[6][63:32] <= truncate(word); 
+        `MHPMCOUNTER10H :  if( `counters > 7)  mhpmcounter[7][63:32] <= truncate(word); 
+        `MHPMCOUNTER11H :  if( `counters > 8)  mhpmcounter[8][63:32] <= truncate(word); 
+        `MHPMCOUNTER12H :  if( `counters > 9)  mhpmcounter[9][63:32] <= truncate(word); 
+        `MHPMCOUNTER13H :  if( `counters > 10) mhpmcounter[10][63:32] <= truncate(word); 
+        `MHPMCOUNTER14H :  if( `counters > 11) mhpmcounter[11][63:32] <= truncate(word); 
+        `MHPMCOUNTER15H :  if( `counters > 12) mhpmcounter[12][63:32] <= truncate(word); 
+        `MHPMCOUNTER16H :  if( `counters > 13) mhpmcounter[13][63:32] <= truncate(word); 
+        `MHPMCOUNTER17H :  if( `counters > 14) mhpmcounter[14][63:32] <= truncate(word); 
+        `MHPMCOUNTER18H :  if( `counters > 15) mhpmcounter[15][63:32] <= truncate(word); 
+        `MHPMCOUNTER19H :  if( `counters > 16) mhpmcounter[16][63:32] <= truncate(word); 
+        `MHPMCOUNTER20H :  if( `counters > 17) mhpmcounter[17][63:32] <= truncate(word); 
+        `MHPMCOUNTER21H :  if( `counters > 18) mhpmcounter[18][63:32] <= truncate(word); 
+        `MHPMCOUNTER22H :  if( `counters > 19) mhpmcounter[19][63:32] <= truncate(word); 
+        `MHPMCOUNTER23H :  if( `counters > 20) mhpmcounter[20][63:32] <= truncate(word); 
+        `MHPMCOUNTER24H :  if( `counters > 21) mhpmcounter[21][63:32] <= truncate(word); 
+        `MHPMCOUNTER25H :  if( `counters > 22) mhpmcounter[22][63:32] <= truncate(word); 
+        `MHPMCOUNTER26H :  if( `counters > 23) mhpmcounter[23][63:32] <= truncate(word); 
+        `MHPMCOUNTER27H :  if( `counters > 24) mhpmcounter[24][63:32] <= truncate(word); 
+        `MHPMCOUNTER28H :  if( `counters > 25) mhpmcounter[25][63:32] <= truncate(word); 
+        `MHPMCOUNTER29H :  if( `counters > 26) mhpmcounter[26][63:32] <= truncate(word); 
+        `MHPMCOUNTER20H :  if( `counters > 27) mhpmcounter[27][63:32] <= truncate(word); 
+        `MHPMCOUNTER31H :  if( `counters > 28) mhpmcounter[28][63:32] <= truncate(word); 
+      `endif
+    `endif
         default : noAction;
       endcase
     endmethod
