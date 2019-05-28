@@ -86,7 +86,7 @@ package riscv;
     method Action ma_event_loads(Bit#(1) e);
     method Action ma_event_stores(Bit#(1) e);
   `ifdef simulate
-    method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(XLEN))) counter_values;
+    method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(64))) counter_values;
   `endif
 `endif
   endinterface : Ifc_riscv

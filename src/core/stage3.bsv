@@ -100,7 +100,7 @@ package stage3;
     method Bit#(1) mv_event_exceptions ;
     method Bit#(1) mv_event_interrupts ;
   `ifdef simulate
-    method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(XLEN))) counter_values;
+    method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(64))) counter_values;
   `endif
 `endif
   endinterface : Ifc_stage3
