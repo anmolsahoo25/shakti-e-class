@@ -211,6 +211,8 @@ package stage2;
       `logLevel( stage2, 1, $format("STAGE2 : Control: ", fshow(control)))
       `logLevel( stage2, 1, $format("STAGE2 : Fwding : Valid:%b Op1:%h Op2:%h", valid, op1, op2)) 
 
+      // TODO: are sure you want to trigger mul when inputs are not available?
+      // TODO: you are sending inputs to mul even if epochs do not match? 
       let aluout <- alu.inputs(fn, _op1, _op2, op3, signExtend(meta.immediate), 
                               meta.inst_type, funct3, meta.memaccess, 
                               `ifdef RV64 meta.word32, `endif wr_misa_c, truncate(control.pc)
@@ -228,6 +230,34 @@ package stage2;
           wr_redirection <= tuple2(aluout.effective_addr, aluout.redirect);
           if(aluout.redirect)
             rg_eEpoch <= ~rg_eEpoch;
+        `ifdef atomic
+          if(meta.inst_type == MEMORY) begin 
+            if({funct3[0],fn} == 'b00101 && meta.memaccess == Atomic) begin // LR
+              rg_loadreserved_addr <= tagged Valid truncate(aluout.effective_addr);
+              meta.memaccess = Load;
+              `logLevel( stage2, 1, $format("STAGE2: Reserving Addr: %h", aluout.effective_addr))
+            end
+            else
+              rg_loadreserved_addr <= tagged Invalid;
+
+            if({funct3[0],fn} == 'b00111 && meta.memaccess == Atomic)begin // SC
+              `logLevel( stage2, 1, $format("STAGE2: SC-ADDR:%h RES-ADDR: ",
+                                                aluout.effective_addr, fshow(rg_loadreserved_addr)))
+              if(rg_loadreserved_addr matches tagged Valid .a &&& 
+                                                      truncate(aluout.effective_addr) != a)begin
+                aluout.cmtype = REGULAR;
+                aluout.aluresult = 1;
+              end
+              else if(rg_loadreserved_addr matches tagged Invalid) begin
+                aluout.cmtype = REGULAR;
+                aluout.aluresult = 1;
+              end
+              else begin
+                meta.memaccess = Store;
+              end
+            end
+          end
+        `endif
           if(aluout.cmtype == MEMORY && meta.memaccess != Fence)
             ff_memory_request.enq(MemoryRequest{addr : aluout.effective_addr, data : _op2, 
                                                 memaccess : meta.memaccess, size : funct3, 

@@ -256,7 +256,7 @@ package eclass;
       let req =  ff_mem_request.first;
       let response <- pop_o(memory_xactor.o_wr_resp);
       let bus_error = !(response.bresp == AXI4_OKAY);
-      Bit#(XLEN) data = ?;
+      Bit#(XLEN) data = 0;
       if(bus_error)
         data = zeroExtend(ff_mem_request.first.addr);
       riscv.memory_response.put(MemoryResponse{data : data, err : bus_error, epoch : req.epoch});
@@ -277,9 +277,6 @@ package eclass;
           rdata = req.size[2] == 0?signExtend(rdata[31 : 0]) : zeroExtend(rdata[31 : 0]);
       Bit#(TDiv#(XLEN, 8)) write_strobe = req.size == 2?'hf : '1;
       Bit#(TAdd#(1, TDiv#(XLEN, 32))) byte_offset = truncate(req.addr);
-      if(req.size != 3)begin			// 8 - bit write;
-        write_strobe = write_strobe<<byte_offset;
-      end
       `logLevel( eclass, 0, $format("CORE : Atomic Read Response ", fshow(response)))
       if(bus_error) begin
         rdata = zeroExtend(ff_mem_request.first.addr);
@@ -289,6 +286,10 @@ package eclass;
       else begin
         ff_atomic_state.enq(rdata);
         Bit#(XLEN) wdata = fn_atomic_op(req.atomic_op, req.data, rdata);
+        if(req.size != 3)begin			// 8 - bit write;
+          write_strobe = write_strobe<<byte_offset;
+          wdata = duplicate(wdata[31:0]);
+        end
         AXI4_Wr_Addr#(`paddr, 0) aw = AXI4_Wr_Addr {awaddr : truncate(req.addr), awuser : 0, 
               awlen : 0, awsize : zeroExtend(req.size[1 : 0]), awburst : 'b01, awid : 0,
               awprot: {1'b0, 1'b0, curr_priv[1]} };
