@@ -1,38 +1,78 @@
+stages:
+    - build
+    - release
+
 build64:
+    stage: build
     variables:
         GIT_SUBMODULE_STRATEGY: recursive
     script:
         - source /tools/setup.sh
         - make restore 
         - make patch
-        - make generate_verilog SYNTH=SIM MUL=fpga ISA=RV64IMAC MULSTAGES=8 DIVSTAGES=64
-        - make link_verilator generate_boot_files
-        - make regress opts='--filter=rv64 --parallel=90 --sub'
-        - make regress opts='--filter=rv64 --final'
-    only:
-        - master
-    tags:
-        - core-runner
-        
-build32:
-    variables:
-        GIT_SUBMODULE_STRATEGY: recursive
-    script:
-        - source /tools/setup.sh
-        - make restore 
-        - make patch
-        - make generate_verilog SYNTH=SIM MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
-        - make link_verilator generate_boot_files MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
-        - make regress opts='--filter=rv32 --sub --parallel=90' CONFIG_ISA=RV32IMAC
-        - make regress opts='--filter=rv32 --final'
-        - make test opts="--test=hello_world --suite=zephyr --nospike" CONFIG_ISA=RV32IMAC
-        - make test opts="--test=philosophers --suite=zephyr --nospike" CONFIG_ISA=RV32IMAC
-        - make test opts="--test=synchronization --suite=zephyr --nospike" CONFIG_ISA=RV32IMAC
+        - make CONFIG=templates/rv64imac.inc 
+        - make regress opts='--filter=rv64 --parallel=90 --sub' CONFIG_ISA=RV64IMAC
+        - make regress opts='--filter=rv64 --final' CONFIG_ISA=RV64IMAC
+        - make aapg opts='--config=rv64imac* --test_count=10 --parallel=30 --debug' CONFIG_ISA=RV64IMAC
+        - make regress opts='--list=aapg.list --sub --test_opts='--timeout=5m' --parallel=30' CONFIG_ISA=RV64IMAC
+        - make regress opts='--list=aapg.list --final' CONFIG_ISA=RV64IMAC
     only:
         - master
     tags:
         - core-runner
 
+for_merge:
+    stage: build
+    script:
+        - source /tools/setup.sh
+        - make restore 
+        - make patch
+        - make CONFIG=templates/rv64imac.inc VERILATESIM=slow
+        - make regress opts='--filter=rv64 --parallel=90 --sub' CONFIG_ISA=RV64IMAC
+        - make regress opts='--filter=rv64 --final' CONFIG_ISA=RV64IMAC
+        - make restore clean_verif
+        - make CONFIG=templates/rv32imac.inc VERILATESIM=slow
+        - make regress opts='--filter=rv32 --parallel=90 --sub' CONFIG_ISA=RV32IMAC
+        - make regress opts='--filter=rv32 --final' CONFIG_ISA=RV32IMAC
+    only:
+        - merge_requests
+    tags:
+        - core-runner
+    when: manual
+
+release:
+    stage: release
+    script:
+        - python3 /scratch/version-update.py
+        - make CONFIG=templates/asic_synth.inc release-verilog-artifacts
+        - cp version.txt verilog-artifacts
+    only:
+        - master
+    tags:
+        - core-runner
+    artifacts:
+      name: verilog-artifacts
+      paths:
+        - ./verilog-artifacts
+#build32:
+#    variables:
+#        GIT_SUBMODULE_STRATEGY: recursive
+#    script:
+#        - source /tools/setup.sh
+#        - make restore 
+#        - make patch
+#        - make generate_verilog SYNTH=SIM MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
+#        - make link_verilator generate_boot_files MUL=fpga ISA=RV32IMAC MULSTAGES=4 DIVSTAGES=32
+#        - make regress opts='--filter=rv32 --sub --parallel=90' CONFIG_ISA=RV32IMAC
+#        - make regress opts='--filter=rv32 --final'
+#        - make test opts="--test=hello_world --suite=zephyr --nospike" CONFIG_ISA=RV32IMAC
+#        - make test opts="--test=philosophers --suite=zephyr --nospike" CONFIG_ISA=RV32IMAC
+#        - make test opts="--test=synchronization --suite=zephyr --nospike" CONFIG_ISA=RV32IMAC
+#    only:
+#        - master
+#    tags:
+#        - core-runner
+#
 # gen_artifacts:
 #     variables:
 #         GIT_SUBMODULE_STRATEGY: recursive
