@@ -1282,7 +1282,7 @@ package csrfile;
                 hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie};
       `endif
     endmethod
-    method mv_interrupt = unpack(|(csr_mie&csr_mip));
+    method mv_interrupt = unpack(|(csr_mie&truncate(csr_mip)));
   `ifdef arith_trap
     method Bit#(1) mv_arithtrap_en = rg_customcontrol[3];
   `endif

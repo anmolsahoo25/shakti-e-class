@@ -104,12 +104,12 @@ package Soc;
     method Bit#(1)wire_tdo;                                                                       
       // ---------------------------------------------//
   `endif
-`ifdef perfmonitors
-  `ifdef simulate
+`ifdef simulate
+  `ifdef perfmonitors
     method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(64))) counter_values;
   `endif
-`endif
     method Bool mv_end_simulation ;
+`endif
   endinterface
 
   (*synthesize*)
@@ -227,12 +227,12 @@ package Soc;
       return tdo.crossed();                                                                       
     endmethod
   `endif
-`ifdef perfmonitors
-  `ifdef simulate
+`ifdef simulate
+  `ifdef perfmonitors
     method counter_values = eclass.counter_values;
   `endif
-`endif
     method mv_end_simulation = signature.mv_end_simulation;
+`endif
       // -------------------------------------------- //
   endmodule: mkSoc
 endpackage: Soc

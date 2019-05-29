@@ -124,6 +124,7 @@ package TbSoc;
       $fwrite(dump1,"%c",data);
     endrule
 
+  `ifdef simulate
     rule end_simulation(soc.mv_end_simulation);
       `ifdef perfmonitors
         let eventcode = tpl_1(soc.counter_values);
@@ -135,7 +136,7 @@ package TbSoc;
       `endif
       $finish(0);
     endrule
-      
+  `endif
 
   `ifdef rtldump
     rule write_dump_file(rg_cnt>=5 );
