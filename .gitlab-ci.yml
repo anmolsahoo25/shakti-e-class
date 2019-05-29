@@ -1,4 +1,9 @@
+stages:
+    - build
+    - release
+
 build64:
+    stage: build
     variables:
         GIT_SUBMODULE_STRATEGY: recursive
     script:
@@ -11,13 +16,13 @@ build64:
         - make aapg opts='--config=rv64imac* --test_count=10 --parallel=30 --debug' CONFIG_ISA=RV64IMAC
         - make regress opts='--list=aapg.list --sub --test_opts='--timeout=5m' --parallel=30' CONFIG_ISA=RV64IMAC
         - make regress opts='--list=aapg.list --final' CONFIG_ISA=RV64IMAC
-        - python3 /scratch/version-update.py
     only:
         - master
     tags:
         - core-runner
 
 for_merge:
+    stage: build
     script:
         - source /tools/setup.sh
         - make restore 
@@ -34,6 +39,21 @@ for_merge:
     tags:
         - core-runner
     when: manual
+
+release:
+    stage: release
+    script:
+        - python3 /scratch/version-update.py
+        - make CONFIG=templates/asic_synth.inc release-verilog-artifacts
+        - cp version.txt verilog-artifacts
+    only:
+        - master
+    tags:
+        - core-runner
+    artifacts:
+      name: verilog-artifacts
+      paths:
+        - ./verilog-artifacts
 #build32:
 #    variables:
 #        GIT_SUBMODULE_STRATEGY: recursive
