@@ -8,6 +8,8 @@ build64:
         GIT_SUBMODULE_STRATEGY: recursive
     script:
         - source /tools/setup.sh
+        - cd base-sim/
+        - ./manager.sh update_deps
         - make restore 
         - make patch
         - make CONFIG=templates/rv64imac.inc 
@@ -25,6 +27,8 @@ for_merge:
     stage: build
     script:
         - source /tools/setup.sh
+        - cd base-sim/
+        - ./manager.sh update_deps
         - make restore 
         - make patch
         - make CONFIG=templates/rv64imac.inc VERILATESIM=slow

@@ -1,0 +1,40 @@
+#!/bin/bash
+
+### Pre Commit Hook For The Shakti BLUESPEC codebase
+status=0;
+### Check for Dependencies 
+eclint > /dev/null 2>&1;
+status=$?;
+if [ $status -ne 1 ]; then
+    echo "Please install eclint from :: https://github.com/jedmao/eclint "
+    exit $status;
+fi
+
+### Hook Script Body
+echo "Running Pre-Commit Lint Hook";
+
+files=`git diff --cached --name-status | awk '$1 != "D" { print $2 }'`
+echo "$files"
+if ( ${ECLINT_FIX:-"false" } == "true" ) ;
+then
+  for f in $files
+  do
+    if [[ $f == *.bsv ]]; then
+	    echo "Fixing possible indentation issues in $f";
+    	eclint fix -i "space" -s 2 -t 2 -m 100 --block_comment_start "/*" --block_comment_end "*/" -n true -w false  -c "utf-8" $f
+      git add $f
+    fi
+  done
+fi
+
+for f in $files
+do
+  if [[ $f == *.bsv ]]; then
+    echo "Checking file $f for line-width and indentation";
+    eclint check -i "space" -s 2 -t 2 -m 100 --block_comment_start "/*" --block_comment_end "*/" -n true -w false  -c "utf-8" $f
+  fi
+done
+
+status=$?;
+exit $status;
+

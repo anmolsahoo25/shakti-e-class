@@ -1,0 +1,186 @@
+/////////////////////////// Register Mapping for Machine Mode Regs /////////////////
+`define MSTATUS	'h300 // Machine Status register                                
+`define MISA		'h301 // ISA and extensions                                     
+`define MEDELEG	'h302 // Machine exception delegation                               
+`define MIDELEG	'h303 // Machine interrupt delegation                               
+`define MIE			'h304 // Machine interrupt enable                                   
+`define MTVEC		'h305 // Machine trap-handler base address                          
+`define MCOUNTEREN  'h306 // Machine counter setup register                                  
+`define MSCRATCH	'h340 // Scratch rgister for machine trap hanglers                  
+`define MEPC			'h341 // Machine exception program counter                          
+`define MCAUSE		'h342 // Machine trap cause                                         
+`define MTVAL		  'h343 // Machine bad address                                        
+`define MIP			  'h344 // Machine interrupt pending
+`define MCYCLE		'hB00 // Machine cycle counter                                      
+`define MTIME		  'hB01	// mtime register (Non-standard r/w)
+`define MINSTRET	'hB02 // Machine instructions retired.                              
+`define MTIMECMP	'hB20 //  time compare register (Non-standard r/w)
+`define MCYCLEH	  'hB80 // Upper 32 bits of mcycle                                   
+`define MTIMEH		'hB81	// mtime hi-register (Non-standard r/w)
+`define MINSTRETH 'hB82 // Upper 32 bits of minstret.                                 
+`define MTIMECMPH 'hBA0 //  time compare hi-register (Non-standard r/w)
+`define MVENDORID 'hF11 // Vendor ID                                                  
+`define MARCHID	  'hF12 // Architecture ID                                           
+`define MIMPID		'hF13 // Implementation ID                                        
+`define MHARTID		'hF14 // Hardware Thread ID                                      
+////// Reister Mapping for User Mode Regs /////////////////
+`define USTATUS	  'h000 // User status register
+`define FFLAGS		'h001 // FP Accrued exceptions
+`define FRM			  'h002 // FP Dynamic rounding mode
+`define FCSR			'h003 // FP Control and status register
+`define UIE			  'h004 // User interrupt enable register
+`define UTVEC		  'h005 // User trap handler base address
+`define USCRATCH	'h040 // Scratch register for user trap handlers
+`define UEPC			'h041 // User exception program counter
+`define UCAUSE		'h042 // User trap cause
+`define UTVAL		  'h043 // User bad address or illegal instruction
+`define UIP			  'h044 // User interrupt pending
+`define UMEMSE		'h045 // Machine Memory Structures enable
+`define UCYCLE		'hC00 // cycle counter for RDCYCLE instruction.
+`define UTIME		  'hC01 // Tiemr for RDTIME instruction
+`define UINSTRET	'hC02 // Instruction retired counter for RDINSTRET
+`define UCYCLEH	  'hC80 // Upper 32bits of UCYCLE
+`define UTIMEH		'hC81 // Upper 32bits of UTIME
+`define UINSTRETH 'hC82 // Upper 32bits of UINSTRET
+/////////////////////////// Register Mapping for Supervisor Mode Regs /////////////////
+`define SSTATUS	  'h100 // Supervisor Status register                                
+`define SEDELEG   'h102 // Supervisor exception delegation register
+`define SIDELEG   'h103 // Supervisor interrupt delegation register
+`define SIE       'h104 // Supervisor interrupt enable register
+`define STVEC	    'h105 // Supervisor trap vector register
+`define SSCRATCH  'h140 // Supervisor scratch register
+`define SEPC      'h141 // Supervisor exception program counter
+`define SCAUSE    'h142 // Supervisor cause register
+`define STVAL     'h143 // Supervisor bad address
+`define SIP       'h144 // Supervisor interrupt pending
+`define SATP      'h180 // Supervisor address translation and protection
+////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////// Physical Memory Protection ///////////////////////////
+`define PMPCFG0     'h3A0
+`define PMPCFG1     'h3A1
+`define PMPCFG2     'h3A2
+`define PMPCFG3     'h3A3
+`define PMPADDR0    'h3B0
+`define PMPADDR1    'h3B1
+`define PMPADDR2    'h3B2
+`define PMPADDR3    'h3B3
+`define PMPADDR4    'h3B4
+`define PMPADDR5    'h3B5
+`define PMPADDR6    'h3B6
+`define PMPADDR7    'h3B7
+`define PMPADDR8    'h3B8
+`define PMPADDR9    'h3B9
+`define PMPADDR10    'h3BA
+`define PMPADDR11    'h3BB
+`define PMPADDR12    'h3BC
+`define PMPADDR13   'h3BD
+`define PMPADDR14    'h3BE
+`define PMPADDR15    'h3BF
+////////////////////////////////////////////////////////////////////////////////////
+`define DCSR			'h7b0 // Debug CSR
+`define DPC				'h7b1 // Debug PC
+`define DSCRATCH  'h7b2 // Debug Scratch
+`define DTVEC     'h7C0 // Debug trap vector
+`define DENABLE   'h7C1 // Debug enable register
+////////////////////////////////////////////////////////////////////////////////////
+`define TSELECT   'h7a0
+`define TDATA1    'h7a1
+`define TDATA2    'h7a2
+`define TDATA3    'h7a3
+`define TINFO     'h7a4
+`define TCONTROL  'h7a5
+`define TMCONTEXT 'h7a8
+`define TSCONTEXT 'h7aa
+////////////////////////// MHPMEvent Counters //////////////////////////////////////
+`define MHPMCOUNTER3    'hB03
+`define MHPMCOUNTER4    'hB04
+`define MHPMCOUNTER5    'hB05
+`define MHPMCOUNTER6    'hB06
+`define MHPMCOUNTER7    'hB07
+`define MHPMCOUNTER8    'hB08
+`define MHPMCOUNTER9    'hB09
+`define MHPMCOUNTER10   'hB0A
+`define MHPMCOUNTER11   'hB0B
+`define MHPMCOUNTER12   'hB0C
+`define MHPMCOUNTER13   'hB0D
+`define MHPMCOUNTER14   'hB0E
+`define MHPMCOUNTER15   'hB0F
+`define MHPMCOUNTER16   'hB10
+`define MHPMCOUNTER17   'hB11
+`define MHPMCOUNTER18   'hB12
+`define MHPMCOUNTER19   'hB13
+`define MHPMCOUNTER20   'hB14
+`define MHPMCOUNTER21   'hB15
+`define MHPMCOUNTER22   'hB16
+`define MHPMCOUNTER23   'hB17
+`define MHPMCOUNTER24   'hB18
+`define MHPMCOUNTER25   'hB19
+`define MHPMCOUNTER26   'hB1A
+`define MHPMCOUNTER27   'hB1B
+`define MHPMCOUNTER28   'hB1C
+`define MHPMCOUNTER29   'hB1D
+`define MHPMCOUNTER20   'hB1E
+`define MHPMCOUNTER31   'hB1F
+`define MHPMCOUNTER3H    'hB83
+`define MHPMCOUNTER4H    'hB84
+`define MHPMCOUNTER5H    'hB85
+`define MHPMCOUNTER6H    'hB86
+`define MHPMCOUNTER7H    'hB87
+`define MHPMCOUNTER8H    'hB88
+`define MHPMCOUNTER9H    'hB89
+`define MHPMCOUNTER10H   'hB8A
+`define MHPMCOUNTER11H   'hB8B
+`define MHPMCOUNTER12H   'hB8C
+`define MHPMCOUNTER13H   'hB8D
+`define MHPMCOUNTER14H   'hB8E
+`define MHPMCOUNTER15H   'hB8F
+`define MHPMCOUNTER16H   'hB90
+`define MHPMCOUNTER17H   'hB91
+`define MHPMCOUNTER18H   'hB92
+`define MHPMCOUNTER19H   'hB93
+`define MHPMCOUNTER20H   'hB94
+`define MHPMCOUNTER21H   'hB95
+`define MHPMCOUNTER22H   'hB96
+`define MHPMCOUNTER23H   'hB97
+`define MHPMCOUNTER24H   'hB98
+`define MHPMCOUNTER25H   'hB99
+`define MHPMCOUNTER26H   'hB9A
+`define MHPMCOUNTER27H   'hB9B
+`define MHPMCOUNTER28H   'hB9C
+`define MHPMCOUNTER29H   'hB9D
+`define MHPMCOUNTER20H   'hB9E
+`define MHPMCOUNTER31H   'hB9F
+`define MCOUNTINHIBIT   'h320
+`define MHPMEVENT3    'h323
+`define MHPMEVENT4    'h324
+`define MHPMEVENT5    'h325
+`define MHPMEVENT6    'h326
+`define MHPMEVENT7    'h327
+`define MHPMEVENT8    'h328
+`define MHPMEVENT9    'h329
+`define MHPMEVENT10   'h32A
+`define MHPMEVENT11   'h32B
+`define MHPMEVENT12   'h32C
+`define MHPMEVENT13   'h32D
+`define MHPMEVENT14   'h32E
+`define MHPMEVENT15   'h32F
+`define MHPMEVENT16   'h330
+`define MHPMEVENT17   'h331
+`define MHPMEVENT18   'h332
+`define MHPMEVENT19   'h333
+`define MHPMEVENT20   'h334
+`define MHPMEVENT21   'h335
+`define MHPMEVENT22   'h336
+`define MHPMEVENT23   'h337
+`define MHPMEVENT24   'h338
+`define MHPMEVENT25   'h339
+`define MHPMEVENT26   'h33A
+`define MHPMEVENT27   'h33B
+`define MHPMEVENT28   'h33C
+`define MHPMEVENT29   'h33D
+`define MHPMEVENT20   'h33E
+`define MHPMEVENT31   'h33F
+////////////////////////////////////////////////////////////////////////////////////
+////////////////////////// Non-Standard User RW CSRS ///////////////////////////////
+`define CUSTOMCNTRL 'h800 // custom control register
+
