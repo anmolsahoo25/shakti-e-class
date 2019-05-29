@@ -135,7 +135,11 @@ package decompress;
   `define CJALR2      16'b1001??1??0000010
   `define CJALR3      16'b1001???1?0000010
   `define CJALR4      16'b1001????10000010
-  `define CADD        16'b1001??????????10  // subsumes CJR, CMV, CEBREAK, CJALR
+  `define CADD0        16'b1001?????1????10  // subsumes CJR, CMV, CEBREAK, CJALR
+  `define CADD1        16'b1001??????1???10  // subsumes CJR, CMV, CEBREAK, CJALR
+  `define CADD2        16'b1001???????1??10  // subsumes CJR, CMV, CEBREAK, CJALR
+  `define CADD3        16'b1001????????1?10  // subsumes CJR, CMV, CEBREAK, CJALR
+  `define CADD4        16'b1001?????????110  // subsumes CJR, CMV, CEBREAK, CJALR
   `define CFSDSP      16'b101???????????10
   `define CSWSP       16'b110???????????10
   `define CFSWSP      16'b111???????????10  // only in RV32
@@ -363,7 +367,11 @@ package decompress;
       `CJALR2     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
       `CJALR3     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
       `CJALR4     : return {`IMM_0            , `RS1    , `F3_JALR  , `RD_RA  , `OP_JALR    , 2'b11};
-      `CADD       : return {`F7_ADD   , `RS2  , `RS1    , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
+      `CADD0      : return {`F7_ADD   , `RS2  , `RS1    , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
+      `CADD1      : return {`F7_ADD   , `RS2  , `RS1    , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
+      `CADD2      : return {`F7_ADD   , `RS2  , `RS1    , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
+      `CADD3      : return {`F7_ADD   , `RS2  , `RS1    , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
+      `CADD4      : return {`F7_ADD   , `RS2  , `RS1    , `F3_ADD   , `RD     , `OP_ARITH   , 2'b11};
     `ifdef spfpu
       `CFSDSP     : return {`IMM_MEMDSP_hi , `RS2  ,  `RS1_SP, `F3_SD  ,`IMM_MEMDSP_lo  , `OP_FSTORES , 2'b11};
     `endif
