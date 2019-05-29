@@ -339,7 +339,7 @@ release-verilog-artifacts: generate_verilog generate_boot_files link_verilator
 	@cp ${CONFIG} verilog-artifacts/
 	@cp -r benchmarks verilog-artifacts/
 	@cp ${BSVOUTDIR}/boot.* verilog-artifacts/sim
-	@cp ${BSVOUTDIR}/out verilog-artifacts/sim/cclass
+	@cp ${BSVOUTDIR}/out verilog-artifacts/sim/eclass
 	@cp ${TOOLS_DIR}/shakti-tools/IITM_LICENSE.txt verilog-artifacts/LICENSE.txt
 	@mv verilog-artifacts ../
 
