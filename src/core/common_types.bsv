@@ -347,4 +347,29 @@ package common_types;
     endcase
   endfunction
 
+  // ------------ PMP related types ----------------//
+
+  typedef enum { OFF=0, TOR=1, NA4=2, NAPOT=3} PMPAddrMode deriving(Bits, Eq, FShow);
+
+  typedef struct{
+    Bool read;
+    Bool write;
+    Bool exec;
+    PMPAddrMode access;
+    Bool lock;
+  } PMPCfg deriving(Bits, FShow, Eq);
+
+  typedef struct{
+    Bit#(`paddr) address;
+    Bit#(6)      num_bytes;
+    Bit#(2)      access_type; // 0-load 1-store 2-fetch
+  } PMPReq deriving(Bits, FShow, Eq);
+
+  function PMPCfg fn_unpack_cfg(Bit#(8) cfg);
+    return PMPCfg{  read  : unpack(cfg[0]),
+                    write : unpack(cfg[1]),
+                    exec  : unpack(cfg[2]),
+                    access: unpack(cfg[4:3]),
+                    lock  : unpack(cfg[7])};
+  endfunction
 endpackage
