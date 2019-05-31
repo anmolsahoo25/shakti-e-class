@@ -629,14 +629,14 @@ package csrfile;
         if (addr == `PMPADDR5 && `PMPSIZE >5) data = zeroExtend(v_pmp_addr[5]);
         if (addr == `PMPADDR6 && `PMPSIZE >6) data = zeroExtend(v_pmp_addr[6]);
         if (addr == `PMPADDR7 && `PMPSIZE >7) data = zeroExtend(v_pmp_addr[7]);
-        if (addr == `PMPADDR8 && `PMPSIZE >7) data = zeroExtend(v_pmp_addr[8]);
-        if (addr == `PMPADDR9 && `PMPSIZE >8) data = zeroExtend(v_pmp_addr[9]);
-        if (addr == `PMPADDR10 && `PMPSIZE >10) data = zeroExtend(v_pmp_addr[11]);
-        if (addr == `PMPADDR11 && `PMPSIZE >11) data = zeroExtend(v_pmp_addr[12]);
-        if (addr == `PMPADDR12 && `PMPSIZE >12) data = zeroExtend(v_pmp_addr[13]);
-        if (addr == `PMPADDR13 && `PMPSIZE >13) data = zeroExtend(v_pmp_addr[14]);
-        if (addr == `PMPADDR14 && `PMPSIZE >14) data = zeroExtend(v_pmp_addr[15]);
-        if (addr == `PMPADDR15 && `PMPSIZE >15) data = zeroExtend(v_pmp_addr[16]);
+        if (addr == `PMPADDR8 && `PMPSIZE >8) data = zeroExtend(v_pmp_addr[8]);
+        if (addr == `PMPADDR9 && `PMPSIZE >9) data = zeroExtend(v_pmp_addr[9]);
+        if (addr == `PMPADDR10 && `PMPSIZE >10) data = zeroExtend(v_pmp_addr[10]);
+        if (addr == `PMPADDR11 && `PMPSIZE >11) data = zeroExtend(v_pmp_addr[11]);
+        if (addr == `PMPADDR12 && `PMPSIZE >12) data = zeroExtend(v_pmp_addr[12]);
+        if (addr == `PMPADDR13 && `PMPSIZE >13) data = zeroExtend(v_pmp_addr[13]);
+        if (addr == `PMPADDR14 && `PMPSIZE >14) data = zeroExtend(v_pmp_addr[14]);
+        if (addr == `PMPADDR15 && `PMPSIZE >15) data = zeroExtend(v_pmp_addr[15]);
     `endif
         // =============== User level CSRs ================//
         `ifdef usertraps
