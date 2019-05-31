@@ -49,6 +49,10 @@ package eclass;
   import debug_types::*;
 `endif
 
+`ifdef pmp
+  import pmp_func :: *;
+`endif
+
   export Ifc_eclass_axi4    (..);
   export mkeclass_axi4;
   export DumpType (..);
@@ -145,6 +149,13 @@ package eclass;
         Bit#(TSub#(`vaddr, `paddr )) upper_bits = truncateLSB(req.addr);
         err = (|upper_bits == 1);
       end
+    `ifdef pmp
+      let pmpreq = PMPReq{ address: truncate(req.addr), num_bytes: 4, access_type:2};
+      let {pmp_error, pmp_cause} = fn_pmp_lookup(pmpreq, unpack(riscv.mv_curr_priv), 
+                                                riscv.mv_pmp_cfg, riscv.mv_pmp_addr);
+      if(!err)
+        err = pmp_error;
+    `endif
       if (!err) begin
         AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), 
                                                 aruser: ?, arlen : 0, arsize : 2, arburst : 'b01, 
@@ -200,6 +211,14 @@ package eclass;
       if(req.size != 3)begin			// 8 - bit write;
         write_strobe = write_strobe<<byte_offset;
       end
+    `ifdef pmp
+      let pmpreq = PMPReq{ address: truncate(req.addr), num_bytes: 4, 
+                          access_type:req.memaccess == Load?0:1};
+      let {pmp_error, pmp_cause} = fn_pmp_lookup(pmpreq, unpack(riscv.mv_curr_priv), 
+                                                riscv.mv_pmp_cfg, riscv.mv_pmp_addr);
+      if(pmp_error)
+        req.addr = 0;
+    `endif
       if (rg_wEpoch[1] == req.epoch) begin
         if(req.memaccess != Store) begin
           `ifdef perfmonitors

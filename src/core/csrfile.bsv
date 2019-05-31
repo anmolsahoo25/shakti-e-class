@@ -147,8 +147,8 @@ package csrfile;
     (*always_ready, always_enabled*)
     method Bool mv_interrupt;
   `ifdef pmp
-    method Vector#(`PMPSIZE, Bit#(8)) pmp_cfg;
-    method Vector#(`PMPSIZE, Bit#(`paddr )) pmp_addr;
+    method Vector#(`PMPSIZE, Bit#(8)) mv_pmp_cfg;
+    method Vector#(`PMPSIZE, Bit#(TSub#(`paddr,2))) mv_pmp_addr;
   `endif
   `ifdef debug
     method Action debug_halt_request(Bit#(1) ip);
@@ -376,7 +376,7 @@ package csrfile;
     ///////////////////////////// Physical Memory Protection /////////////////////////////////
     `ifdef pmp
       Vector#(`PMPSIZE, Reg#(Bit#(8))) v_pmp_cfg <- replicateM(mkReg(0));
-      Vector#(`PMPSIZE, Reg#(Bit#(`paddr ))) v_pmp_addr <- replicateM(mkReg(0));
+      Vector#(`PMPSIZE, Reg#(Bit#(TSub#(`paddr,2)))) v_pmp_addr <- replicateM(mkReg(0));
     `ifdef RV64
       Bit#(XLEN) csr_pmpcfg0 = 0;
       Bit#(XLEN) csr_pmpcfg2 = 0;
@@ -387,7 +387,7 @@ package csrfile;
           csr_pmpcfg2[(i - 8) * 8+7 : (i - 8) * 8] = v_pmp_cfg[i];
       end
 
-  `else RV32
+    `else
       Bit#(XLEN) csr_pmpcfg0 = 0;
       Bit#(XLEN) csr_pmpcfg1 = 0;
       Bit#(XLEN) csr_pmpcfg2 = 0;
@@ -1287,8 +1287,8 @@ package csrfile;
     method Bit#(1) mv_arithtrap_en = rg_customcontrol[3];
   `endif
   `ifdef pmp
-    method pmp_cfg = readVReg(v_pmp_cfg);
-    method pmp_addr = readVReg(v_pmp_addr);
+    method mv_pmp_cfg = readVReg(v_pmp_cfg);
+    method mv_pmp_addr = readVReg(v_pmp_addr);
   `endif
   `ifdef debug
     method Action debug_halt_request(Bit#(1) ip);

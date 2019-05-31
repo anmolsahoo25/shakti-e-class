@@ -34,4 +34,5 @@ TRIGGERS=2
 COUNTERS=0
 
 # pmpsize
-PMPSIZE=2
+PMP=enable
+PMPSIZE=4

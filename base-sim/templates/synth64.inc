@@ -32,3 +32,7 @@ TRIGGERS=2
 
 # performance counters
 COUNTERS=4
+
+# pmp
+PMP=enable
+PMPSIZE=4
