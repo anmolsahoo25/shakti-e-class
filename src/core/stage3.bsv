@@ -103,6 +103,10 @@ package stage3;
     method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(64))) counter_values;
   `endif
 `endif
+  `ifdef pmp
+    method Vector#(`PMPSIZE, Bit#(8)) mv_pmp_cfg;
+    method Vector#(`PMPSIZE, Bit#(TSub#(`paddr,2))) mv_pmp_addr;
+  `endif
   endinterface : Ifc_stage3
 
   (*synthesize*)
@@ -366,6 +370,10 @@ package stage3;
     method counter_values = csr.counter_values;
   `endif
 `endif
+  `ifdef pmp
+    method mv_pmp_cfg  = csr.mv_pmp_cfg;
+    method mv_pmp_addr = csr.mv_pmp_addr;
+  `endif
 
   endmodule : mkstage3
 endpackage : stage3

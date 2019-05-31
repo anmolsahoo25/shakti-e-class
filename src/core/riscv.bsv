@@ -89,6 +89,10 @@ package riscv;
     method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(64))) counter_values;
   `endif
 `endif
+  `ifdef pmp
+    method Vector#(`PMPSIZE, Bit#(8)) mv_pmp_cfg;
+    method Vector#(`PMPSIZE, Bit#(TSub#(`paddr,2))) mv_pmp_addr;
+  `endif
   endinterface : Ifc_riscv
 
   (*synthesize*)
@@ -228,5 +232,9 @@ package riscv;
     method counter_values = stage3.counter_values;
   `endif
 `endif
+  `ifdef pmp
+    method mv_pmp_cfg  = stage3.mv_pmp_cfg;
+    method mv_pmp_addr = stage3.mv_pmp_addr;
+  `endif
   endmodule : mkriscv
 endpackage : riscv

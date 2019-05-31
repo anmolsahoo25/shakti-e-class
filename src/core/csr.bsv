@@ -67,8 +67,8 @@ package csr;
     method Bit#(2) mv_curr_priv;
     method Bit#(XLEN) csr_mstatus;
   `ifdef pmp
-    method Vector#(`PMPSIZE, Bit#(8)) pmp_cfg;
-    method Vector#(`PMPSIZE, Bit#(`paddr )) pmp_addr;
+    method Vector#(`PMPSIZE, Bit#(8)) mv_pmp_cfg;
+    method Vector#(`PMPSIZE, Bit#(TSub#(`paddr,2))) mv_pmp_addr;
   `endif
 
   `ifdef debug
@@ -163,8 +163,8 @@ package csr;
     method mv_curr_priv = csrfile.mv_curr_priv;
     method csr_mstatus = csrfile.csr_mstatus;
   `ifdef pmp
-    method pmp_cfg = csrfile.pmp_cfg;
-    method pmp_addr = csrfile.pmp_addr;
+    method mv_pmp_cfg = csrfile.mv_pmp_cfg;
+    method mv_pmp_addr = csrfile.mv_pmp_addr;
   `endif
   `ifdef debug
     method ActionValue#(Bit#(XLEN)) mav_debug_access_csrs(AbstractRegOp cmd);
