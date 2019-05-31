@@ -43,9 +43,6 @@ for_merge:
     only:
         refs:
             - merge_requests
-        changes:
-            - src/core/*
-            - base-sim/*
     tags:
         - core-runner
     when: manual
