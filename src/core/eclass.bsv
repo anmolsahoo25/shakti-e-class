@@ -212,7 +212,7 @@ package eclass;
         write_strobe = write_strobe<<byte_offset;
       end
     `ifdef pmp
-      let pmpreq = PMPReq{ address: truncate(req.addr), num_bytes: 4, 
+      let pmpreq = PMPReq{ address: truncate(req.addr), num_bytes: zeroExtend(req.size[1:0]), 
                           access_type:req.memaccess == Load?0:1};
       let {pmp_error, pmp_cause} = fn_pmp_lookup(pmpreq, unpack(riscv.mv_curr_priv), 
                                                 riscv.mv_pmp_cfg, riscv.mv_pmp_addr);
