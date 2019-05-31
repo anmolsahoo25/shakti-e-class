@@ -45,13 +45,15 @@ package pmp_func;
   This function will perform a pmp lookup on all entries and return a boolean indicating
   if an access fault occurs along with the respective cause value*/
   function Tuple2#(Bool, Bit#(`causesize)) fn_pmp_lookup( PMPReq req, Privilege_mode priv,
-                                                          Vector#(`PMPSIZE, Bit#(8)) pmpcfg,
-                                                          Vector#(`PMPSIZE, Bit#(`paddr)) pmpaddr);
+                                                Vector#(`PMPSIZE, Bit#(8)) pmpcfg,
+                                                Vector#(`PMPSIZE, Bit#(TSub#(`paddr, 2))) pmpaddr);
     Bit#(`causesize) cause = case(req.access_type) 
       'd0 : `Load_access_fault;
       'd1 : `Store_access_fault;
       default : `Inst_access_fault; 
     endcase;
+    Bit#(`paddr) reqbase = req.address;
+    Bit#(`paddr) reqtop  = req.address + zeroExtend(req.num_bytes);
   
     /*doc:func: 
     function to perform a single pmp check. This function is mapped to all entries of the pmp. This
@@ -65,8 +67,8 @@ package pmp_func;
     For access_trap: If lock is cleared and priv == Machine, then no trap is generated. In all other
     cases the access permissions are checked to see if an access fault should be generated or not.
     */
-    function Tuple2#(Bool, Bool) fn_single_lookup( PMPCfg cfg, Bit#(`paddr) addr, 
-                                                    Bit#(`paddr) bottom);
+    function Tuple2#(Bool, Bool) fn_single_lookup( PMPCfg cfg, Bit#(TSub#(`paddr, 2)) addr, 
+                                                    Bit#(TSub#(`paddr, 2)) bottom);
 
       Bool access_trap =  (!(!cfg.lock && priv == Machine) &&
                             ((req.access_type == 0 && !cfg.read)  ||
@@ -74,14 +76,12 @@ package pmp_func;
                             (req.access_type == 2 && !cfg.exec)) );
 
       Bit#(`paddr) mask = ((~0) << 3) << countZerosLSB(~addr);
-      Bit#(`paddr) reqbase = req.address;
-      Bit#(`paddr) reqtop = req.address + zeroExtend(req.num_bytes);
 
       Bool address_match = case(cfg.access)
-        TOR   : (bottom <= reqbase && reqtop <= addr);
-        NA4   : (addr == reqbase && bottom == addr);
-        NAPOT : ( ((addr & mask) == (reqbase & mask)) && 
-                  ((addr & mask) == (reqtop  & mask)) );
+        TOR   : ({bottom, 2'b00} <= reqbase && reqtop <= {addr, 2'b00});
+        NA4   : ({addr, 2'b00} == reqbase && reqtop == {addr, 2'b00});
+        NAPOT : ( (({addr, 2'b00} & mask) == (reqbase & mask)) && 
+                  (({addr, 2'b00} & mask) == (reqtop  & mask)) );
         OFF   : False;
       endcase;
       return tuple2(address_match, access_trap);  
