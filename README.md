@@ -46,7 +46,7 @@ sudo make install NO_PYTHON=1 PREFIX=/usr/
 
 ## Directory Structure
     ├── src                     # dir: Source code of the core, uncore and devices
-    │   ├── core                # dir: c-class core
+    │   ├── core                # dir: e-class core
     │   │   ├── m_ext           # dir: modules for M extension support
     ├── base-sim                # Contains a base SoC and setup to simulate and verify the core. 
     ├── docs		            # Contains more info about the core and the environment.
