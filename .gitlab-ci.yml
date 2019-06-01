@@ -63,7 +63,6 @@ release:
       name: verilog-artifacts
       paths:
         - ./verilog-artifacts
-            - ./verilog-artifacts
     except:
       - schedules
 #build32:
