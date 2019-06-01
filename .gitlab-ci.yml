@@ -19,9 +19,6 @@ build64:
     only:
         refs:
             - master
-        changes:
-            - src/core/*
-            - base-sim/*
     tags:
         - core-runner
 
@@ -60,15 +57,15 @@ release:
     only:
         refs:
             - master
-        changes:
-            - src/core/*
-            - base-sim/*
     tags:
         - core-runner
     artifacts:
       name: verilog-artifacts
       paths:
         - ./verilog-artifacts
+            - ./verilog-artifacts
+    except:
+      - schedules
 #build32:
 #    variables:
 #        GIT_SUBMODULE_STRATEGY: recursive
