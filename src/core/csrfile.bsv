@@ -1083,16 +1083,15 @@ package csrfile;
         csr_misa : misa,
       `ifdef RV64
         csr_mstatus:{sd, 27'd0, 2'd0, uxl, 9'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp,
-                      hpp, spp, rg_mpie, hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie},
+                      hpp, spp, rg_mpie, hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie}
       `else
         csr_mstatus: {'d0, sd, 8'd0, tsr, tw, tvm, mxr, sum, rg_mprv, xs, fs, rg_mpp, hpp, spp, 
-                      rg_mpie, hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie},
+                      rg_mpie, hpie, spie, rg_upie, rg_mie, hie, sie, rg_uie}
       `endif
       `ifdef usertraps
-        csr_uie : csr_uie,
-        csr_uip : csr_uip,
+        ,csr_uie : csr_uie
+        ,csr_uip : csr_uip
       `endif
-        frm : frm
       `ifdef debug
         ,csr_dcsr : rg_csr_dcsr
       `endif };

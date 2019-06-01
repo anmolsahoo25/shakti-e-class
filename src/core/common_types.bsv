@@ -297,7 +297,6 @@ package common_types;
   `endif
     Bit#(26) csr_misa;
     Bit#(XLEN) csr_mstatus;
-    Bit#(3) frm;
   `ifdef debug
     Bit#(32)  csr_dcsr;
   `endif } CSRtoDecode deriving(Bits, Eq, FShow);
