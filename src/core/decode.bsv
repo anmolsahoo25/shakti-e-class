@@ -240,7 +240,6 @@ package decode;
                                     `ifdef compressed , Bool compressed `endif );
 
     Bit#(1) fs = |csrs.csr_mstatus[14 : 13];
-    Bit#(3) frm = csrs.frm;
 
   `ifdef debug
     Bool ebreakm = unpack(csrs.csr_dcsr[15]);
