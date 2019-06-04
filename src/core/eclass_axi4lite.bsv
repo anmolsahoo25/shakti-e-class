@@ -28,7 +28,7 @@ Details:
 
 --------------------------------------------------------------------------------------------------
  */
-package eclass;
+package eclass_axi4lite;
 
   // library imports
   import FIFOF::*;
@@ -39,8 +39,8 @@ package eclass;
 
   // project imports
   import Semi_FIFOF:: *;
-  import AXI4_Types:: *;
-  import AXI4_Fabric:: *;
+  import AXI4_Lite_Types:: *;
+  import AXI4_Lite_Fabric:: *;
   import riscv:: * ;
   import common_types:: * ;
   `include "common_params.bsv"
@@ -53,15 +53,15 @@ package eclass;
   import pmp_func :: *;
 `endif
 
-  export Ifc_eclass_axi4    (..);
-  export mkeclass_axi4;
+  export Ifc_eclass_axi4lite    (..);
+  export mkeclass_axi4lite;
   export DumpType (..);
 
   typedef enum {Request, Response} TxnState deriving(Bits, Eq, FShow);
 
-  interface Ifc_eclass_axi4;
-    interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) master_d;
-    interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) master_i;
+  interface Ifc_eclass_axi4lite;
+    interface AXI4_Lite_Master_IFC#(`paddr, XLEN, USERSPACE) master_d;
+    interface AXI4_Lite_Master_IFC#(`paddr, XLEN, USERSPACE) master_i;
     interface Put#(Bit#(1)) sb_clint_msip;
     interface Put#(Bit#(1)) sb_clint_mtip;
     interface Put#(Bit#(64)) sb_clint_mtime;
@@ -77,7 +77,7 @@ package eclass;
     method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(64))) counter_values;
   `endif
 `endif
-  endinterface : Ifc_eclass_axi4
+  endinterface : Ifc_eclass_axi4lite
 
 `ifdef atomic
   function Bit#(XLEN) fn_atomic_op (Bit#(5) op,  Bit#(XLEN) rs2, Bit#(XLEN) loaded);
@@ -107,14 +107,16 @@ package eclass;
 
 
   (*synthesize*)
-  module mkeclass_axi4#(parameter Bit#(`vaddr) resetpc) (Ifc_eclass_axi4);
+  module mkeclass_axi4lite#(parameter Bit#(`vaddr) resetpc) (Ifc_eclass_axi4lite);
 
     String eclass = ""; // for logger
 
 
     Ifc_riscv riscv <- mkriscv(resetpc);
-    AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) fetch_xactor <- mkAXI4_Master_Xactor;
-    AXI4_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) memory_xactor <- mkAXI4_Master_Xactor;
+    AXI4_Lite_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) fetch_xactor <- 
+                                                                        mkAXI4_Lite_Master_Xactor;
+    AXI4_Lite_Master_Xactor_IFC #(`paddr, XLEN, USERSPACE) memory_xactor <- 
+                                                                        mkAXI4_Lite_Master_Xactor;
 
     Reg#(Bit#(1)) rg_wEpoch[2] <- mkCReg(2,0);
 
@@ -157,9 +159,9 @@ package eclass;
         err = pmp_error;
     `endif
       if (!err) begin
-        AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), 
-                                                aruser: ?, arlen : 0, arsize : 2, arburst : 'b01, 
-                                                arid : 0, arprot: {1'b0, 1'b0, curr_priv[1]}};
+        AXI4_Lite_Rd_Addr#(`paddr, 0) read_request = AXI4_Lite_Rd_Addr {araddr : truncate(req.addr),
+                                                aruser: ?, arsize : 2, 
+                                                arprot: {1'b0, 1'b0, curr_priv[1]}};
         fetch_xactor.i_rd_addr.enq(read_request);
         `logLevel( eclass, 0, $format("CORE : Fetch Request ", fshow(read_request)))
       end
@@ -176,7 +178,7 @@ package eclass;
       Bit#(TLog#(TDiv#(XLEN, 8))) lower_addr_bits = truncate(ff_inst_request.first.addr); 
       Bit#(TAdd#(TLog#(TDiv#(XLEN, 8)), 3)) lv_shift = {lower_addr_bits, 3'd0};
       let lv_data = response.rdata >> lv_shift;
-      Bool bus_error = !(response.rresp == AXI4_OKAY);
+      Bool bus_error = !(response.rresp == AXI4_LITE_OKAY);
       if (bus_error)
         lv_data = zeroExtend(ff_inst_request.first.addr);
       riscv.inst_response.put(InstResponse{inst : truncate(lv_data), err : bus_error, 
@@ -224,9 +226,9 @@ package eclass;
           `ifdef perfmonitors
             riscv.ma_event_loads(1);
           `endif
-          AXI4_Rd_Addr#(`paddr, 0) read_request = AXI4_Rd_Addr {araddr : truncate(req.addr), 
-                aruser : 0, arlen : 0, arsize : zeroExtend(req.size[1 : 0]), arburst : 'b01, 
-                arid : 0, arprot: {1'b0, 1'b0,1'b1}};
+          AXI4_Lite_Rd_Addr#(`paddr, 0) read_request = AXI4_Lite_Rd_Addr {
+                araddr : truncate(req.addr), aruser : 0, arsize : zeroExtend(req.size[1 : 0]), 
+                arprot: {1'b0, 1'b0,1'b1}};
           memory_xactor.i_rd_addr.enq(read_request);	
           `logLevel( eclass, 0, $format("CORE : Memory Read Request ", fshow(read_request)))
         end
@@ -234,10 +236,10 @@ package eclass;
           `ifdef perfmonitors
             riscv.ma_event_stores(1);
           `endif
-          AXI4_Wr_Addr#(`paddr, 0) aw = AXI4_Wr_Addr {awaddr : truncate(req.addr), awuser : 0, 
-                awlen : 0, awsize : zeroExtend(req.size[1 : 0]), awburst : 'b01, awid : 0,
-                awprot: {1'b0, 1'b0,1'b1} };
-          let w  = AXI4_Wr_Data {wdata : req.data, wstrb : write_strobe, wlast : True, wid : 0};
+          AXI4_Lite_Wr_Addr#(`paddr, 0) aw = AXI4_Lite_Wr_Addr {awaddr : truncate(req.addr), 
+                awuser : 0, awsize : zeroExtend(req.size[1 : 0]), 
+                awprot: {1'b0, 1'b0,1'b1} }; // TODO
+          let w  = AXI4_Lite_Wr_Data {wdata : req.data, wstrb : write_strobe};
           memory_xactor.i_wr_addr.enq(aw);
           memory_xactor.i_wr_data.enq(w);
           `logLevel( eclass, 0 , $format("CORE : Memory write Request ", fshow(aw)))
@@ -251,7 +253,7 @@ package eclass;
     rule handle_memoryRead_response( ff_mem_request.first.memaccess == Load );
       let req =  ff_mem_request.first;
       let response <- pop_o (memory_xactor.o_rd_data);	
-      let bus_error = !(response.rresp == AXI4_OKAY);
+      let bus_error = !(response.rresp == AXI4_LITE_OKAY);
       Bit#(TLog#(TDiv#(XLEN, 8))) lower_addr_bits = truncate(ff_mem_request.first.addr); 
       Bit#(TAdd#(TLog#(TDiv#(XLEN, 8)), 3)) lv_shift = {lower_addr_bits, 3'd0};
       let rdata = response.rdata >> lv_shift;
@@ -274,7 +276,7 @@ package eclass;
     rule handle_memoryWrite_response( ff_mem_request.first.memaccess == Store );
       let req =  ff_mem_request.first;
       let response <- pop_o(memory_xactor.o_wr_resp);
-      let bus_error = !(response.bresp == AXI4_OKAY);
+      let bus_error = !(response.bresp == AXI4_LITE_OKAY);
       Bit#(XLEN) data = 0;
       if(bus_error)
         data = zeroExtend(ff_mem_request.first.addr);
@@ -287,7 +289,7 @@ package eclass;
                                     !ff_atomic_state.notEmpty );
       let req =  ff_mem_request.first;
       let response <- pop_o (memory_xactor.o_rd_data);	
-      let bus_error = !(response.rresp == AXI4_OKAY);
+      let bus_error = !(response.rresp == AXI4_LITE_OKAY);
       Bit#(TLog#(TDiv#(XLEN, 8))) lower_addr_bits = truncate(ff_mem_request.first.addr); 
       Bit#(TAdd#(TLog#(TDiv#(XLEN, 8)), 3)) lv_shift = {lower_addr_bits, 3'd0};
       let rdata = response.rdata >> lv_shift;
@@ -309,10 +311,10 @@ package eclass;
           write_strobe = write_strobe<<byte_offset;
           wdata = duplicate(wdata[31:0]);
         end
-        AXI4_Wr_Addr#(`paddr, 0) aw = AXI4_Wr_Addr {awaddr : truncate(req.addr), awuser : 0, 
-              awlen : 0, awsize : zeroExtend(req.size[1 : 0]), awburst : 'b01, awid : 0,
+        AXI4_Lite_Wr_Addr#(`paddr, 0) aw = AXI4_Lite_Wr_Addr {awaddr : truncate(req.addr), 
+              awuser : 0, awsize : zeroExtend(req.size[1 : 0]), 
               awprot: {1'b0, 1'b0, curr_priv[1]} };
-        let w  = AXI4_Wr_Data {wdata : wdata, wstrb : write_strobe, wlast : True, wid : 0};
+        let w  = AXI4_Lite_Wr_Data {wdata : wdata, wstrb : write_strobe};
         memory_xactor.i_wr_addr.enq(aw);
         memory_xactor.i_wr_data.enq(w);
       end
@@ -321,7 +323,7 @@ package eclass;
     rule handle_atomic_writeresponse( ff_mem_request.first.memaccess == Atomic);
       let req =  ff_mem_request.first;
       let response <- pop_o(memory_xactor.o_wr_resp);
-      let bus_error = !(response.bresp == AXI4_OKAY);
+      let bus_error = !(response.bresp == AXI4_LITE_OKAY);
       Bit#(XLEN) data = ff_atomic_state.first;
       if(bus_error)
         data = zeroExtend(ff_mem_request.first.addr);
@@ -395,5 +397,5 @@ package eclass;
     method counter_values = riscv.counter_values;
   `endif
 `endif
-  endmodule : mkeclass_axi4
+  endmodule : mkeclass_axi4lite
 endpackage

@@ -31,9 +31,15 @@ Details:
 package Soc;
   // project related imports
   import Semi_FIFOF:: *;
+`ifdef CORE_AXI4
   import AXI4_Types:: *;
   import AXI4_Fabric:: *;
-  import eclass:: * ;
+  import eclass_axi4:: * ;
+`elsif CORE_AXI4Lite
+  import AXI4_Lite_Types:: *;
+  import AXI4_Lite_Fabric:: *;
+  import eclass_axi4lite:: * ;
+`endif
   import common_types:: * ;
   import Clocks :: *;
   `include "common_params.bsv"
@@ -89,8 +95,13 @@ package Soc;
   `ifdef rtldump
     interface Get#(DumpType) io_dump;
   `endif
+  `ifdef CORE_AXI4
     interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) main_mem_master;
     interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) boot_mem_master;
+  `elsif CORE_AXI4Lite
+    interface AXI4_Lite_Master_IFC#(`paddr, XLEN, USERSPACE) main_mem_master;
+    interface AXI4_Lite_Master_IFC#(`paddr, XLEN, USERSPACE) boot_mem_master;
+  `endif
     interface RS232 uart_io;
   `ifdef debug
       // ------------- JTAG IOs ----------------------//
@@ -116,18 +127,33 @@ package Soc;
   module mkSoc#(Clock tck_clk, Reset trst)(Ifc_Soc);
     let curr_clk<-exposeCurrentClock;
     let curr_reset<-exposeCurrentReset;
-
+`ifdef CORE_AXI4
     AXI4_Fabric_IFC #(Num_Masters, `Num_Slaves, `paddr, XLEN, USERSPACE) 
                                                     fabric <- mkAXI4_Fabric(fn_slave_map);
 
     Ifc_eclass_axi4 eclass <- mkeclass_axi4(`resetpc);
-    Ifc_sign_dump signature<- mksign_dump();
+    Ifc_sign_dump_axi4 signature<- mksign_dump_axi4();
   `ifdef debug
     Ifc_debug_halt_loop#(`paddr, XLEN, USERSPACE) debug_memory <- mkdebug_halt_loop;
   `endif
     Ifc_uart_axi4#(`paddr,XLEN,0, 16) uart <- mkuart_axi4(curr_clk,curr_reset, 5);
     Ifc_clint_axi4#(`paddr, XLEN, 0, 1, 16) clint <- mkclint_axi4();
     Ifc_err_slave_axi4#(`paddr,XLEN,0) err_slave <- mkerr_slave_axi4;
+
+`elsif CORE_AXI4Lite
+
+    AXI4_Lite_Fabric_IFC #(Num_Masters, `Num_Slaves, `paddr, XLEN, USERSPACE) 
+                                                    fabric <- mkAXI4_Lite_Fabric(fn_slave_map);
+
+    Ifc_eclass_axi4lite eclass <- mkeclass_axi4lite(`resetpc);
+    Ifc_sign_dump_axi4lite signature<- mksign_dump_axi4lite();
+  `ifdef debug
+    Ifc_debug_halt_loop#(`paddr, XLEN, USERSPACE) debug_memory <- mkdebug_halt_loop;
+  `endif
+    Ifc_uart_axi4lite#(`paddr,XLEN,0, 16) uart <- mkuart_axi4lite(curr_clk,curr_reset, 5);
+    Ifc_clint_axi4lite#(`paddr, XLEN, 0, 1, 16) clint <- mkclint_axi4lite();
+    Ifc_err_slave_axi4lite#(`paddr,XLEN,0) err_slave <- mkerr_slave_axi4lite;
+`endif
 
     // -------------------------------- JTAG + Debugger Setup ---------------------------------- //
 `ifdef debug
