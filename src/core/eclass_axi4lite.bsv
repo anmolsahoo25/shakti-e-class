@@ -226,8 +226,9 @@ package eclass_axi4lite;
           `ifdef perfmonitors
             riscv.ma_event_loads(1);
           `endif
-          AXI4_Lite_Rd_Addr#(`paddr, 0) read_request = AXI4_Lite_Rd_Addr {araddr : truncate(req.addr), 
-                aruser : 0, arsize : zeroExtend(req.size[1 : 0]), arprot: {1'b0, 1'b0,1'b1}};
+          AXI4_Lite_Rd_Addr#(`paddr, 0) read_request = AXI4_Lite_Rd_Addr {
+                araddr : truncate(req.addr), aruser : 0, arsize : zeroExtend(req.size[1 : 0]), 
+                arprot: {1'b0, 1'b0,1'b1}};
           memory_xactor.i_rd_addr.enq(read_request);	
           `logLevel( eclass, 0, $format("CORE : Memory Read Request ", fshow(read_request)))
         end
@@ -235,8 +236,9 @@ package eclass_axi4lite;
           `ifdef perfmonitors
             riscv.ma_event_stores(1);
           `endif
-          AXI4_Lite_Wr_Addr#(`paddr, 0) aw = AXI4_Lite_Wr_Addr {awaddr : truncate(req.addr), awuser : 0, 
-                awsize : zeroExtend(req.size[1 : 0]), awprot: {1'b0, 1'b0,1'b1} }; // TODO
+          AXI4_Lite_Wr_Addr#(`paddr, 0) aw = AXI4_Lite_Wr_Addr {awaddr : truncate(req.addr), 
+                awuser : 0, awsize : zeroExtend(req.size[1 : 0]), 
+                awprot: {1'b0, 1'b0,1'b1} }; // TODO
           let w  = AXI4_Lite_Wr_Data {wdata : req.data, wstrb : write_strobe};
           memory_xactor.i_wr_addr.enq(aw);
           memory_xactor.i_wr_data.enq(w);
@@ -309,8 +311,9 @@ package eclass_axi4lite;
           write_strobe = write_strobe<<byte_offset;
           wdata = duplicate(wdata[31:0]);
         end
-        AXI4_Lite_Wr_Addr#(`paddr, 0) aw = AXI4_Lite_Wr_Addr {awaddr : truncate(req.addr), awuser : 0, 
-              awsize : zeroExtend(req.size[1 : 0]), awprot: {1'b0, 1'b0, curr_priv[1]} };
+        AXI4_Lite_Wr_Addr#(`paddr, 0) aw = AXI4_Lite_Wr_Addr {awaddr : truncate(req.addr), 
+              awuser : 0, awsize : zeroExtend(req.size[1 : 0]), 
+              awprot: {1'b0, 1'b0, curr_priv[1]} };
         let w  = AXI4_Lite_Wr_Data {wdata : wdata, wstrb : write_strobe};
         memory_xactor.i_wr_addr.enq(aw);
         memory_xactor.i_wr_data.enq(w);
