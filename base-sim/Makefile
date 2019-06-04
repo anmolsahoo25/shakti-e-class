@@ -53,9 +53,6 @@ endif
 ifeq ($(SYNTH),SIM)
   override define_macros += -D simulate=True
 endif
-ifeq ($(COREFABRIC), AXI4Lite)
-  override define_macros += -D CORE_AXI4Lite=True
-endif
 ifeq ($(USERTRAPS), enable)
   override define_macros += -D usertraps=True
 endif

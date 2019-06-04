@@ -33,8 +33,13 @@ package TbSoc;
   import Clocks::*;
   import GetPut:: *;
   import Semi_FIFOF:: *;
+`ifdef CORE_AXI4
   import AXI4_Types:: *;
   import AXI4_Fabric:: *;
+`elsif CORE_AXI4Lite
+  import AXI4_Lite_Types:: *;
+  import AXI4_Lite_Fabric:: *;
+`endif
   import uart::*;
   import common_types::*;
   `include "common_params.bsv"
@@ -66,10 +71,15 @@ package TbSoc;
     Reg#(Bool) rg_read_rx<- mkDReg(False);
 
     Reg#(Bit#(5)) rg_cnt <-mkReg(0);
- 		
+  `ifdef CORE_AXI4	
     Ifc_bram_axi4#(`paddr, XLEN, USERSPACE, `Addr_space) main_memory <- mkbram_axi4(`MemoryBase, 
                                                 "code.mem.MSB", "code.mem.LSB", "MainMEM");
     Ifc_bootrom_axi4#(`paddr, XLEN, USERSPACE, 13) bootrom <-mkbootrom_axi4(`BootRomBase);
+  `elsif CORE_AXI4Lite
+    Ifc_bram_axi4lite#(`paddr, XLEN, USERSPACE, `Addr_space) main_memory <- 
+                          mkbram_axi4lite(`MemoryBase, "code.mem.MSB", "code.mem.LSB", "MainMEM");
+    Ifc_bootrom_axi4lite#(`paddr, XLEN, USERSPACE, 13) bootrom <-mkbootrom_axi4lite(`BootRomBase);
+  `endif
 
     mkConnection(soc.main_mem_master, main_memory.slave);
     mkConnection(soc.boot_mem_master, bootrom.slave);
