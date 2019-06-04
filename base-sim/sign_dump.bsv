@@ -44,12 +44,13 @@ package sign_dump;
   import AXI4_Lite_Fabric:: *;
   import Semi_FIFOF:: *;
 
+`ifdef CORE_AXI4
   interface Ifc_sign_dump_axi4;
     interface AXI4_Master_IFC#(`paddr, XLEN, USERSPACE) master;
     interface AXI4_Slave_IFC#(`paddr, XLEN, USERSPACE) slave;
     method Bool mv_end_simulation;
   endinterface
-
+  (*synthesize*)
   module mksign_dump_axi4(Ifc_sign_dump_axi4);
     let word_count = 128/valueOf(XLEN);
 
@@ -132,13 +133,14 @@ package sign_dump;
     interface slave=s_xactor.axi_side;
     method mv_end_simulation = rg_end_sim[1];
   endmodule
-  
+`elsif CORE_AXI4Lite
   interface Ifc_sign_dump_axi4lite;
     interface AXI4_Lite_Master_IFC#(`paddr, XLEN, USERSPACE) master;
     interface AXI4_Lite_Slave_IFC#(`paddr, XLEN, USERSPACE) slave;
     method Bool mv_end_simulation;
   endinterface
-  
+ 
+  (*synthesize*)
   module mksign_dump_axi4lite(Ifc_sign_dump_axi4lite);
     let word_count = 128/valueOf(XLEN);
 
@@ -221,4 +223,5 @@ package sign_dump;
     interface slave=s_xactor.axi_side;
     method mv_end_simulation = rg_end_sim[1];
   endmodule
+`endif
 endpackage
