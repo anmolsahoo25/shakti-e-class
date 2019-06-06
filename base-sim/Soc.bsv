@@ -34,11 +34,9 @@ package Soc;
 `ifdef CORE_AXI4
   import AXI4_Types:: *;
   import AXI4_Fabric:: *;
-  import eclass_axi4:: * ;
 `elsif CORE_AXI4Lite
   import AXI4_Lite_Types:: *;
   import AXI4_Lite_Fabric:: *;
-  import eclass_axi4lite:: * ;
 `endif
   import common_types:: * ;
   import Clocks :: *;
@@ -46,6 +44,7 @@ package Soc;
   `include "Soc.defines"
 
   // peripheral imports
+  import eclass:: * ;
   import uart::*;
   import clint::*;
   import sign_dump::*;
@@ -123,6 +122,22 @@ package Soc;
 `endif
   endinterface
 
+  `ifdef CORE_AXI4
+    (*synthesize*)
+    module mkeclass(Ifc_eclass_axi4);
+      let ifc();
+      mkeclass_axi4#(`resetpc) _temp(ifc);
+      return ifc;
+    endmodule
+  `elsif CORE_AXI4Lite
+    (*synthesize*)
+    module mkeclass(Ifc_eclass_axi4lite);
+      let ifc();
+      mkeclass_axi4lite#(`resetpc) _temp(ifc);
+      return ifc;
+    endmodule
+  `endif
+
   (*synthesize*)
   module mkSoc#(Clock tck_clk, Reset trst)(Ifc_Soc);
     let curr_clk<-exposeCurrentClock;
@@ -130,8 +145,7 @@ package Soc;
 `ifdef CORE_AXI4
     AXI4_Fabric_IFC #(Num_Masters, `Num_Slaves, `paddr, XLEN, USERSPACE) 
                                                     fabric <- mkAXI4_Fabric(fn_slave_map);
-
-    Ifc_eclass_axi4 eclass <- mkeclass_axi4(`resetpc);
+    let eclass <- mkeclass();
     Ifc_sign_dump_axi4 signature<- mksign_dump_axi4();
   `ifdef debug
     Ifc_debug_halt_loop#(`paddr, XLEN, USERSPACE) debug_memory <- mkdebug_halt_loop;
