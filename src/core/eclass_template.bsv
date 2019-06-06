@@ -50,6 +50,8 @@ parameters:
         isa:
             type: string
             regex: ^(rv64imac|rv32imac|rv64imc|rv32imc|rv64im|rv32im|rv64ic|rv32ic)$
+        resetpc:
+            type: integer
 macros:
     type: dict
     schema:
@@ -76,10 +78,53 @@ macros:
             allowed: [32, 64]
         FPGA:
             type: string
-        Counters:
+        COUNTERS:
             type: integer
             min: 0
             max: 8
+        USERTRAPS:
+            type: string
+            allowed: [enable,disable]
+        USER:
+            type: string
+            allowed: [enable,disable]
+        RTLDUMP:
+            type: string
+            allowed: [enable,disable]
+        ASSERTIONS:
+            type: string
+            allowed: [enable,disable]
+        PMP:
+            type: string
+            allowed: [enable,disable]
+        ARITHTRAP:
+            type: string
+            allowed: [enable,disable]
+        DEBUG:
+            type: string
+            allowed: [enable,disable]
+        OPENOCD:
+            type: string
+            allowed: [enable,disable]
+        TRIGGERS: 
+            type: integer
+        COVERAGE:
+            type: string
+        TRACE:
+            type: string
+            allowed: [enable,disable]
+        VERILATESIM:
+            type: string
+            allowed: [fast,slow]
+        PMPSIZE:
+            type: integer
+        PADDR:
+            type: integer
+        CAUSESIZE:
+            type: integer
+        THREADS:
+            type: integer
+        
 sideband:
     type: dict
     schema:
