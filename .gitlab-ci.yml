@@ -51,7 +51,7 @@ release:
         - source /tools/setup.sh
         - cd base-sim/
         - ./manager.sh update_deps
-        - make CONFIG=templates/synth64.inc release-verilog-artifacts
+        - make CONFIG=templates/synth32.inc release-verilog-artifacts
         - cd ..
         - cp version.txt verilog-artifacts
     only:

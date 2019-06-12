@@ -148,7 +148,7 @@ package Soc;
     let eclass <- mkeclass();
     Ifc_sign_dump_axi4 signature<- mksign_dump_axi4();
   `ifdef debug
-    Ifc_debug_halt_loop#(`paddr, XLEN, USERSPACE) debug_memory <- mkdebug_halt_loop;
+    Ifc_debug_halt_loop_axi4#(`paddr, XLEN, USERSPACE) debug_memory <- mkdebug_halt_loop_axi4;
   `endif
     Ifc_uart_axi4#(`paddr,XLEN,0, 16) uart <- mkuart_axi4(curr_clk,curr_reset, 5);
     Ifc_clint_axi4#(`paddr, XLEN, 0, 1, 16) clint <- mkclint_axi4();
@@ -162,7 +162,8 @@ package Soc;
     Ifc_eclass_axi4lite eclass <- mkeclass_axi4lite(`resetpc);
     Ifc_sign_dump_axi4lite signature<- mksign_dump_axi4lite();
   `ifdef debug
-    Ifc_debug_halt_loop#(`paddr, XLEN, USERSPACE) debug_memory <- mkdebug_halt_loop;
+    Ifc_debug_halt_loop_axi4lite#(`paddr, XLEN, USERSPACE) debug_memory <-  
+                                                                        mkdebug_halt_loop_axi4lite;
   `endif
     Ifc_uart_axi4lite#(`paddr,XLEN,0, 16) uart <- mkuart_axi4lite(curr_clk,curr_reset, 5);
     Ifc_clint_axi4lite#(`paddr, XLEN, 0, 1, 16) clint <- mkclint_axi4lite();

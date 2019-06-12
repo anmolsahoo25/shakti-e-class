@@ -150,7 +150,7 @@ package muldiv_asic_32bit;
                 x, multiplicand_divisor, rg_count[1], upper_bits, rg_signed, temp_multiplier_sign))
       `logLevel( stage1, 0, $format($time,"\tx: %h y: %h",x, y))
       if(rg_count[1] == 0 || earlyout)begin
-        `logLevel( stage1, 0, $format("MULDIV : Ending Mul / Div operation"); 
+        `logLevel( stage1, 0, $format("MULDIV : Ending Mul / Div operation")) 
         y = unpack(x);
         x = pack(y>>({2'b0, rg_count[1]}*8));
         `logLevel( stage1, 0, $format("MULDIV : x: %h y: %h",x, y))
@@ -211,7 +211,7 @@ package muldiv_asic_32bit;
       ff_input.deq;
       let {in1, in2, funct3, is_mul}=ff_input.first;
       `logLevel( stage1, 0, $format("MULDIV : in1: %h in2: %h funct3: %h is_mul: %b",
-                                      in1, in2, funct3, is_mul); 
+                                      in1, in2, funct3, is_mul))
       Bit#(1) in2_sign = funct3[1 : 0] == 1? in2[31] : 0;
       Bit#(1) in1_sign = (funct3[1]^funct3[0]) & (in1[31]);
 
