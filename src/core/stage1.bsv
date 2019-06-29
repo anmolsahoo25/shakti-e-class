@@ -167,10 +167,10 @@ package stage1;
     Wire#(CSRtoDecode) wr_csr_decode <- mkWire();
 
     (*doc = "reg: register to hold the address of the next request to the fabric." *)
-    Reg#(Bit#(`vaddr)) rg_fabric_request[2] <- mkCReg(2, (resetpc));
+    Reg#(Bit#(`vaddr)) rg_fabric_request[2] <- mkCReg(2, 0);
 
     (*doc = "reg: register to hold the PC value of the instruction to be decoded." *)
-    Reg#(Bit#(`vaddr)) rg_pc <- mkReg((resetpc));
+    Reg#(Bit#(`vaddr)) rg_pc <- mkReg(0);
 
     (*doc = "reg: holds the current epoch values controlled by the stage2."*)
     Reg#(Bit#(1)) rg_eEpoch <- mkReg(0);
@@ -310,8 +310,11 @@ package stage1;
       `logLevel( stage1, 1, $format("STAGE1: Initializing the RF. Index: %d", rg_index))
       integer_rf.upd(rg_index,0);
       rg_index<=rg_index+1;
-      if(rg_index=='d31)
+      if(rg_index=='d31) begin
         rg_initialize<=False;
+        rg_fabric_request[1] <= resetpc;
+        rg_pc <= resetpc;
+      end
     endrule 
 
     (*doc = "rule:This rule is fired when the core has executed the WFI instruction and waiting \
@@ -460,7 +463,7 @@ package stage1;
       end
     endrule
     interface inst_request = interface Get
-      method ActionValue#(InstRequest) get;
+      method ActionValue#(InstRequest) get if(!rg_initialize);
         rg_fabric_request[0] <= rg_fabric_request[0] + 4; 
         return InstRequest{addr:rg_fabric_request[0], epoch:curr_epoch};
       endmethod
