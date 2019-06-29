@@ -419,7 +419,8 @@ package eclass;
 `endif
   endinterface : Ifc_eclass_axi4lite
   
-  module mkeclass_axi4lite#(parameter Bit#(`vaddr) resetpc) (Ifc_eclass_axi4lite);
+  (*synthesize*)
+  module mkeclass_axi4lite#(Bit#(`vaddr) resetpc) (Ifc_eclass_axi4lite);
 
     String eclass = ""; // for logger
 

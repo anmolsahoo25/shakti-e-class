@@ -154,7 +154,7 @@ package stage1;
   \
   5. Triggers are also supported to capture events related to program counter or instruction match\
   "*)
-  module mkstage1#(parameter Bit#(`vaddr) resetpc)(Ifc_stage1);
+  module mkstage1#(Bit#(`vaddr) resetpc)(Ifc_stage1);
 
     let stage1 = ""; // for logger
 

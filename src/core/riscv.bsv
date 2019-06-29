@@ -96,7 +96,7 @@ package riscv;
   endinterface : Ifc_riscv
 
   (*synthesize*)
-  module mkriscv#(parameter Bit#(`vaddr) resetpc) (Ifc_riscv);
+  module mkriscv#(Bit#(`vaddr) resetpc) (Ifc_riscv);
     // instantiate each stage here
     Ifc_stage1              stage1          <- mkstage1(resetpc);
     Ifc_stage2              stage2          <- mkstage2();
