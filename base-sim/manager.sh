@@ -19,7 +19,7 @@ branch_list=(
   3.4.1 
   1.0.0
   master
-  0.3.0
+  0.6.1
   master
   )
 COUNT=${#repo_list[*]}
