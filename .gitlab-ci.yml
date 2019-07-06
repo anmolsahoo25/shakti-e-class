@@ -12,12 +12,12 @@ build64:
         - make patch
         - make CONFIG=templates/rv64imac.inc 
         - make regress opts='--filter=rv64 --parallel=90 --sub' CONFIG_ISA=RV64IMAC
-        - make regress opts='--filter=rv64 --final' CONFIG_ISA=RV64IMAC
+        - make regress opts='--filter=rv64 --final' CONFIG_ISA=RV64IMAC 
         - make aapg opts='--config=rv64imac --test_count=10 --parallel=30 --debug' CONFIG_ISA=RV64IMAC
-        - make regress opts='--list=aapg.list --sub --test_opts='--timeout=5m' --parallel=30' CONFIG_ISA=RV64IMAC
+        - make regress opts='--list=aapg.list --sub --test_opts='--timeout=25m' --parallel=30' CONFIG_ISA=RV64IMAC
         - make regress opts='--list=aapg.list --final' CONFIG_ISA=RV64IMAC
         - make torture opts='--config=all'
-        - make regress opts='--list=riscv-torture.list --sub --parallel=10' CONFIG_ISA=RV64IMAC
+        - make regress opts='--list=riscv-torture.list --sub --test_opts='--timeout=100m' --parallel=10' CONFIG_ISA=RV64IMAC
         - make regress opts='--list=riscv-torture.list --final' CONFIG_ISA=RV64IMAC
         - make csmith opts='--test_count=30 --parallel=10 --debug' CONFIG_ISA=RV64IMAC
         - make regress opts='--list=csmith.list --parallel=150 --sub'  CONFIG_ISA=RV64IMAC
@@ -40,10 +40,10 @@ build32:
         - make regress opts='--filter=rv32 --parallel=90 --sub' CONFIG_ISA=RV32IMAC
         - make regress opts='--filter=rv32 --final' CONFIG_ISA=RV32IMAC
         - make aapg opts='--config=rv32imac --test_count=10 --parallel=30   --aapg_opts='--arch=rv32'' CONFIG_ISA=RV32IMAC
-        - make regress opts='--list=aapg.list --sub --test_opts='--timeout=5m' --parallel=30' CONFIG_ISA=RV32IMAC
+        - make regress opts='--list=aapg.list --sub --test_opts='--timeout=25m' --parallel=30' CONFIG_ISA=RV32IMAC
         - make regress opts='--list=aapg.list --final' CONFIG_ISA=RV32IMAC
         - make torture opts='--config=all'
-        - make regress opts='--list=riscv-torture.list --sub --parallel=10' CONFIG_ISA=RV32IMAC
+        - make regress opts='--list=riscv-torture.list --sub --test_opts='--timeout=100m' --parallel=10' CONFIG_ISA=RV32IMAC
         - make regress opts='--list=riscv-torture.list --final' CONFIG_ISA=RV32IMAC
     only:
         refs:
@@ -138,4 +138,3 @@ release:
 #         - master
 #     tags:
 #         - e-class-build-regression
-
