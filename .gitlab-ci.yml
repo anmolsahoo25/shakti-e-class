@@ -19,9 +19,9 @@ build64:
         - make torture opts='--config=all'
         - make regress opts='--list=riscv-torture.list --sub --test_opts='--timeout=100m' --parallel=10' CONFIG_ISA=RV64IMAC
         - make regress opts='--list=riscv-torture.list --final' CONFIG_ISA=RV64IMAC
-        - make csmith opts='--test_count=30 --parallel=10 --debug' CONFIG_ISA=RV64IMAC
-        - make regress opts='--list=csmith.list --parallel=150 --sub'  CONFIG_ISA=RV64IMAC
-        - make regress opts='--list=csmith.list --final'  CONFIG_ISA=RV64IMAC
+#        - make csmith opts='--test_count=30 --parallel=10 --debug' CONFIG_ISA=RV64IMAC
+#        - make regress opts='--list=csmith.list --parallel=150 --sub'  CONFIG_ISA=RV64IMAC
+#        - make regress opts='--list=csmith.list --final'  CONFIG_ISA=RV64IMAC
     only:
         refs:
             - master
