@@ -44,11 +44,14 @@ The extracted `verilog-artifacts` folder has the following structure:
 ## RTL Details
 The feature of the e-class (mkeclass_axi4) core are available in the `core_config.inc` file in the artifact folder. The user is encouraged to read the [configuring-core](https://gitlab.com/shaktiproject/cores/e-class/blob/master/docs/configuring_core.md) document for further information of the features. A quick summary of the features is presented below:
 
-* RV64IMAFDCSU
-* 16KiB I-Cache and 16KiB D-Cache
-* PLRU replacement policies in both the caches.
-* Fully-associative gshare branch-predictor with a BTB of 32 entries and a history table of 256 entries
-* An early-out multiplier with max 8 cycle latency
+* RV32IMACNU.
+* Multiplier with 4 cycle latency.
+* Divider with 32 cycle latency.
+* AXI4-Lite master interfaces of fetch and data.
+* 2 Triggers.
+* 4 counters.
+* 4 pmp regions.
+* JTAG based debugger.
 
 The artifact also includes a sample Soc `(mkSoc.v)` which connects the core with a `uart`, `clint`, `bootrom` and few other slaves mentioned below. This Soc is provided only as a place-holder and for enabling simulations. This Soc is not intended to meet any particular metric of performance, power or area. The memory map of the Soc is provided below:
 
