@@ -55,6 +55,7 @@ package alu;
 
   
   import common_types::*;
+  import BUtils :: * ;
   `include "common_params.bsv"
 
 `ifdef triggers
@@ -129,18 +130,25 @@ package alu;
 
     /* ---------------------------- Perform all the arithmetic -------------------------------- */
     // ADD * ADDI * SUB* 
-    Bit#(XLEN) inv = signExtend(fn[3]);
-    let inv_op2 = op2^inv;
-    let op1_xor_op2 = op1^inv_op2;
-    let adder_output = op1 + inv_op2 + zeroExtend(fn[3]);
+    Bit#(TAdd#(XLEN, 1)) inv = duplicate(pack(fn[1]));
+    let inv_op2 = {op2,1'b0}^inv;
+    let op1_xor_op2 = op1^op2;
+    Bit#(XLEN) adder_output = truncateLSB({op1,1'b1} + inv_op2);
+    Bit#(1) adder_z_flag = ~|op1_xor_op2;
     // ---------------------------------------------------------------------------------------- //
 
     // ------------------------------- comparison based operations ---------------------------- //
     // SLT SLTU
-    Bit#(1) compare_out = fn[0]^(
-            (fn[3] == 0) ? pack(op1_xor_op2 == 0):
-            (op1[valueOf(XLEN) - 1] == op2[valueOf(XLEN) - 1]) ? adder_output[valueOf(XLEN) - 1]:
-            (fn[1] == 1) ? op2[valueOf(XLEN) - 1] : op1[valueOf(XLEN) - 1]);
+    Bit#(1) sign = ~fn[1]; 
+    Int#(TAdd#(XLEN, 1)) a = unpack({sign & op1[valueOf(XLEN)-1], op1});
+    Int#(TAdd#(XLEN, 1)) b = unpack({sign & op2[valueOf(XLEN)-1], op2});
+    Bool less = a < b;
+    Bit#(1) branch_taken = case (fn)
+      `FNSEQ : adder_z_flag; 
+      `FNSNE : ~adder_z_flag; 
+      `FNSLT, `FNSLTU : pack(less);
+      default: pack(!less);
+    endcase;
     // ---------------------------------------------------------------------------------------- //
 
     // ----------------------------- Shift based operations ----------------------------------- //
@@ -158,20 +166,19 @@ package alu;
     Int#(TAdd#(XLEN, 1)) t = unpack({(fn[3] & shin[valueOf(XLEN) - 1]), shin});
     Int#(XLEN) shift_r = unpack(pack(t>>shift_amt)[valueOf(XLEN) - 1 : 0]);
     let shift_l = reverseBits(pack(shift_r));//shift left
-    Bit#(XLEN) shift_output=((fn==`FNSR || fn==`FNSRA) ? pack(shift_r) : 0) | 
-                            ((fn==`FNSL) ? pack(shift_l) : 0); 
-    // ---------------------------------------------------------------------------------------- //
-
-    // ----------------------------- Logical operations --------------------------------------- //
-    // AND OR XOR
-    let logic_output=	((fn==`FNXOR || fn==`FNOR) ? op1_xor_op2 : 0) |
-                ((fn==`FNOR || fn==`FNAND) ? op1 & op2 : 0);
-    let shift_logic = zeroExtend(pack(fn==`FNSEQ || fn==`FNSNE || fn >= `FNSLT) & compare_out) |
-              logic_output|shift_output;
     // ---------------------------------------------------------------------------------------- //
 
     // ----------------------------- Mux for final output ------------------------------------ //
-    Bit#(XLEN) final_output = (fn == `FNADD || fn == `FNSUB) ? adder_output : shift_logic;
+    Bit#(XLEN) final_output = case(fn)
+      `FNADD, `FNSUB: adder_output;
+      `FNSLT, `FNSGE, `FNSLTU, `FNSGEU: zeroExtend(pack(less));
+      `FNSR, `FNSRA: pack(shift_r);
+      `FNSL: pack(shift_l);
+      `FNOR: (op1 | op2);
+      `FNAND: (op1 & op2);
+      default: op1_xor_op2;
+    endcase;
+
     `ifdef RV64
       if(word32)
         final_output = signExtend(final_output[31 : 0]);
@@ -188,7 +195,7 @@ package alu;
     // ------------------------- Exception detection ------------------------------------------- //
     Bit#(`causesize) cause= (inst_type == TRAP)? truncate({fn,funct3}): `Load_addr_misaligned;
     Bool exception = (inst_type == TRAP);
-    if( (inst_type == JALR || inst_type == JAL || (inst_type == BRANCH && compare_out == 1))
+    if( (inst_type == JALR || inst_type == JAL || (inst_type == BRANCH && branch_taken == 1))
         &&  effective_address[1] != 0 && misa_c == 0 ) begin
       exception = True;
       cause=`Inst_addr_misaligned ;
@@ -212,7 +219,7 @@ package alu;
     // --------------------------- Check for redirection -------------------------------------- //
     Bool flush = False;
 
-    if((inst_type == BRANCH && final_output[0] == 1) || inst_type == JALR || inst_type == JAL )
+    if((inst_type == BRANCH && branch_taken == 1) || inst_type == JALR || inst_type == JAL )
       flush = True;
     // --------------------------------------------------------------------------------------- //
 
