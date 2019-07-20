@@ -132,8 +132,6 @@ package alu;
     Bit#(XLEN) inv = signExtend(fn[3]);
     let inv_op2 = op2^inv;
     let op1_xor_op2 = op1^inv_op2;
-    let op1_add = op1;
-    let op2_add = inv_op2;
     let adder_output = op1 + inv_op2 + zeroExtend(fn[3]);
     // ---------------------------------------------------------------------------------------- //
 
