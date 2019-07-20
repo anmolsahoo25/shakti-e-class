@@ -54,7 +54,6 @@ package stage1;
   typedef enum {CheckPrev, None} ActionType deriving(Bits, Eq, FShow);
 
   typedef struct{
-    Bit#(`vaddr) pc;
     Bit#(16) instruction;
     Bit#(2) epoch;
   } PrevMeta deriving(Eq, Bits, FShow);
@@ -428,6 +427,15 @@ package stage1;
           rg_wfi <= True;
           perform_decode = False;
         end
+      `ifdef triggers
+        let {trigger_err, trigger_cause} <- fn_check_trigger(rg_pc, decode_instruction
+                                        `ifdef compressed , compressed `endif );
+        if(trigger_err) begin
+          y.meta.inst_type = TRAP;
+          y.meta.funct = zeroExtend(trigger_cause);
+        end
+      `endif
+
       Bit#(`vaddr) offset = 4;
       `ifdef compressed
         if(compressed  && perform_decode && wr_csr_misa_c == 1)begin
