@@ -109,7 +109,7 @@ package common_types;
 
   typedef union tagged {
     MControl MCONTROL;
-    ICount   ICOUNT;
+    //ICount   ICOUNT;
     ITrigger ITRIGGER;
     ETrigger ETRIGGER;
     void NONE;
