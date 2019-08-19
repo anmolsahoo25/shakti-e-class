@@ -109,7 +109,7 @@ package eclass;
     endfunction
 `endif
 
-  module mkeclass_axi4#(parameter Bit#(`vaddr) resetpc) (Ifc_eclass_axi4);
+  module mkeclass_axi4#(Bit#(`vaddr) resetpc) (Ifc_eclass_axi4);
 
     String eclass = ""; // for logger
 
