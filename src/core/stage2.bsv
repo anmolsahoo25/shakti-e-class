@@ -127,12 +127,6 @@ package stage2;
   `ifdef atomic
     Reg#(Maybe#(Bit#(`paddr))) rg_loadreserved_addr <- mkReg(tagged Invalid);
   `endif
-
-  `ifdef muldiv
-    `ifdef atomic
-      Reg#(Bool) rg_muldiv_atomic <- mkReg(False); // False = muldiv,  True = atomic
-    `endif
-  `endif
   
     // the fifo to communicate with the previous stage.
     RX#(STAGE1_operands) ff_stage1_operands <- mkRX;
