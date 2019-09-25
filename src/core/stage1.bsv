@@ -550,6 +550,7 @@ package stage1;
     
     interface commit_rd = interface Put
       method Action put (CommitPacket wbinfo ) if(!rg_initialize);
+        `logLevel( stage1, 0, $format("STAGE1: Writing RF[%d]:%h",wbinfo.rdaddr, wbinfo.rdvalue))
         integer_rf.upd( wbinfo.rdaddr, wbinfo.rdvalue );
       endmethod
     endinterface;
