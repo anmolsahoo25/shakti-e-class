@@ -57,6 +57,7 @@ package alu;
   import common_types::*;
   import BUtils :: * ;
   `include "common_params.bsv"
+  `include "Logger.bsv"
 
 `ifdef triggers
   function Tuple2#(Bool, Bit#(`causesize)) check_for_triggers(
@@ -283,9 +284,6 @@ package alu;
   module mkalu(Ifc_alu);
     // ------------------------ Start Instantiations ------------------------------------------- //
 
-      let output_unavail = ALU_OUT{done : False, cmtype : ?, aluresult : ?, effective_addr : ?,
-                                cause : ?, redirect : ? };
-
     // instantiate mul - div module if M extension enabled.
     `ifdef muldiv
       Ifc_muldiv muldiv <- mkmuldiv;
@@ -312,6 +310,7 @@ package alu;
       rule capture_delayed_muldivputput(rg_wait == WaitMulDiv);
         let res <- muldiv.delayed_output;
         wr_delayed_output <= DelayedOut{aluresult: res.aluresult, valid: True};
+        `logLevel( alu, 0, $format("ALU: Sending delayed Result:%h",res.aluresult))
         rg_wait <= None;
       endrule
     `endif
