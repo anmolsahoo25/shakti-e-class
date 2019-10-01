@@ -65,6 +65,9 @@ endif
 ifeq ($(ASSERTIONS), enable)
   override define_macros += -D ASSERT=True
 endif
+ifeq ($(FORMAL), enable)
+  override define_macros += -D formal=True
+endif
 ifeq ($(PMP), enable)
 	override define_macros += -D pmp=True
 endif
@@ -138,7 +141,7 @@ VERILATOR_FLAGS += --stats -O3 $(verilate_fast) -LDFLAGS "-static" --x-assign fa
 # ---------------------------------------------------------------------------------------------- #
 
 # ---------------- Setting the variables for bluespec compile  --------------------------------- #
-BSC_CMD:= bsc -u -verilog -elab 
+BSC_CMD:= bsc -u -verilog -elab
 BSVCOMPILEOPTS:= +RTS -K40000M -RTS -check-assert  -keep-fires -opt-undetermined-vals \
 								 -remove-false-rules -remove-empty-rules -remove-starved-rules -remove-dollar \
 								 -suppress-warnings G0020 -show-schedule -show-module-use

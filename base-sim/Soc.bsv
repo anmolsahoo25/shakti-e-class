@@ -47,7 +47,6 @@ package Soc;
   import eclass:: * ;
   import uart::*;
   import clint::*;
-  import sign_dump::*;
   import err_slave::*;
 
   // package imports
@@ -143,7 +142,6 @@ package Soc;
     AXI4_Fabric_IFC #(Num_Masters, `Num_Slaves, `paddr, XLEN, USERSPACE) 
                                                     fabric <- mkAXI4_Fabric(fn_slave_map);
     let eclass <- mkeclass();
-    Ifc_sign_dump_axi4 signature<- mksign_dump_axi4();
   `ifdef debug
     Ifc_debug_halt_loop_axi4#(`paddr, XLEN, USERSPACE) debug_memory <- mkdebug_halt_loop_axi4;
   `endif
@@ -157,7 +155,6 @@ package Soc;
                                                     fabric <- mkAXI4_Lite_Fabric(fn_slave_map);
 
     Ifc_eclass_axi4lite eclass <- mkeclass_axi4lite(`resetpc);
-    Ifc_sign_dump_axi4lite signature<- mksign_dump_axi4lite();
   `ifdef debug
     Ifc_debug_halt_loop_axi4lite#(`paddr, XLEN, USERSPACE) debug_memory <-  
                                                                         mkdebug_halt_loop_axi4lite;
@@ -231,11 +228,8 @@ package Soc;
   `ifdef cache_control
     mkConnection(eclass.master_io, fabric.v_from_masters[valueOf(IO_master_num)]);
   `endif
-    mkConnection(signature.master, fabric.v_from_masters[valueOf(Sign_master_num) ]);
-
     mkConnection (fabric.v_to_slaves [`Uart_slave_num ],uart.slave);
     mkConnection (fabric.v_to_slaves [`Clint_slave_num ],clint.slave);
-    mkConnection (fabric.v_to_slaves [`Sign_slave_num ] , signature.slave);
     mkConnection (fabric.v_to_slaves [`Err_slave_num ] , err_slave.slave);
   `ifdef debug
     mkConnection (fabric.v_to_slaves [`Debug_slave_num ] , debug_memory.slave);
@@ -269,7 +263,6 @@ package Soc;
   `ifdef perfmonitors
     method counter_values = eclass.counter_values;
   `endif
-    method mv_end_simulation = signature.mv_end_simulation;
 `endif
       // -------------------------------------------- //
   endmodule: mkSoc

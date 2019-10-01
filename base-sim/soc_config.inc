@@ -1,6 +1,6 @@
-ISA=RV64IMAC
+ISA=RV32I
 MUL=fpga
-SYNTH=SIM
+SYNTH=SYN
 VERBOSITY=0
 USERTRAPS=enable
 USER=enable
@@ -24,8 +24,9 @@ THREADS=1
 VERILATESIM=fast
 
 # DebugOptions
-RTLDUMP=enable
-ASSERTIONS=enable
+RTLDUMP=disable
+ASSERTIONS=disable
+FORMAL=enable
 
 # Trigger Setup
 TRIGGERS=2

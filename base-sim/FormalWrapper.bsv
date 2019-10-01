@@ -1,3 +1,6 @@
+import Soc::*;
+import ModuleCollect::*;
+
 (* always_ready *)
 interface Ifc_FormalWrapper;
     //insn metadata
@@ -32,8 +35,13 @@ endinterface
 
 module mkFormalWrapper (Ifc_FormalWrapper);
 
+    // instantiate core
+    let def_clk <- exposeCurrentClock;
+    let def_rst <- exposeCurrentReset;
+    let soc <- exposeCollection(mkSoc(def_clk,def_rst));
+
     // insn metadata
-    method Bit#(1) rvfi_valid  = 0;
+    method Bit#(1) rvfi_valid  = 1;
     method Bit#(64) rvfi_order = 0;
     method Bit#(32) rvfi_insn  = 0;
     method Bit#(1) rvfi_trap   = 0;
