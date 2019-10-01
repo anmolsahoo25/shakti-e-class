@@ -123,14 +123,12 @@ package Soc;
   endinterface
 
   `ifdef CORE_AXI4
-    (*synthesize*)
     module mkeclass(Ifc_eclass_axi4);
       let ifc();
       mkeclass_axi4#(`resetpc) _temp(ifc);
       return ifc;
     endmodule
   `elsif CORE_AXI4Lite
-    (*synthesize*)
     module mkeclass(Ifc_eclass_axi4lite);
       let ifc();
       mkeclass_axi4lite#(`resetpc) _temp(ifc);
@@ -138,7 +136,6 @@ package Soc;
     endmodule
   `endif
 
-  (*synthesize*)
   module mkSoc#(Clock tck_clk, Reset trst)(Ifc_Soc);
     let curr_clk<-exposeCurrentClock;
     let curr_reset<-exposeCurrentReset;

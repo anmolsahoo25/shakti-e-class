@@ -22,8 +22,8 @@ endif
 SHAKTI_HOME=$(PWD)
 export SHAKTI_HOME
 
-TOP_MODULE:=mkTbSoc
-TOP_FILE:=TbSoc.bsv
+TOP_MODULE?=mkTbSoc
+TOP_FILE?=TbSoc.bsv
 TOP_DIR:=./
 WORKING_DIR := $(shell pwd)
 
