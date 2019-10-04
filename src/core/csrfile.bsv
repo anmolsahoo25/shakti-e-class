@@ -169,6 +169,9 @@ package csrfile;
     method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(64))) counter_values;
   `endif
 `endif
+`ifdef formal
+    method Bit#(64) rvfi_order;
+`endif
   endinterface
 
   function Reg#(Bit#(a)) extInterruptReg(Reg#(Bit#(a)) r1, Reg#(Bit#(a)) r2);
@@ -1313,6 +1316,11 @@ package csrfile;
   `ifdef simulate
     method counter_values = tuple2(readVReg(mhpmevent), readVReg(mhpmcounter));
   `endif
+`endif
+`ifdef formal
+method Bit#(64) rvfi_order;
+    return extend(minstret);
+endmethod
 `endif
 
   endmodule

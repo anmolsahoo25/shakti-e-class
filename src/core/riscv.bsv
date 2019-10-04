@@ -93,6 +93,27 @@ package riscv;
     method Vector#(`PMPSIZE, Bit#(8)) mv_pmp_cfg;
     method Vector#(`PMPSIZE, Bit#(TSub#(`paddr,2))) mv_pmp_addr;
   `endif
+  `ifdef formal
+    method Bit#(1) rvfi_valid;
+    method Bit#(64) rvfi_order;
+    method Bit#(32) rvfi_insn;
+
+    method Bit#(5) rvfi_rs1_addr;
+    method Bit#(5) rvfi_rs2_addr;
+    method Bit#(5) rvfi_rd_addr;
+    method Bit#(32) rvfi_rs1_rdata;
+    method Bit#(32) rvfi_rs2_rdata;
+    method Bit#(32) rvfi_rd_wdata;
+
+    method Bit#(32) rvfi_pc_rdata;
+    
+    // mem
+    method Bit#(32) rvfi_mem_addr;
+    method Bit#(4)  rvfi_mem_rmask;
+    method Bit#(4)  rvfi_mem_wmask;
+    method Bit#(32) rvfi_mem_rdata;
+    method Bit#(32) rvfi_mem_wdata;
+  `endif
   endinterface : Ifc_riscv
 
   (*synthesize*)
@@ -114,6 +135,10 @@ package riscv;
     mkChan(mkLFIFOF()   , stage1.tx_stage1_operands , stage2.rx_stage1_operands);
     mkChan(mkLFIFOF()   , stage1.tx_stage1_control  , stage2.rx_stage1_control);
     mkChan(mkLFIFOF()   , stage1.tx_stage1_meta     , stage2.rx_stage1_meta);
+
+    `ifdef formal
+    mkChan(mkLFIFOF()   , stage2.tx_stage3_meta     , stage3.rx_stage3_meta);
+    `endif
 
     mkChan(mkLFIFOF()   , stage2.tx_stage3_common   , stage3.rx_stage3_common);
     mkChan(mkLFIFOF()   , stage2.tx_stage3_type     , stage3.rx_stage3_type);
@@ -235,6 +260,23 @@ package riscv;
   `ifdef pmp
     method mv_pmp_cfg  = stage3.mv_pmp_cfg;
     method mv_pmp_addr = stage3.mv_pmp_addr;
+  `endif
+  `ifdef formal
+    method Bit#(1) rvfi_valid = stage3.rvfi_valid;
+    method Bit#(64) rvfi_order= stage3.rvfi_order;
+    method Bit#(32) rvfi_insn = stage3.rvfi_insn;
+    method Bit#(5)  rvfi_rs1_addr   = stage3.rvfi_rs1_addr;
+    method Bit#(5)  rvfi_rs2_addr   = stage3.rvfi_rs2_addr;
+    method Bit#(5)  rvfi_rd_addr    = stage3.rvfi_rd_addr;
+    method Bit#(32) rvfi_rs1_rdata  = stage3.rvfi_rs1_rdata;
+    method Bit#(32) rvfi_rs2_rdata  = stage3.rvfi_rs2_rdata;
+    method Bit#(32) rvfi_rd_wdata   = stage3.rvfi_rd_wdata;
+    method Bit#(32) rvfi_pc_rdata   = stage3.rvfi_pc_rdata;
+    method Bit#(32) rvfi_mem_addr   = stage3.rvfi_mem_addr ;
+    method Bit#(4)  rvfi_mem_rmask  = stage3.rvfi_mem_rmask;
+    method Bit#(4)  rvfi_mem_wmask  = stage3.rvfi_mem_wmask;
+    method Bit#(32) rvfi_mem_rdata  = stage3.rvfi_mem_rdata;
+    method Bit#(32) rvfi_mem_wdata  = stage3.rvfi_mem_wdata;
   `endif
   endmodule : mkriscv
 endpackage : riscv

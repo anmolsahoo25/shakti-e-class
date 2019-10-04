@@ -148,6 +148,10 @@ package common_types;
   `ifdef RV64
     Bool word32;
   `endif
+  `ifdef formal
+    Bit#(32) rvfi_insn;          // instruction word 
+    Bit#(32) pc;
+  `endif
   } InstrMeta deriving(Bits, Eq, FShow); 
   
   // the final structure of the response from the decoder
@@ -157,6 +161,10 @@ package common_types;
     InstrMeta meta;
   `ifdef compressed
     Bool compressed;
+  `endif
+  `ifdef formal
+    STAGE1_operands op;
+    Bit#(32)        rvfi_mem_addr;
   `endif
   } DecodeOut deriving(Bits, Eq, FShow);
   // ------------------------------------------------------------------------------------------- //

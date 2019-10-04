@@ -119,6 +119,29 @@ package Soc;
   `endif
     method Bool mv_end_simulation ;
 `endif
+
+  `ifdef formal
+    method Bit#(1) rvfi_valid;
+    method Bit#(64) rvfi_order;
+    method Bit#(32) rvfi_insn;
+
+    method Bit#(5)  rvfi_rs1_addr;
+    method Bit#(5)  rvfi_rs2_addr;
+    method Bit#(32) rvfi_rs1_rdata;
+    method Bit#(32) rvfi_rs2_rdata;
+    method Bit#(5)  rvfi_rd_addr;
+    method Bit#(32) rvfi_rd_wdata;
+
+    // pc
+    method Bit#(32) rvfi_pc_rdata;
+ 
+    // mem
+    method Bit#(32) rvfi_mem_addr;
+    method Bit#(4)  rvfi_mem_rmask;
+    method Bit#(4)  rvfi_mem_wmask;
+    method Bit#(32) rvfi_mem_rdata;
+    method Bit#(32) rvfi_mem_wdata;
+  `endif
   endinterface
 
   `ifdef CORE_AXI4
@@ -264,6 +287,23 @@ package Soc;
     method counter_values = eclass.counter_values;
   `endif
 `endif
+  `ifdef formal
+    method Bit#(1) rvfi_valid = eclass.rvfi_valid;
+    method Bit#(64) rvfi_order = eclass.rvfi_order;
+    method Bit#(32) rvfi_insn = eclass.rvfi_insn;
+    method Bit#(5)  rvfi_rs1_addr  = eclass.rvfi_rs1_addr;
+    method Bit#(5)  rvfi_rs2_addr  = eclass.rvfi_rs2_addr;
+    method Bit#(32) rvfi_rs1_rdata = eclass.rvfi_rs1_rdata;
+    method Bit#(32) rvfi_rs2_rdata = eclass.rvfi_rs2_rdata;
+    method Bit#(5)  rvfi_rd_addr   = eclass.rvfi_rd_addr;
+    method Bit#(32) rvfi_rd_wdata  = eclass.rvfi_rd_wdata;
+    method Bit#(32) rvfi_pc_rdata  = eclass.rvfi_pc_rdata;
+    method Bit#(32) rvfi_mem_addr  = eclass.rvfi_mem_addr;
+    method Bit#(4)  rvfi_mem_rmask = eclass.rvfi_mem_rmask;
+    method Bit#(4)  rvfi_mem_wmask = eclass.rvfi_mem_wmask;
+    method Bit#(32) rvfi_mem_rdata = eclass.rvfi_mem_rdata;
+    method Bit#(32) rvfi_mem_wdata = eclass.rvfi_mem_wdata;
+  `endif
       // -------------------------------------------- //
   endmodule: mkSoc
 endpackage: Soc

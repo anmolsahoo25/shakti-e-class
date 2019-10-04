@@ -95,6 +95,9 @@ package stage2;
     method Bit#(1) mv_event_raw_stalls;
     method Bit#(1) mv_event_redirection;
   `endif
+  `ifdef formal
+    interface TXe#(STAGE1_meta)       tx_stage3_meta;
+  `endif
   endinterface : Ifc_stage2
   
   (*synthesize*)
@@ -132,6 +135,7 @@ package stage2;
     RX#(STAGE1_operands) ff_stage1_operands <- mkRX;
     RX#(STAGE1_meta) ff_stage1_meta <- mkRX;
     RX#(STAGE1_control) ff_stage1_control <- mkRX;
+    TX#(STAGE1_meta) ff_stage3_meta <- mkTX;
 
     TX#(Stage3Common) ff_stage3_common <- mkTX;
     TX#(Stage3Type) ff_stage3_type <- mkTX;
@@ -175,7 +179,8 @@ package stage2;
     rule fetch_execute_pass;
 
       let ops = ff_stage1_operands.u.first;
-      let meta = ff_stage1_meta.u.first.meta;
+      let s3meta = ff_stage1_meta.u.first;
+      let meta = s3meta.meta;
       let opaddr = ff_stage1_meta.u.first.op_addr;
       let optype = ff_stage1_meta.u.first.op_type;
     `ifdef compressed
@@ -259,6 +264,9 @@ package stage2;
                                               `ifdef atomic
                                                 ,atomic_op: {funct3[0],fn}
                                               `endif });
+            `ifdef formal
+                s3meta.rvfi_mem_addr = aluout.effective_addr;
+            `endif
         // -------------------------- Derive types for Next stage --------------------------- //
             let s3common = Stage3Common{pc      : control.pc, 
                                         rd      : opaddr.rd,
@@ -291,6 +299,9 @@ package stage2;
         // ---------------------------------------------------------------------------------- //
             ff_stage3_common.u.enq(s3common);
             ff_stage3_type.u.enq(s3type);
+            `ifdef formal
+            ff_stage3_meta.u.enq(s3meta);
+            `endif
           `ifdef rtldump
             ff_stage3_dump.u.enq(dump);
           `endif
@@ -329,6 +340,10 @@ package stage2;
     interface rx_stage1_dump = ff_stage1_dump.e;
     interface tx_stage3_dump = ff_stage3_dump.e;  
   `endif
+
+    `ifdef formal
+    interface tx_stage3_meta = ff_stage3_meta.e;
+    `endif
    
     // the memory_wb stage has to ensure that it sends only 0 when there is no data
     // to be forwarded

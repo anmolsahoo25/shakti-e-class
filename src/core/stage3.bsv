@@ -51,6 +51,10 @@ package stage3;
     interface RXe#(Stage3Common)  rx_stage3_common;
     interface RXe#(Stage3Type)    rx_stage3_type;
 
+    `ifdef formal
+    interface RXe#(STAGE1_meta) rx_stage3_meta;
+    `endif
+
   `ifdef rtldump
     interface RXe#(TraceDump)   rx_stage3_dump ;
   `endif
@@ -107,6 +111,30 @@ package stage3;
     method Vector#(`PMPSIZE, Bit#(8)) mv_pmp_cfg;
     method Vector#(`PMPSIZE, Bit#(TSub#(`paddr,2))) mv_pmp_addr;
   `endif
+  `ifdef formal
+    // instr meta
+    method Bit#(1) rvfi_valid;
+    method Bit#(64) rvfi_order;
+    method Bit#(32) rvfi_insn;
+
+    // reg
+    method Bit#(5) rvfi_rs1_addr;
+    method Bit#(5) rvfi_rs2_addr;
+    method Bit#(5) rvfi_rd_addr;
+    method Bit#(32) rvfi_rs1_rdata;
+    method Bit#(32) rvfi_rs2_rdata;
+    method Bit#(32) rvfi_rd_wdata;
+
+    // pc
+    method Bit#(32) rvfi_pc_rdata;
+
+    // mem
+    method Bit#(32) rvfi_mem_addr;
+    method Bit#(4)  rvfi_mem_rmask;
+    method Bit#(4)  rvfi_mem_wmask;
+    method Bit#(32) rvfi_mem_rdata;
+    method Bit#(32) rvfi_mem_wdata;
+  `endif
   endinterface : Ifc_stage3
 
   (*synthesize*)
@@ -122,6 +150,10 @@ package stage3;
   `ifdef rtldump
     RX#(TraceDump)  ff_stage3_dump   <- mkRX();
   `endif
+
+  `ifdef formal
+    RX#(STAGE1_meta) ff_stage3_meta <- mkRX();
+    `endif
 
     Ifc_csr csr <- mkcsr();
     Wire#(Bool) wr_csr_updated <- mkDWire(False);
@@ -141,6 +173,11 @@ package stage3;
     // the local epoch register
     Reg#(Bit#(1)) rg_epoch <- mkReg(0);
 
+    // meta register
+    `ifdef formal
+    Wire#(STAGE1_meta) wr_s3meta <- mkDWire(STAGE1_meta {});
+    `endif
+
     Reg#(Bool) rg_rerun <- mkReg(False);
   `ifdef muldiv
     Wire#(DelayedOut) wr_delayed_result <- mkWire();
@@ -159,6 +196,7 @@ package stage3;
     function Action deq_rx = action
       ff_stage3_common.u.deq;
       ff_stage3_type.u.deq;
+      ff_stage3_meta.u.deq;
     `ifdef rtldump
       ff_stage3_dump.u.deq;
     `endif
@@ -167,6 +205,12 @@ package stage3;
     rule instruction_commit;
       let s3common = ff_stage3_common.u.first;
       let s3type = ff_stage3_type.u.first;
+
+    `ifdef formal
+      let s3meta = ff_stage3_meta.u.first;     
+      wr_s3meta <= s3meta;
+    `endif
+
     `ifdef rtldump
       let dump = ff_stage3_dump.u.first();
       `logLevel( stage3, 0, $format("STAGE3: ", fshow(dump)))
@@ -214,6 +258,7 @@ package stage3;
             wr_operand_fwding <= OpFwding{rdaddr : s3common.rd, valid : done, rdvalue : data};
             if( done )begin
               wr_commit <= tagged Valid (CommitPacket{rdaddr : s3common.rd, rdvalue : data});
+
               deq_rx;
             `ifdef rtldump 
               dump_ff.enq(tuple5(prv, dump.pc, dump.instruction, s3common.rd, data));
@@ -290,6 +335,9 @@ package stage3;
 
     interface rx_stage3_common  = ff_stage3_common.e;
     interface rx_stage3_type    = ff_stage3_type.e;
+    `ifdef formal
+    interface rx_stage3_meta    = ff_stage3_meta.e;
+    `endif
 
   `ifdef rtldump
     interface rx_stage3_dump = ff_stage3_dump.e;
@@ -375,5 +423,90 @@ package stage3;
     method mv_pmp_addr = csr.mv_pmp_addr;
   `endif
 
+  `ifdef formal
+    method Bit#(1) rvfi_valid;
+        if (wr_commit matches tagged Valid .data)
+            return 1;
+        else 
+            return 0;
+    endmethod
+    method Bit#(64) rvfi_order = csr.rvfi_order;
+
+    method Bit#(32) rvfi_insn = wr_s3meta.meta.rvfi_insn;
+
+    method Bit#(5) rvfi_rs1_addr;
+        if (wr_commit matches tagged Valid .data)
+            return wr_s3meta.op_addr.rs1addr;
+        else
+            return 0;
+    endmethod
+
+    method Bit#(5) rvfi_rs2_addr;
+        if (wr_commit matches tagged Valid .data)
+            return wr_s3meta.op_addr.rs2addr;
+        else
+            return 0;
+    endmethod
+
+    method Bit#(5) rvfi_rd_addr;
+        if (wr_commit matches tagged Valid .data)
+            return data.rdaddr;
+        else
+            return 0;
+    endmethod
+
+    method Bit#(32) rvfi_rs1_rdata;
+        if (wr_commit matches tagged Valid .data)
+            return wr_s3meta.op.op1;
+        else
+            return 0;
+    endmethod
+
+    method Bit#(32) rvfi_rs2_rdata;
+        if (wr_commit matches tagged Valid .data)
+            return wr_s3meta.op.op2;
+        else
+            return 0;
+    endmethod
+
+    method Bit#(32) rvfi_rd_wdata;
+        if (wr_commit matches tagged Valid .data)
+            return data.rdvalue;
+        else
+            return 0;
+    endmethod
+
+    method Bit#(32) rvfi_pc_rdata;
+        if (wr_commit matches tagged Valid .data)
+            return wr_s3meta.meta.pc;
+        else
+            return 0;
+    endmethod
+
+    method Bit#(32) rvfi_mem_addr;
+        if (wr_commit matches tagged Valid .data)
+            return wr_s3meta.rvfi_mem_addr;
+        else
+            return 0;
+    endmethod
+
+    method Bit#(4)  rvfi_mem_rmask = 4'b1111;
+    method Bit#(4)  rvfi_mem_wmask = 4'b1111;
+
+    method Bit#(32) rvfi_mem_rdata;
+        if(wr_memory_response matches tagged Valid .resp &&& resp.epoch == rg_epoch)
+            return resp.data;
+        else 
+            return 0;
+    endmethod
+
+    method Bit#(32) rvfi_mem_wdata;
+        if(wr_memory_response matches tagged Valid .resp &&& resp.epoch == rg_epoch)
+            return resp.data;
+        else 
+            return 0;
+    endmethod
+
+  `endif
   endmodule : mkstage3
 endpackage : stage3

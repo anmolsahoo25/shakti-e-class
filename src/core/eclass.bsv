@@ -81,6 +81,18 @@ package eclass;
     method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(64))) counter_values;
   `endif
 `endif
+  `ifdef formal
+    method Bit#(1) rvfi_valid;
+    method Bit#(64) rvfi_order;
+    method Bit#(32) rvfi_insn;
+
+    method Bit#(5) rvfi_rs1_addr;
+    method Bit#(5) rvfi_rs2_addr;
+    method Bit#(5) rvfi_rd_addr;
+    method Bit#(32) rvfi_rs1_rdata;
+    method Bit#(32) rvfi_rs2_rdata;
+    method Bit#(32) rvfi_rd_wdata;
+  `endif
   endinterface : Ifc_eclass_axi4
 
 `ifdef atomic
@@ -417,6 +429,26 @@ package eclass;
     method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(64))) counter_values;
   `endif
 `endif
+  `ifdef formal
+    method Bit#(1) rvfi_valid;
+    method Bit#(64) rvfi_order;
+    method Bit#(32) rvfi_insn;
+
+    method Bit#(5) rvfi_rs1_addr;
+    method Bit#(5) rvfi_rs2_addr;
+    method Bit#(5) rvfi_rd_addr;
+    method Bit#(32) rvfi_rs1_rdata;
+    method Bit#(32) rvfi_rs2_rdata;
+    method Bit#(32) rvfi_rd_wdata;
+
+    method Bit#(32) rvfi_pc_rdata;
+
+    method Bit#(32) rvfi_mem_addr;
+    method Bit#(4)  rvfi_mem_rmask;
+    method Bit#(4)  rvfi_mem_wmask;
+    method Bit#(32) rvfi_mem_rdata;
+    method Bit#(32) rvfi_mem_wdata;
+  `endif
   endinterface : Ifc_eclass_axi4lite
   
   (*synthesize*)
@@ -710,5 +742,23 @@ package eclass;
     method counter_values = riscv.counter_values;
   `endif
 `endif
+  `ifdef formal
+    method Bit#(1) rvfi_valid = riscv.rvfi_valid;
+    method Bit#(64) rvfi_order = riscv.rvfi_order;
+    method Bit#(32) rvfi_insn = riscv.rvfi_insn;
+    method Bit#(5)  rvfi_rs1_addr   = riscv.rvfi_rs1_addr;
+    method Bit#(5)  rvfi_rs2_addr   = riscv.rvfi_rs2_addr;
+    method Bit#(5)  rvfi_rd_addr    = riscv.rvfi_rd_addr;
+    method Bit#(32) rvfi_rs1_rdata  = riscv.rvfi_rs1_rdata;
+    method Bit#(32) rvfi_rs2_rdata  = riscv.rvfi_rs2_rdata;
+    method Bit#(32) rvfi_rd_wdata   = riscv.rvfi_rd_wdata;
+    method Bit#(32) rvfi_pc_rdata   = riscv.rvfi_pc_rdata;
+
+    method Bit#(32) rvfi_mem_addr   = riscv.rvfi_mem_addr ;
+    method Bit#(4)  rvfi_mem_rmask  = riscv.rvfi_mem_rmask;
+    method Bit#(4)  rvfi_mem_wmask  = riscv.rvfi_mem_wmask;
+    method Bit#(32) rvfi_mem_rdata  = riscv.rvfi_mem_rdata;
+    method Bit#(32) rvfi_mem_wdata  = riscv.rvfi_mem_wdata;
+  `endif
   endmodule : mkeclass_axi4lite
 endpackage

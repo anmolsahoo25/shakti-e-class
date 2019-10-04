@@ -535,10 +535,28 @@ package decode;
 
     let op_addr = OpAddr{rs1addr : rs1, rs2addr : rs2, rd : rd };
     let op_type = OpType{rs1type : rs1type, rs2type : rs2type };
-    let instr_meta = InstrMeta{inst_type : inst_type, memaccess : mem_access, funct : temp1,
-                              immediate : immediate_value `ifdef RV64, word32: ? `endif };
-    return DecodeOut{op_addr : op_addr, op_type : op_type, meta : instr_meta
-                    `ifdef compressed, compressed : False `endif };
+    let instr_meta = InstrMeta {
+        inst_type : inst_type,
+        memaccess : mem_access,
+        funct : temp1,
+        immediate : immediate_value
+       `ifdef RV64 , word32: ? `endif
+       `ifdef formal
+        , rvfi_insn : inst
+        , pc : 0
+       `endif
+    };
+
+    return DecodeOut {
+        op_addr : op_addr,
+        op_type : op_type,
+        meta : instr_meta
+        `ifdef compressed, compressed : False `endif
+        `ifdef formal
+        , op : STAGE1_operands { op1 : 0, op2 : 0}
+        , rvfi_mem_addr : 0
+        `endif
+    };
   endfunction
   
   (*noinline*)

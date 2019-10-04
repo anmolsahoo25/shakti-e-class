@@ -91,6 +91,9 @@ package csr;
     method Tuple2#(Vector#(`counters, Bit#(XLEN)), Vector#(`counters, Bit#(64))) counter_values;
   `endif
 `endif
+    `ifdef formal
+        method Bit#(64) rvfi_order;
+    `endif
   endinterface : Ifc_csr
 
 
@@ -195,5 +198,8 @@ package csr;
     method counter_values = csrfile.counter_values;
   `endif
 `endif
+    `ifdef formal
+        method Bit#(64) rvfi_order = csrfile.rvfi_order; 
+    `endif
   endmodule
 endpackage

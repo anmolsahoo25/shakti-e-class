@@ -457,6 +457,10 @@ package stage1;
                                                       && wr_debug_info.debugger_available;
       `endif
         ff_stage1_operands.u.enq(_ops);
+        `ifdef formal
+          y.op = _ops;
+          y.meta.pc = rg_pc;
+        `endif
         ff_stage1_meta.u.enq(y);
         ff_stage1_control.u.enq(STAGE1_control{ epoch : curr_epoch, pc : rg_pc});
       `ifdef rtldump
